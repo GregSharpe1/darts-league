@@ -1,0 +1,9 @@
+backend/bin/
+frontend/node_modules/
+frontend/dist/
+frontend/.vitest/
+frontend/playwright-report/
+frontend/test-results/
+*.log
+.env
+.env.*
