@@ -1,0 +1,83 @@
+:root {
+  --color-bg: #090909;
+  --color-surface: #121314;
+  --color-surface-raised: #1a1b1e;
+  --color-text: #f6f1eb;
+  --color-muted: #a29d97;
+  --color-accent: #ff5b5b;
+  --color-accent-soft: #ffb0b0;
+  --shadow-panel: 0 1.4rem 3rem rgba(0, 0, 0, 0.34);
+  --font-body: 'Barlow', 'Segoe UI', sans-serif;
+  --font-display: 'Rajdhani', 'Arial Narrow', sans-serif;
+
+  color: var(--color-text);
+  background: var(--color-bg);
+  font-family: var(--font-body);
+  font-size: 18px;
+  line-height: 1.5;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  background: #090909;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+a,
+button,
+input {
+  font: inherit;
+}
+
+h1,
+h2,
+h3,
+strong,
+th {
+  font-family: var(--font-display);
+  letter-spacing: 0.03em;
+}
+
+h1,
+h2,
+h3,
+p {
+  margin: 0;
+}
+
+img {
+  max-width: 100%;
+}
+
+button {
+  cursor: pointer;
+}
+
+input:focus,
+button:focus,
+a:focus {
+  outline: 2px solid rgba(255, 91, 91, 0.65);
+  outline-offset: 2px;
+}
+
+@media (max-width: 640px) {
+  :root {
+    font-size: 16px;
+  }
+}

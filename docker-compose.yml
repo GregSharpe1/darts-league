@@ -1,0 +1,51 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: darts-league-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: darts_league
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - darts_league_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d darts_league"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build:
+      context: ./backend
+    container_name: darts-league-backend
+    restart: unless-stopped
+    environment:
+      HTTP_ADDRESS: ":8080"
+      DATABASE_URL: postgres://postgres:postgres@postgres:5432/darts_league?sslmode=disable
+      APP_TIMEZONE: Europe/London
+      # APP_NOW: "2026-04-10T10:00:00Z"
+      ADMIN_USERNAME: admin
+      ADMIN_PASSWORD: change-me
+      ADMIN_SESSION_SECRET: dev-admin-session-secret
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "8080:8080"
+
+  frontend:
+    build:
+      context: ./frontend
+    container_name: darts-league-frontend
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_started
+    ports:
+      - "4173:80"
+
+volumes:
+  darts_league_postgres_data:
