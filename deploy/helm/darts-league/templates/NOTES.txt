@@ -1,0 +1,19 @@
+1. Set application image repositories and tags before installing this chart.
+
+   Example:
+   helm upgrade --install {{ .Release.Name }} {{ .Chart.Name }} \
+     --set frontend.image.repository=your-registry/darts-league-frontend \
+     --set frontend.image.tag=latest \
+     --set backend.image.repository=your-registry/darts-league-backend \
+     --set backend.image.tag=latest
+
+2. If you enable ingress, you must supply ingress.hosts and any TLS entries.
+
+3. External PostgreSQL is the recommended production path. If postgres.enabled is false,
+   provide externalDatabase.host or externalDatabase.existingSecret.
+
+4. The frontend service is available at:
+   http://{{ include "darts-league.frontendName" . }}.{{ .Release.Namespace }}.svc.cluster.local:{{ .Values.frontend.service.port }}
+
+5. The backend health endpoint is available at:
+   http://{{ include "darts-league.backendName" . }}.{{ .Release.Namespace }}.svc.cluster.local:{{ .Values.backend.service.port }}/healthz

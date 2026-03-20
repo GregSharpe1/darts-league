@@ -1,0 +1,51 @@
+# Development-oriented values that align more closely with docker-compose.
+#
+# Before installing, set image repositories and tags for both frontend and
+# backend. If you enable ingress, you must provide ingress.hosts explicitly.
+
+frontend:
+  image:
+    repository: darts-league-frontend
+    tag: latest
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 200m
+      memory: 128Mi
+
+backend:
+  image:
+    repository: darts-league-backend
+    tag: latest
+  auth:
+    username: admin
+    password: change-me
+    sessionSecret: dev-admin-session-secret
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 300m
+      memory: 192Mi
+
+postgres:
+  enabled: true
+  auth:
+    username: postgres
+    password: postgres
+    database: darts_league
+  persistence:
+    size: 2Gi
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      cpu: 300m
+      memory: 256Mi
+
+externalDatabase:
+  host: ""

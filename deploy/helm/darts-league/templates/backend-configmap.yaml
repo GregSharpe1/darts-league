@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "darts-league.backendName" . }}
+  labels:
+    {{- include "darts-league.backendLabels" . | nindent 4 }}
+data:
+  HTTP_ADDRESS: {{ .Values.backend.env.httpAddress | quote }}
+  APP_TIMEZONE: {{ .Values.backend.env.appTimezone | quote }}
+  {{- if .Values.backend.env.appNow }}
+  APP_NOW: {{ .Values.backend.env.appNow | quote }}
+  {{- end }}
