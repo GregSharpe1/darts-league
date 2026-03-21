@@ -1,0 +1,175 @@
+# Default production-oriented values for darts-league.
+#
+# This chart deploys the frontend and backend by default.
+# PostgreSQL is available as an optional in-cluster dependency for development
+# and smaller environments, but production should prefer an external managed
+# database.
+
+global:
+  imagePullSecrets: []
+  labels: {}
+  podAnnotations: {}
+
+frontend:
+  replicaCount: 1
+  image:
+    repository: "ghcr.io/gregsharpe1/darts-league-frontend"
+    tag: "0.0.1"
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    port: 80
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 300m
+      memory: 256Mi
+  podSecurityContext: {}
+  securityContext: {}
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
+backend:
+  replicaCount: 1
+  image:
+    repository: "ghcr.io/gregsharpe1/darts-league-backend"
+    tag: "0.0.1"
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    port: 8080
+  env:
+    httpAddress: ":8080"
+    appTimezone: Europe/London
+    appNow: ""
+  auth:
+    existingSecret: ""
+    existingSecretKeys:
+      username: ADMIN_USERNAME
+      password: ADMIN_PASSWORD
+      sessionSecret: ADMIN_SESSION_SECRET
+    username: admin
+    password: change-me
+    sessionSecret: change-this-session-secret
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 256Mi
+  podSecurityContext:
+    fsGroup: 10001
+    seccompProfile:
+      type: RuntimeDefault
+  securityContext:
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop:
+        - ALL
+    readOnlyRootFilesystem: true
+    runAsNonRoot: true
+    runAsUser: 10001
+    runAsGroup: 10001
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
+externalDatabase:
+  # Production recommendation: use an external managed database and provide
+  # connectivity details here or through an existing Secret.
+  host: ""
+  port: 5432
+  name: darts_league
+  user: postgres
+  password: postgres
+  sslmode: disable
+  existingSecret: ""
+  existingSecretKey: DATABASE_URL
+
+postgres:
+  enabled: false
+  image:
+    repository: postgres
+    tag: "16-alpine"
+    pullPolicy: IfNotPresent
+  env:
+    pgdata: /var/lib/postgresql/data/pgdata
+  service:
+    port: 5432
+  auth:
+    existingSecret: ""
+    existingSecretKeys:
+      username: POSTGRES_USER
+      password: POSTGRES_PASSWORD
+      database: POSTGRES_DB
+    username: postgres
+    password: postgres
+    database: darts_league
+  persistence:
+    enabled: true
+    accessModes:
+      - ReadWriteOnce
+    size: 8Gi
+    storageClass: ""
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+  podSecurityContext:
+    fsGroup: 999
+    fsGroupChangePolicy: OnRootMismatch
+  securityContext:
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop:
+        - ALL
+    readOnlyRootFilesystem: false
+    runAsNonRoot: true
+    runAsUser: 999
+    runAsGroup: 999
+    seccompProfile:
+      type: RuntimeDefault
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  hosts:
+    - host: chart-example.local
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+
+istio:
+  enabled: false
+  gateway:
+    name: ""
+    selector:
+      istio: ingressgateway
+    servers:
+      - port:
+          number: 80
+          name: http
+          protocol: HTTP
+        hosts: []
+  virtualService:
+    hosts: []
+    gateways: []
+    http:
+      - match:
+          - uri:
+              prefix: /
+
+networkPolicy:
+  enabled: false

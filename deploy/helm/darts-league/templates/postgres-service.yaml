@@ -1,0 +1,17 @@
+{{- if .Values.postgres.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "darts-league.postgresName" . }}
+  labels:
+    {{- include "darts-league.postgresLabels" . | nindent 4 }}
+spec:
+  type: ClusterIP
+  ports:
+    - name: postgres
+      port: {{ .Values.postgres.service.port }}
+      targetPort: postgres
+      protocol: TCP
+  selector:
+    {{- include "darts-league.postgresSelectorLabels" . | nindent 4 }}
+{{- end }}

@@ -1,0 +1,64 @@
+# Development-oriented values that align more closely with docker-compose.
+#
+# Before installing, set image repositories and tags for both frontend and
+# backend. If you enable ingress, you must provide ingress.hosts explicitly.
+
+frontend:
+  image:
+    repository: "ghcr.io/gregsharpe1/darts-league-frontend"
+    tag: "v0.0.1"
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 200m
+      memory: 128Mi
+
+backend:
+  image:
+    repository: "ghcr.io/gregsharpe1/darts-league-backend"
+    tag: "v0.0.1"
+  auth:
+    username: admin
+    password: change-me
+    sessionSecret: dev-admin-session-secret
+  env:
+    appNow: "2026-04-14T10:00:00Z"
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 300m
+      memory: 192Mi
+
+postgres:
+  enabled: true
+  env:
+    pgdata: /var/lib/postgresql/data/pgdata
+  auth:
+    username: postgres
+    password: postgres
+    database: darts_league
+  persistence:
+    size: 512Mi
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      cpu: 300m
+      memory: 256Mi
+
+externalDatabase:
+  host: ""
+
+ingress:
+  enabled: false
+
+istio:
+  enabled: true
+  virtualService:
+    hosts:
+      - darts.k8s.sharpe.wales

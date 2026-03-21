@@ -1,0 +1,100 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "darts-league.backendName" . }}
+  labels:
+    {{- include "darts-league.backendLabels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.backend.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "darts-league.backendSelectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "darts-league.backendSelectorLabels" . | nindent 8 }}
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/backend-configmap.yaml") . | sha256sum }}
+        checksum/auth-secret: {{ if .Values.backend.auth.existingSecret }}"external-secret"{{ else }}{{ include (print $.Template.BasePath "/backend-auth-secret.yaml") . | sha256sum | quote }}{{ end }}
+        checksum/db-secret: {{ if .Values.postgres.enabled }}"postgres-generated"{{ else if .Values.externalDatabase.existingSecret }}"external-secret"{{ else }}{{ include (print $.Template.BasePath "/backend-db-secret.yaml") . | sha256sum | quote }}{{ end }}
+        {{- with .Values.global.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      {{- with .Values.global.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      securityContext:
+        {{- toYaml .Values.backend.podSecurityContext | nindent 8 }}
+      containers:
+        - name: backend
+          image: {{ include "darts-league.backendImage" . }}
+          imagePullPolicy: {{ .Values.backend.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          envFrom:
+            - configMapRef:
+                name: {{ include "darts-league.backendName" . }}
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  {{- if .Values.postgres.enabled }}
+                  name: {{ include "darts-league.postgresSecretName" . }}
+                  key: DATABASE_URL
+                  {{- else }}
+                  name: {{ include "darts-league.backendDatabaseSecretName" . }}
+                  key: {{ default "DATABASE_URL" .Values.externalDatabase.existingSecretKey }}
+                  {{- end }}
+            - name: ADMIN_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "darts-league.backendAuthSecretName" . }}
+                  key: {{ .Values.backend.auth.existingSecretKeys.username }}
+            - name: ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "darts-league.backendAuthSecretName" . }}
+                  key: {{ .Values.backend.auth.existingSecretKeys.password }}
+            - name: ADMIN_SESSION_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "darts-league.backendAuthSecretName" . }}
+                  key: {{ .Values.backend.auth.existingSecretKeys.sessionSecret }}
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 20
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            {{- toYaml .Values.backend.resources | nindent 12 }}
+          securityContext:
+            {{- toYaml .Values.backend.securityContext | nindent 12 }}
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir: {}
+      {{- with .Values.backend.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.backend.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.backend.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

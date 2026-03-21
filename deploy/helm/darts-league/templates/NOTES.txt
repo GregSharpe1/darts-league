@@ -1,0 +1,27 @@
+1. Set application image repositories and tags before installing this chart.
+
+   Example:
+   helm upgrade --install {{ .Release.Name }} {{ .Chart.Name }} \
+     --set frontend.image.repository=your-registry/darts-league-frontend \
+     --set frontend.image.tag=latest \
+     --set backend.image.repository=your-registry/darts-league-backend \
+     --set backend.image.tag=latest
+
+2. This chart enables a Kubernetes Ingress by default. Override the example host
+   in ingress.hosts before production use.
+
+3. If you want to use Istio instead, disable ingress and enable istio.
+
+   Example:
+   --set ingress.enabled=false \
+   --set istio.enabled=true \
+   --set istio.virtualService.hosts[0]=darts.k8s.sharpe.wales
+
+4. External PostgreSQL is the recommended production path. If postgres.enabled is false,
+   provide externalDatabase.host or externalDatabase.existingSecret.
+
+5. The frontend service is available at:
+   http://{{ include "darts-league.frontendName" . }}.{{ .Release.Namespace }}.svc.cluster.local:{{ .Values.frontend.service.port }}
+
+6. The backend health endpoint is available at:
+   http://{{ include "darts-league.backendName" . }}.{{ .Release.Namespace }}.svc.cluster.local:{{ .Values.backend.service.port }}/healthz

@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "darts-league.frontendName" . }}-nginx
+  labels:
+    {{- include "darts-league.frontendLabels" . | nindent 4 }}
+data:
+  default.conf: |
+    {{- include "darts-league.frontendNginxConfig" . | nindent 4 }}

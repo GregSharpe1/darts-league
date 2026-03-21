@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: {{ include "darts-league.fullname" . }}-test-connection
+  labels:
+    {{- include "darts-league.labels" . | nindent 4 }}
+  annotations:
+    "helm.sh/hook": test
+spec:
+  restartPolicy: Never
+  containers:
+    - name: wget
+      image: busybox:1.36
+      command:
+        - sh
+        - -c
+        - |
+          wget -qO- http://{{ include "darts-league.frontendName" . }}:{{ .Values.frontend.service.port }}/ >/dev/null
+          wget -qO- http://{{ include "darts-league.backendName" . }}:{{ .Values.backend.service.port }}/healthz >/dev/null

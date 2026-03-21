@@ -1,0 +1,60 @@
+{{- if .Values.istio.enabled }}
+{{- $gatewayName := default (printf "%s-gateway" (include "darts-league.fullname" .)) .Values.istio.gateway.name }}
+{{- $vsHosts := .Values.istio.virtualService.hosts }}
+{{- if eq (len $vsHosts) 0 }}
+{{- fail "istio.virtualService.hosts must be set when istio.enabled=true" }}
+{{- end }}
+apiVersion: networking.istio.io/v1beta1
+kind: Gateway
+metadata:
+  name: {{ $gatewayName }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "darts-league.labels" . | nindent 4 }}
+spec:
+  selector:
+    {{- toYaml .Values.istio.gateway.selector | nindent 4 }}
+  servers:
+    {{- range .Values.istio.gateway.servers }}
+    - port:
+        number: {{ .port.number }}
+        name: {{ .port.name }}
+        protocol: {{ .port.protocol }}
+      hosts:
+        {{- if gt (len .hosts) 0 }}
+        {{- toYaml .hosts | nindent 8 }}
+        {{- else }}
+        {{- toYaml $vsHosts | nindent 8 }}
+        {{- end }}
+    {{- end }}
+---
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: {{ include "darts-league.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "darts-league.labels" . | nindent 4 }}
+spec:
+  hosts:
+    {{- toYaml $vsHosts | nindent 4 }}
+  gateways:
+    {{- if gt (len .Values.istio.virtualService.gateways) 0 }}
+    {{- toYaml .Values.istio.virtualService.gateways | nindent 4 }}
+    {{- else }}
+    - {{ printf "%s/%s" .Release.Namespace $gatewayName | quote }}
+    {{- end }}
+  http:
+    {{- range .Values.istio.virtualService.http }}
+    -
+      {{- if .match }}
+      match:
+        {{- toYaml .match | nindent 8 }}
+      {{- end }}
+      route:
+        - destination:
+            host: {{ include "darts-league.frontendName" $ }}.{{ $.Release.Namespace }}.svc.cluster.local
+            port:
+              number: {{ $.Values.frontend.service.port }}
+    {{- end }}
+{{- end }}
