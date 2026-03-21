@@ -1,0 +1,276 @@
+name: Container Images
+
+on:
+  pull_request:
+  release:
+    types:
+      - published
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: container-images-${{ github.event_name }}-${{ github.event.pull_request.number || github.event.release.tag_name || github.ref }}
+  cancel-in-progress: true
+
+env:
+  REGISTRY: ghcr.io
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    outputs:
+      short_sha: ${{ steps.vars.outputs.short_sha }}
+      image_namespace: ${{ steps.vars.outputs.image_namespace }}
+      publish_pr: ${{ steps.vars.outputs.publish_pr }}
+      publish_backend_pr: ${{ steps.vars.outputs.publish_backend_pr }}
+      publish_frontend_pr: ${{ steps.vars.outputs.publish_frontend_pr }}
+      release_tag: ${{ steps.vars.outputs.release_tag }}
+      latest_tag_enabled: ${{ steps.vars.outputs.latest_tag_enabled }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Compute workflow variables
+        id: vars
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha || '' }}
+          GITHUB_SHA: ${{ github.sha }}
+          REPOSITORY_OWNER: ${{ github.repository_owner }}
+          PR_HEAD_REPO: ${{ github.event.pull_request.head.repo.full_name || '' }}
+          REPOSITORY_NAME: ${{ github.repository }}
+          RELEASE_TAG: ${{ github.event.release.tag_name || '' }}
+          RELEASE_PRERELEASE: ${{ github.event.release.prerelease || false }}
+        run: |
+          echo "short_sha=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+          echo "image_namespace=${REPOSITORY_OWNER,,}" >> "$GITHUB_OUTPUT"
+
+          if [ "$EVENT_NAME" = "pull_request" ] && [ "$PR_HEAD_REPO" = "$REPOSITORY_NAME" ]; then
+            echo "publish_pr=true" >> "$GITHUB_OUTPUT"
+
+            changed_files=$(git diff --name-only "$BASE_SHA" "$GITHUB_SHA")
+
+            if printf '%s\n' "$changed_files" | grep -q '^backend/'; then
+              echo "publish_backend_pr=true" >> "$GITHUB_OUTPUT"
+            else
+              echo "publish_backend_pr=false" >> "$GITHUB_OUTPUT"
+            fi
+
+            if printf '%s\n' "$changed_files" | grep -q '^frontend/'; then
+              echo "publish_frontend_pr=true" >> "$GITHUB_OUTPUT"
+            else
+              echo "publish_frontend_pr=false" >> "$GITHUB_OUTPUT"
+            fi
+          else
+            echo "publish_pr=false" >> "$GITHUB_OUTPUT"
+            echo "publish_backend_pr=false" >> "$GITHUB_OUTPUT"
+            echo "publish_frontend_pr=false" >> "$GITHUB_OUTPUT"
+          fi
+
+          echo "release_tag=$RELEASE_TAG" >> "$GITHUB_OUTPUT"
+
+          if [ "$EVENT_NAME" = "release" ] && [ "$RELEASE_PRERELEASE" = "false" ]; then
+            echo "latest_tag_enabled=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "latest_tag_enabled=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  verify:
+    runs-on: ubuntu-latest
+    needs: prepare
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v5
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: backend/go.mod
+          cache-dependency-path: backend/go.sum
+
+      - name: Run backend tests
+        working-directory: backend
+        run: go test ./...
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Run frontend tests
+        working-directory: frontend
+        run: npm test
+
+      - name: Build frontend
+        working-directory: frontend
+        run: npm run build
+
+  publish-backend-pr:
+    runs-on: ubuntu-latest
+    needs:
+      - prepare
+      - verify
+    if: github.event_name == 'pull_request' && needs.prepare.outputs.publish_backend_pr == 'true'
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v5
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract backend image metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ needs.prepare.outputs.image_namespace }}/darts-league-backend
+          tags: |
+            type=raw,value=pr-${{ github.event.pull_request.number }}-${{ needs.prepare.outputs.short_sha }}
+            type=raw,value=pr-${{ github.event.pull_request.number }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push backend image
+        uses: docker/build-push-action@v6
+        with:
+          context: backend
+          file: backend/Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha,scope=backend
+          cache-to: type=gha,mode=max,scope=backend
+
+  publish-frontend-pr:
+    runs-on: ubuntu-latest
+    needs:
+      - prepare
+      - verify
+    if: github.event_name == 'pull_request' && needs.prepare.outputs.publish_frontend_pr == 'true'
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v5
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract frontend image metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ needs.prepare.outputs.image_namespace }}/darts-league-frontend
+          tags: |
+            type=raw,value=pr-${{ github.event.pull_request.number }}-${{ needs.prepare.outputs.short_sha }}
+            type=raw,value=pr-${{ github.event.pull_request.number }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push frontend image
+        uses: docker/build-push-action@v6
+        with:
+          context: frontend
+          file: frontend/Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha,scope=frontend
+          cache-to: type=gha,mode=max,scope=frontend
+
+  publish-backend-release:
+    runs-on: ubuntu-latest
+    needs:
+      - prepare
+      - verify
+    if: github.event_name == 'release'
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v5
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract backend release image metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ needs.prepare.outputs.image_namespace }}/darts-league-backend
+          tags: |
+            type=raw,value=${{ needs.prepare.outputs.release_tag }}
+            type=raw,value=latest,enable=${{ needs.prepare.outputs.latest_tag_enabled == 'true' }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push backend release image
+        uses: docker/build-push-action@v6
+        with:
+          context: backend
+          file: backend/Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha,scope=backend
+          cache-to: type=gha,mode=max,scope=backend
+
+  publish-frontend-release:
+    runs-on: ubuntu-latest
+    needs:
+      - prepare
+      - verify
+    if: github.event_name == 'release'
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v5
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract frontend release image metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ needs.prepare.outputs.image_namespace }}/darts-league-frontend
+          tags: |
+            type=raw,value=${{ needs.prepare.outputs.release_tag }}
+            type=raw,value=latest,enable=${{ needs.prepare.outputs.latest_tag_enabled == 'true' }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push frontend release image
+        uses: docker/build-push-action@v6
+        with:
+          context: frontend
+          file: frontend/Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha,scope=frontend
+          cache-to: type=gha,mode=max,scope=frontend
