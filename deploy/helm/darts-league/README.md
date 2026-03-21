@@ -25,7 +25,8 @@ backend:
     tag: "2026-03-20"
 ```
 
-If enabling ingress, you must also provide hostnames:
+The chart defaults to a standard Kubernetes `Ingress` resource. Override the
+default host before production use:
 
 ```yaml
 ingress:
@@ -35,6 +36,20 @@ ingress:
       paths:
         - path: /
           pathType: Prefix
+```
+
+For Istio-based ingress, disable the standard `Ingress` and enable the Istio
+resources instead:
+
+```yaml
+ingress:
+  enabled: false
+
+istio:
+  enabled: true
+  virtualService:
+    hosts:
+      - darts.k8s.sharpe.wales
 ```
 
 ## Database options
@@ -66,6 +81,10 @@ postgres:
   enabled: true
 ```
 
+The bundled PostgreSQL chart stores its cluster data under a dedicated `PGDATA`
+subdirectory so mounted volumes do not fail on `lost+found`, and it applies an
+`fsGroup` compatible with the upstream `postgres` image.
+
 ## Notes
 
 - The frontend proxies `/api` traffic to the backend service through nginx.
@@ -73,3 +92,24 @@ postgres:
 - The backend application can fall back to an in-memory store if database
   connectivity is missing; treat this as unsafe for production and validate DB
   configuration carefully.
+- The chart can expose the app either through a Kubernetes `Ingress` or through
+  Istio `Gateway` and `VirtualService` resources.
+- The Istio path is HTTP-only by default and routes traffic to the frontend
+  service, which then proxies `/api` traffic to the backend.
+
+## Makefile workflow
+
+From `deploy/`, you can manage the chart with the local Makefile:
+
+```bash
+make helm-lint
+make helm-template
+make helm-diff
+make helm-deploy
+```
+
+You can override the default release, namespace, or values file:
+
+```bash
+make helm-deploy RELEASE_NAME=darts-league-dev NAMESPACE=darts-dev VALUES_FILE=helm/darts-league/values-dev.yaml
+```

@@ -35,6 +35,8 @@ spec:
               containerPort: 5432
               protocol: TCP
           env:
+            - name: PGDATA
+              value: {{ .Values.postgres.env.pgdata | quote }}
             - name: POSTGRES_USER
               valueFrom:
                 secretKeyRef:

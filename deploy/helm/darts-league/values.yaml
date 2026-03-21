@@ -13,8 +13,8 @@ global:
 frontend:
   replicaCount: 1
   image:
-    repository: ""
-    tag: ""
+    repository: "ghcr.io/gregsharpe1/darts-league-frontend"
+    tag: "0.0.1"
     pullPolicy: IfNotPresent
   service:
     type: ClusterIP
@@ -35,8 +35,8 @@ frontend:
 backend:
   replicaCount: 1
   image:
-    repository: ""
-    tag: ""
+    repository: "ghcr.io/gregsharpe1/darts-league-backend"
+    tag: "0.0.1"
     pullPolicy: IfNotPresent
   service:
     type: ClusterIP
@@ -96,6 +96,8 @@ postgres:
     repository: postgres
     tag: "16-alpine"
     pullPolicy: IfNotPresent
+  env:
+    pgdata: /var/lib/postgresql/data/pgdata
   service:
     port: 5432
   auth:
@@ -120,13 +122,18 @@ postgres:
     limits:
       cpu: 500m
       memory: 512Mi
-  podSecurityContext: {}
+  podSecurityContext:
+    fsGroup: 999
+    fsGroupChangePolicy: OnRootMismatch
   securityContext:
     allowPrivilegeEscalation: false
     capabilities:
       drop:
         - ALL
     readOnlyRootFilesystem: false
+    runAsNonRoot: true
+    runAsUser: 999
+    runAsGroup: 999
     seccompProfile:
       type: RuntimeDefault
   nodeSelector: {}
@@ -137,8 +144,32 @@ ingress:
   enabled: false
   className: ""
   annotations: {}
-  hosts: []
+  hosts:
+    - host: chart-example.local
+      paths:
+        - path: /
+          pathType: Prefix
   tls: []
+
+istio:
+  enabled: false
+  gateway:
+    name: ""
+    selector:
+      istio: ingressgateway
+    servers:
+      - port:
+          number: 80
+          name: http
+          protocol: HTTP
+        hosts: []
+  virtualService:
+    hosts: []
+    gateways: []
+    http:
+      - match:
+          - uri:
+              prefix: /
 
 networkPolicy:
   enabled: false

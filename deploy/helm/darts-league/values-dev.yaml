@@ -5,8 +5,8 @@
 
 frontend:
   image:
-    repository: darts-league-frontend
-    tag: latest
+    repository: "ghcr.io/gregsharpe1/darts-league-frontend"
+    tag: "v0.0.1"
   resources:
     requests:
       cpu: 50m
@@ -17,12 +17,14 @@ frontend:
 
 backend:
   image:
-    repository: darts-league-backend
-    tag: latest
+    repository: "ghcr.io/gregsharpe1/darts-league-backend"
+    tag: "v0.0.1"
   auth:
     username: admin
     password: change-me
     sessionSecret: dev-admin-session-secret
+  env:
+    appNow: "2026-04-14T10:00:00Z"
   resources:
     requests:
       cpu: 50m
@@ -33,12 +35,14 @@ backend:
 
 postgres:
   enabled: true
+  env:
+    pgdata: /var/lib/postgresql/data/pgdata
   auth:
     username: postgres
     password: postgres
     database: darts_league
   persistence:
-    size: 2Gi
+    size: 512Mi
   resources:
     requests:
       cpu: 50m
@@ -49,3 +53,12 @@ postgres:
 
 externalDatabase:
   host: ""
+
+ingress:
+  enabled: false
+
+istio:
+  enabled: true
+  virtualService:
+    hosts:
+      - darts.k8s.sharpe.wales
