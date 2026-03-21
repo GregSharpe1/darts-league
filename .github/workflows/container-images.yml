@@ -24,13 +24,21 @@ jobs:
       short_sha: ${{ steps.vars.outputs.short_sha }}
       image_namespace: ${{ steps.vars.outputs.image_namespace }}
       publish_pr: ${{ steps.vars.outputs.publish_pr }}
+      publish_backend_pr: ${{ steps.vars.outputs.publish_backend_pr }}
+      publish_frontend_pr: ${{ steps.vars.outputs.publish_frontend_pr }}
       release_tag: ${{ steps.vars.outputs.release_tag }}
       latest_tag_enabled: ${{ steps.vars.outputs.latest_tag_enabled }}
     steps:
+      - name: Check out repository
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
       - name: Compute workflow variables
         id: vars
         env:
           EVENT_NAME: ${{ github.event_name }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha || '' }}
           GITHUB_SHA: ${{ github.sha }}
           REPOSITORY_OWNER: ${{ github.repository_owner }}
           PR_HEAD_REPO: ${{ github.event.pull_request.head.repo.full_name || '' }}
@@ -43,8 +51,24 @@ jobs:
 
           if [ "$EVENT_NAME" = "pull_request" ] && [ "$PR_HEAD_REPO" = "$REPOSITORY_NAME" ]; then
             echo "publish_pr=true" >> "$GITHUB_OUTPUT"
+
+            changed_files=$(git diff --name-only "$BASE_SHA" "$GITHUB_SHA")
+
+            if printf '%s\n' "$changed_files" | grep -q '^backend/'; then
+              echo "publish_backend_pr=true" >> "$GITHUB_OUTPUT"
+            else
+              echo "publish_backend_pr=false" >> "$GITHUB_OUTPUT"
+            fi
+
+            if printf '%s\n' "$changed_files" | grep -q '^frontend/'; then
+              echo "publish_frontend_pr=true" >> "$GITHUB_OUTPUT"
+            else
+              echo "publish_frontend_pr=false" >> "$GITHUB_OUTPUT"
+            fi
           else
             echo "publish_pr=false" >> "$GITHUB_OUTPUT"
+            echo "publish_backend_pr=false" >> "$GITHUB_OUTPUT"
+            echo "publish_frontend_pr=false" >> "$GITHUB_OUTPUT"
           fi
 
           echo "release_tag=$RELEASE_TAG" >> "$GITHUB_OUTPUT"
@@ -96,7 +120,7 @@ jobs:
     needs:
       - prepare
       - verify
-    if: github.event_name == 'pull_request' && needs.prepare.outputs.publish_pr == 'true'
+    if: github.event_name == 'pull_request' && needs.prepare.outputs.publish_backend_pr == 'true'
     steps:
       - name: Check out repository
         uses: actions/checkout@v5
@@ -136,7 +160,7 @@ jobs:
     needs:
       - prepare
       - verify
-    if: github.event_name == 'pull_request' && needs.prepare.outputs.publish_pr == 'true'
+    if: github.event_name == 'pull_request' && needs.prepare.outputs.publish_frontend_pr == 'true'
     steps:
       - name: Check out repository
         uses: actions/checkout@v5

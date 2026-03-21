@@ -143,7 +143,7 @@ npm run test:e2e
 
 GitHub Actions publishes Docker images for the backend and frontend to GitHub Container Registry (`ghcr.io`).
 
-- Pull requests opened from branches in this repository publish preview images tagged as `pr-<number>-<shortsha>` and `pr-<number>`
+- Pull requests opened from branches in this repository publish preview images tagged as `pr-<number>-<shortsha>` and `pr-<number>` only for components changed under `backend/` or `frontend/`
 - Published GitHub releases publish clean versioned images tagged with the release tag
 - Stable releases also publish a `latest` tag; prereleases do not
 
