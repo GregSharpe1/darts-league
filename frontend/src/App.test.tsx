@@ -15,6 +15,7 @@ describe('App', () => {
       if (path === '/api/season') {
         return response({
           id: 1,
+          instance_name: 'Cardiff Office - Darts League',
           name: 'MVP Season',
           status: state.seasonStarted ? 'started' : 'registration_open',
           timezone: 'Europe/London',
@@ -109,7 +110,7 @@ describe('App', () => {
 
       if (path === '/api/admin/season/start' && method === 'POST') {
         state.seasonStarted = true
-        return response({ id: 1, name: 'MVP Season', status: 'started', timezone: 'Europe/London', registration_open: false, player_count: 4, week_count: 3 })
+        return response({ id: 1, instance_name: 'Cardiff Office - Darts League', name: 'MVP Season', status: 'started', timezone: 'Europe/London', registration_open: false, player_count: 4, week_count: 3 })
       }
 
       if (path.startsWith('/api/admin/players/') && method === 'DELETE') {
@@ -152,6 +153,10 @@ describe('App', () => {
     expect(screen.getByText(/arrange within the week/i)).toBeInTheDocument()
     expect(screen.getByText(/i knew you'd look vs nothing to see here/i)).toBeInTheDocument()
     expect(screen.getByText(/players registered before the season start action/i)).toBeInTheDocument()
+    expect(screen.getByText(/cardiff office - darts league/i)).toBeInTheDocument()
+    await waitFor(() => {
+      expect(document.title).toBe('Cardiff Office - Darts League')
+    })
   })
 
   it('gates admin tools behind login and reveals live admin data after authentication', async () => {

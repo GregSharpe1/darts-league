@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import type { FormEvent } from 'react'
 import { NavLink, Route, Routes } from 'react-router-dom'
 import './App.css'
@@ -24,6 +24,11 @@ import type { AdminFixture, AuditEntry, Player } from './lib/api'
 
 function App() {
   const seasonQuery = useSeasonSummary()
+  const instanceName = seasonQuery.data?.instance_name ?? 'Darts League'
+
+  useEffect(() => {
+    document.title = instanceName
+  }, [instanceName])
 
   return (
     <div className="app-shell">
@@ -31,7 +36,7 @@ function App() {
         <div className="brand-mark">
           <div className="brand-badge" aria-hidden="true" />
           <div className="brand-copy">
-            <strong>Darts League</strong>
+            <strong>{instanceName}</strong>
             <span>Monday unlocks. Saturday bragging rights.</span>
           </div>
         </div>

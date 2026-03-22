@@ -115,7 +115,7 @@ func TestProtectedEditUsesSessionActorForAudit(t *testing.T) {
 	store := league.NewMemoryStore()
 	auth := NewAuthHandlerWithNow("admin", "secret", "test-secret", clock)
 	registration := NewRegistrationHandler(league.NewRegistrationServiceWithNow(store, clock))
-	season := NewSeasonHandler(league.NewSeasonServiceWithNow(store, clock), league.NewFixtureServiceWithNow(store, clock))
+	season := NewSeasonHandler(league.NewSeasonServiceWithNow(store, clock), league.NewFixtureServiceWithNow(store, clock), "Darts League")
 	results := NewResultHandler(league.NewResultServiceWithNow(store, clock))
 	mux := http.NewServeMux()
 	auth.RegisterRoutes(mux)

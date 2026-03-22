@@ -25,6 +25,9 @@ func TestSeasonSummaryShowsRegistrationOpenState(t *testing.T) {
 	if response.Status != string(league.SeasonStatusRegistrationOpen) {
 		t.Fatalf("expected registration_open status, got %q", response.Status)
 	}
+	if response.InstanceName != "Cardiff Office - Darts League" {
+		t.Fatalf("expected instance name in response, got %q", response.InstanceName)
+	}
 	if !response.RegistrationOpen {
 		t.Fatal("expected registration to be open")
 	}
@@ -45,6 +48,9 @@ func TestSeasonStartGeneratesFixturesAndClosesRegistration(t *testing.T) {
 
 	if response.Status != string(league.SeasonStatusStarted) {
 		t.Fatalf("expected started status, got %q", response.Status)
+	}
+	if response.InstanceName != "Cardiff Office - Darts League" {
+		t.Fatalf("expected instance name in start response, got %q", response.InstanceName)
 	}
 	if response.RegistrationOpen {
 		t.Fatal("expected registration to be closed after season start")
@@ -198,7 +204,7 @@ func newSeasonHandlerWithNow(now time.Time) seasonHandlerBundle {
 	seasons := league.NewSeasonServiceWithNow(store, clock.Now)
 	fixtures := league.NewFixtureServiceWithNow(store, clock.Now)
 	registrationHandler := NewRegistrationHandler(registration)
-	seasonHandler := NewSeasonHandler(seasons, fixtures)
+	seasonHandler := NewSeasonHandler(seasons, fixtures, "Cardiff Office - Darts League")
 	return seasonHandlerBundle{store: store, clock: clock, registration: registrationHandler, season: seasonHandler}
 }
 

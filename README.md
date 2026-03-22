@@ -67,6 +67,7 @@ Notes:
 
 - The backend is exposed on `http://localhost:8080`
 - Postgres is exposed on `localhost:5432`
+- Set `INSTANCE_NAME` to label the deployment in the UI, for example `Cardiff Office - Darts League`
 - `docker-compose.yml` currently sets `APP_NOW` so the app simulates a later unlocked week for demo purposes
 
 ### Option 2: Mixed host development
@@ -119,6 +120,13 @@ Default local credentials from `docker-compose.yml`:
 
 - Username: `admin`
 - Password: `change-me`
+
+## Instance Naming
+
+Use `INSTANCE_NAME` to label a deployment in the UI and browser title.
+
+- Example: `Cardiff Office - Darts League`
+- If unset, the app falls back to `Darts League`
 
 ## Slack Integration
 

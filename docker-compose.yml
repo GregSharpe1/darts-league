@@ -25,11 +25,15 @@ services:
     environment:
       HTTP_ADDRESS: ":8080"
       DATABASE_URL: postgres://postgres:postgres@postgres:5432/darts_league?sslmode=disable
+      INSTANCE_NAME: "Cardiff Office - Darts League"
       APP_TIMEZONE: Europe/London
-      # APP_NOW: "2026-04-10T10:00:00Z"
+      # APP_NOW: "2026-03-24T10:00:00Z"
       ADMIN_USERNAME: admin
       ADMIN_PASSWORD: change-me
       ADMIN_SESSION_SECRET: dev-admin-session-secret
+      SLACK_BOT_TOKEN: ""
+      SLACK_PUBLIC_CHANNEL_ID: ""
+      SLACK_ADMIN_CHANNEL_ID: ""
     depends_on:
       postgres:
         condition: service_healthy

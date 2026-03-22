@@ -8,6 +8,7 @@ import (
 type Config struct {
 	HTTPAddress        string
 	DatabaseURL        string
+	InstanceName       string
 	Timezone           string
 	AdminUser          string
 	AdminPass          string
@@ -22,6 +23,7 @@ func Load() Config {
 	return Config{
 		HTTPAddress:        envOrDefault("HTTP_ADDRESS", ":8080"),
 		DatabaseURL:        envOrDefault("DATABASE_URL", "postgres://postgres:postgres@localhost:5432/darts_league?sslmode=disable"),
+		InstanceName:       envOrDefault("INSTANCE_NAME", "Darts League"),
 		Timezone:           envOrDefault("APP_TIMEZONE", "Europe/London"),
 		NowOverride:        os.Getenv("APP_NOW"),
 		AdminUser:          envOrDefault("ADMIN_USERNAME", "admin"),

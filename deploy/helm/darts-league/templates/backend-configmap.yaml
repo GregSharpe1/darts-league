@@ -6,6 +6,7 @@ metadata:
     {{- include "darts-league.backendLabels" . | nindent 4 }}
 data:
   HTTP_ADDRESS: {{ .Values.backend.env.httpAddress | quote }}
+  INSTANCE_NAME: {{ .Values.backend.env.instanceName | quote }}
   APP_TIMEZONE: {{ .Values.backend.env.appTimezone | quote }}
   SLACK_PUBLIC_CHANNEL_ID: {{ .Values.backend.env.slackPublicChannelId | quote }}
   SLACK_ADMIN_CHANNEL_ID: {{ .Values.backend.env.slackAdminChannelId | quote }}

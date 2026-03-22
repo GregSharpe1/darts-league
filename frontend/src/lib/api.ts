@@ -14,6 +14,7 @@ export class ApiError extends Error {
 
 export type SeasonSummary = {
   id: number
+  instance_name: string
   name: string
   status: string
   timezone: string
