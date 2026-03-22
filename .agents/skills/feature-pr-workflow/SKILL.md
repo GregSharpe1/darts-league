@@ -15,8 +15,6 @@ Use this workflow when:
 - the task spans multiple files or layers
 - the user wants tests/builds run before the PR is opened
 
-If the requested change is user-visible frontend work that also needs screenshots and full frontend verification evidence, prefer `.agents/skills/ui-pr-workflow/SKILL.md` instead.
-
 Do not use this workflow when:
 - the user only wants research or a plan
 - the user explicitly says not to commit, push, or open a PR
