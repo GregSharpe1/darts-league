@@ -1,12 +1,12 @@
 :root {
-  --color-bg: #090909;
-  --color-surface: #121314;
-  --color-surface-raised: #1a1b1e;
-  --color-text: #f6f1eb;
-  --color-muted: #a29d97;
-  --color-accent: #ff5b5b;
-  --color-accent-soft: #ffb0b0;
-  --shadow-panel: 0 1.4rem 3rem rgba(0, 0, 0, 0.34);
+  --color-bg: #efe7da;
+  --color-surface: #fffaf2;
+  --color-surface-raised: #f7f0e4;
+  --color-text: #243129;
+  --color-muted: #6b6d62;
+  --color-accent: #b35a46;
+  --color-accent-soft: #e7b299;
+  --shadow-panel: 0 1rem 2.2rem rgba(91, 74, 52, 0.12);
   --font-body: 'Barlow', 'Segoe UI', sans-serif;
   --font-display: 'Rajdhani', 'Arial Narrow', sans-serif;
 
@@ -32,7 +32,7 @@ html {
 body {
   margin: 0;
   min-width: 320px;
-  background: #090909;
+  background: var(--color-bg);
 }
 
 #root {
@@ -72,7 +72,7 @@ button {
 input:focus,
 button:focus,
 a:focus {
-  outline: 2px solid rgba(255, 91, 91, 0.65);
+  outline: 2px solid rgba(179, 90, 70, 0.55);
   outline-offset: 2px;
 }
 
