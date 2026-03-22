@@ -94,13 +94,14 @@ Workflow:
 - <optional backend test command>
 
 ## Screenshots
-![Register open](docs/pr-screenshots/<branch-name>/register-open.png)
-![Admin pre start](docs/pr-screenshots/<branch-name>/admin-pre-start.png)
-![Admin post start](docs/pr-screenshots/<branch-name>/admin-post-start.png)
-![Public post start](docs/pr-screenshots/<branch-name>/public-post-start.png)
+![Register open](https://raw.githubusercontent.com/<owner>/<repo>/<branch-name>/docs/pr-screenshots/<branch-name>/register-open.png)
+![Admin pre start](https://raw.githubusercontent.com/<owner>/<repo>/<branch-name>/docs/pr-screenshots/<branch-name>/admin-pre-start.png)
+![Admin post start](https://raw.githubusercontent.com/<owner>/<repo>/<branch-name>/docs/pr-screenshots/<branch-name>/admin-post-start.png)
+![Public post start](https://raw.githubusercontent.com/<owner>/<repo>/<branch-name>/docs/pr-screenshots/<branch-name>/public-post-start.png)
 ```
 
 - prefer embedded markdown images in the PR body so reviewers can see the screenshots without clicking through
+- use raw GitHub content URLs in the PR body, because repo-relative image paths may render as links instead of inline images
 
 9. Final response
 - report:
