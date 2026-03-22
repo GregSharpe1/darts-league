@@ -28,10 +28,15 @@
 
 - `backend/` - Go API and Postgres store
 - `frontend/` - React app
+- `.agents/skills/` - repo-local agent workflow and skill docs
 - `docker-compose.yml` - local container stack
 - `Makefile` - common local commands
 - `AGENTS.md` - project/product rules for coding agents
 - `TODO.md` - implementation tracking notes
+
+## Agent Workflow
+
+This repo includes a reusable workflow doc at `.agents/skills/feature-pr-workflow/SKILL.md` for feature work that should follow the full cycle of inspection, implementation, verification, branch creation, commit, push, and PR creation.
 
 ## Running Locally
 
