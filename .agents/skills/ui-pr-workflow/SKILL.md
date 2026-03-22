@@ -94,11 +94,13 @@ Workflow:
 - <optional backend test command>
 
 ## Screenshots
-- docs/pr-screenshots/<branch-name>/register-open.png
-- docs/pr-screenshots/<branch-name>/admin-pre-start.png
-- docs/pr-screenshots/<branch-name>/admin-post-start.png
-- docs/pr-screenshots/<branch-name>/public-post-start.png
+![Register open](docs/pr-screenshots/<branch-name>/register-open.png)
+![Admin pre start](docs/pr-screenshots/<branch-name>/admin-pre-start.png)
+![Admin post start](docs/pr-screenshots/<branch-name>/admin-post-start.png)
+![Public post start](docs/pr-screenshots/<branch-name>/public-post-start.png)
 ```
+
+- prefer embedded markdown images in the PR body so reviewers can see the screenshots without clicking through
 
 9. Final response
 - report:
