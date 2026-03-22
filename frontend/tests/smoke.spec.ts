@@ -1,11 +1,64 @@
-import { expect, test } from '@playwright/test'
+import { mkdir } from 'node:fs/promises'
+import path from 'node:path'
+import { execSync } from 'node:child_process'
+import { fileURLToPath } from 'node:url'
+
+import { expect, test, type Page } from '@playwright/test'
+
+const captureUiScreenshots = process.env.CAPTURE_UI_SCREENSHOTS === '1'
+const currentDirectory = path.dirname(fileURLToPath(import.meta.url))
+
+function sanitizePathSegment(value: string): string {
+  return value.replace(/[^a-zA-Z0-9._-]+/g, '-').replace(/^-+|-+$/g, '') || 'local'
+}
+
+function getBranchName(): string {
+  try {
+    const branchName = execSync('git rev-parse --abbrev-ref HEAD', {
+      cwd: path.resolve(currentDirectory, '..', '..'),
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'ignore'],
+    }).trim()
+
+    if (!branchName || branchName === 'HEAD') {
+      return 'local'
+    }
+
+    return sanitizePathSegment(branchName)
+  } catch {
+    return 'local'
+  }
+}
+
+const screenshotDirectory = path.resolve(
+  currentDirectory,
+  '..',
+  '..',
+  'docs',
+  'pr-screenshots',
+  getBranchName(),
+)
+
+async function captureScreenshot(page: Page, fileName: string) {
+  if (!captureUiScreenshots) {
+    return
+  }
+
+  await mkdir(screenshotDirectory, { recursive: true })
+  await page.screenshot({ path: path.join(screenshotDirectory, fileName), fullPage: true })
+}
 
 test('register, start season, enter result, and view standings', async ({ page }) => {
+  const leagueName = 'Cardiff Premier League'
   const players = [
     ['Luke Humphries', 'The Freeze'],
     ['Michael Smith', 'Bully Boy'],
     ['Gerwyn Price', 'The Iceman'],
     ['Peter Wright', 'Snakebite'],
+    ['Nathan Aspinall', 'The Asp'],
+    ['Rob Cross', 'Voltage'],
+    ['Jonny Clayton', 'The Ferret'],
+    ['Damon Heta', 'The Heat'],
   ]
 
   for (const [displayName, nickname] of players) {
@@ -22,12 +75,32 @@ test('register, start season, enter result, and view standings', async ({ page }
   await page.getByLabel('Password').fill('change-me')
   await page.getByRole('button', { name: /unlock admin tools/i }).click()
 
+  await expect(page.getByRole('heading', { name: /league settings/i })).toBeVisible()
+  await expect(page.getByLabel('League name')).toHaveValue('MVP Season')
+  await page.getByLabel('League name').fill(leagueName)
+  await page.getByRole('button', { name: /save league name/i }).click()
+  await expect(page.getByText(leagueName)).toBeVisible()
+  await expect(page.getByLabel('League name')).toHaveValue(leagueName)
+
   await expect(page.getByRole('heading', { name: /registered players/i })).toBeVisible()
   await expect(page.getByRole('button', { name: /^delete$/i }).first()).toBeVisible()
+
+  await page.goto('/')
+  await expect(page.getByText(leagueName)).toBeVisible()
+
+  await page.goto('/register')
+  await expect(page.getByText(leagueName)).toBeVisible()
+  await captureScreenshot(page, 'register-open.png')
+
+  await page.goto('/admin')
+  await captureScreenshot(page, 'admin-pre-start.png')
   await page.getByRole('button', { name: /start season/i }).click()
   await expect(page.getByText(/registration is locked and player deletion is now disabled/i)).toBeVisible()
   await expect(page.getByText(/roster locked/i).first()).toBeVisible()
   await expect(page.getByRole('button', { name: /start season/i })).toBeDisabled()
+  await expect(page.getByLabel('League name')).toBeDisabled()
+  await expect(page.getByText(/league name is locked once the season has started/i)).toBeVisible()
+  await captureScreenshot(page, 'admin-post-start.png')
 
   await expect(page.getByText(/week 1/i)).toBeVisible()
   await page.locator('#p1-1').fill('3')
@@ -44,6 +117,7 @@ test('register, start season, enter result, and view standings', async ({ page }
   await page.goto('/standings')
   await expect(page.getByText('The Freeze')).toBeVisible()
   await expect(page.getByText('Luke Humphries')).toBeVisible()
+  await captureScreenshot(page, 'public-post-start.png')
 
   await expect(page.getByRole('link', { name: /^register$/i })).toHaveCount(0)
   await page.goto('/register')
