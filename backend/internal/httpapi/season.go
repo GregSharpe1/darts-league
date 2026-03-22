@@ -7,12 +7,13 @@ import (
 )
 
 type SeasonHandler struct {
-	seasons  league.SeasonService
-	fixtures league.FixtureService
+	seasons      league.SeasonService
+	fixtures     league.FixtureService
+	instanceName string
 }
 
-func NewSeasonHandler(seasons league.SeasonService, fixtures league.FixtureService) SeasonHandler {
-	return SeasonHandler{seasons: seasons, fixtures: fixtures}
+func NewSeasonHandler(seasons league.SeasonService, fixtures league.FixtureService, instanceName string) SeasonHandler {
+	return SeasonHandler{seasons: seasons, fixtures: fixtures, instanceName: instanceName}
 }
 
 func (h SeasonHandler) RegisterRoutes(mux *http.ServeMux, requireAdmin func(http.HandlerFunc) http.HandlerFunc) {
@@ -30,7 +31,7 @@ func (h SeasonHandler) handleSeasonSummary(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	writeJSON(w, http.StatusOK, toSeasonSummaryResponse(summary))
+	writeJSON(w, http.StatusOK, h.toSeasonSummaryResponse(summary))
 }
 
 func (h SeasonHandler) handleSeasonStart(w http.ResponseWriter, r *http.Request) {
@@ -40,7 +41,7 @@ func (h SeasonHandler) handleSeasonStart(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	writeJSON(w, http.StatusCreated, toSeasonSummaryResponse(summary))
+	writeJSON(w, http.StatusCreated, h.toSeasonSummaryResponse(summary))
 }
 
 func (h SeasonHandler) handlePublicFixtures(w http.ResponseWriter, r *http.Request) {
@@ -114,6 +115,7 @@ func (h SeasonHandler) handleAdminFixtures(w http.ResponseWriter, r *http.Reques
 
 type seasonSummaryResponse struct {
 	ID               int64  `json:"id"`
+	InstanceName     string `json:"instance_name"`
 	Name             string `json:"name"`
 	Status           string `json:"status"`
 	Timezone         string `json:"timezone"`
@@ -140,9 +142,10 @@ type publicFixtureResponse struct {
 	Result      *league.ResultSnapshot `json:"result,omitempty"`
 }
 
-func toSeasonSummaryResponse(summary league.SeasonSummary) seasonSummaryResponse {
+func (h SeasonHandler) toSeasonSummaryResponse(summary league.SeasonSummary) seasonSummaryResponse {
 	response := seasonSummaryResponse{
 		ID:               summary.ID,
+		InstanceName:     h.instanceName,
 		Name:             summary.Name,
 		Status:           string(summary.Status),
 		Timezone:         summary.Timezone,

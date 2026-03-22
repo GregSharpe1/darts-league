@@ -18,7 +18,7 @@ func TestRecordResultAndStandingsFlow(t *testing.T) {
 	store := league.NewMemoryStore()
 	clock := func() time.Time { return time.Date(2026, time.March, 18, 12, 0, 0, 0, time.UTC) }
 	registration := NewRegistrationHandler(league.NewRegistrationServiceWithNow(store, clock))
-	season := NewSeasonHandler(league.NewSeasonServiceWithNow(store, clock), league.NewFixtureServiceWithNow(store, clock))
+	season := NewSeasonHandler(league.NewSeasonServiceWithNow(store, clock), league.NewFixtureServiceWithNow(store, clock), "Darts League")
 	results := NewResultHandler(league.NewResultServiceWithNow(store, clock))
 
 	registerTestPlayers(t, registration, []string{"Luke Humphries", "Michael Smith", "Peter Wright", "Gerwyn Price"})
@@ -61,7 +61,7 @@ func TestRecordResultRejectsInvalidScorelines(t *testing.T) {
 	store := league.NewMemoryStore()
 	clock := func() time.Time { return time.Date(2026, time.March, 18, 12, 0, 0, 0, time.UTC) }
 	registration := NewRegistrationHandler(league.NewRegistrationServiceWithNow(store, clock))
-	season := NewSeasonHandler(league.NewSeasonServiceWithNow(store, clock), league.NewFixtureServiceWithNow(store, clock))
+	season := NewSeasonHandler(league.NewSeasonServiceWithNow(store, clock), league.NewFixtureServiceWithNow(store, clock), "Darts League")
 	results := NewResultHandler(league.NewResultServiceWithNow(store, clock))
 
 	registerTestPlayers(t, registration, []string{"Luke Humphries", "Michael Smith"})
@@ -80,7 +80,7 @@ func TestEditResultCreatesAuditLogEntry(t *testing.T) {
 	clockNow := time.Date(2026, time.March, 18, 12, 0, 0, 0, time.UTC)
 	clock := func() time.Time { return clockNow }
 	registration := NewRegistrationHandler(league.NewRegistrationServiceWithNow(store, clock))
-	season := NewSeasonHandler(league.NewSeasonServiceWithNow(store, clock), league.NewFixtureServiceWithNow(store, clock))
+	season := NewSeasonHandler(league.NewSeasonServiceWithNow(store, clock), league.NewFixtureServiceWithNow(store, clock), "Darts League")
 	results := NewResultHandler(league.NewResultServiceWithNow(store, clock))
 
 	registerTestPlayers(t, registration, []string{"Luke Humphries", "Michael Smith"})
@@ -129,7 +129,7 @@ func TestDeleteResultCreatesAuditLogEntry(t *testing.T) {
 	clockNow := time.Date(2026, time.March, 18, 12, 0, 0, 0, time.UTC)
 	clock := func() time.Time { return clockNow }
 	registration := NewRegistrationHandler(league.NewRegistrationServiceWithNow(store, clock))
-	season := NewSeasonHandler(league.NewSeasonServiceWithNow(store, clock), league.NewFixtureServiceWithNow(store, clock))
+	season := NewSeasonHandler(league.NewSeasonServiceWithNow(store, clock), league.NewFixtureServiceWithNow(store, clock), "Darts League")
 	results := NewResultHandler(league.NewResultServiceWithNow(store, clock))
 
 	registerTestPlayers(t, registration, []string{"Luke Humphries", "Michael Smith"})
