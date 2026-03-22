@@ -147,7 +147,7 @@ describe('App', () => {
   it('renders live fixtures from the API', async () => {
     renderApp('/')
 
-    expect(screen.getByRole('heading', { name: /fixtures with a little theatre/i })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: /the match office is open/i })).toBeInTheDocument()
     expect(screen.queryByRole('link', { name: /^admin$/i })).not.toBeInTheDocument()
 
     await waitFor(() => {
