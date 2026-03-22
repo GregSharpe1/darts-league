@@ -242,6 +242,28 @@ func (s SeasonService) StartSeason(ctx context.Context) (SeasonSummary, error) {
 	return s.Summary(ctx)
 }
 
+func (s SeasonService) UpdateName(ctx context.Context, name string) (SeasonSummary, error) {
+	season, err := s.store.GetActiveSeason(ctx)
+	if err != nil {
+		return SeasonSummary{}, err
+	}
+
+	if !season.RegistrationOpen() {
+		return SeasonSummary{}, ErrSeasonRenameLocked
+	}
+
+	if err := ValidateSeasonName(name); err != nil {
+		return SeasonSummary{}, err
+	}
+
+	season.Name = NormalizeSeasonName(name)
+	if _, err := s.store.UpsertSeason(ctx, season); err != nil {
+		return SeasonSummary{}, err
+	}
+
+	return s.Summary(ctx)
+}
+
 type PublicFixtureWeek struct {
 	WeekNumber int
 	Status     string

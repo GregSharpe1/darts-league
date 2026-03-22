@@ -124,6 +124,10 @@ type LoginRequest = {
   password: string
 }
 
+type UpdateSeasonRequest = {
+  name: string
+}
+
 type RegisterRequest = {
   display_name: string
   nickname?: string
@@ -242,6 +246,16 @@ export function useSeasonStart() {
       await queryClient.invalidateQueries({ queryKey: ['fixtures'] })
       await queryClient.invalidateQueries({ queryKey: ['admin', 'fixtures'] })
       await queryClient.invalidateQueries({ queryKey: ['admin', 'players'] })
+    },
+  })
+}
+
+export function useUpdateSeason() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (payload: UpdateSeasonRequest) => request<SeasonSummary>('/api/admin/season', { method: 'PUT', body: JSON.stringify(payload) }),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['season'] })
     },
   })
 }

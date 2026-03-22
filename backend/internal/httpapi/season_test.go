@@ -60,6 +60,49 @@ func TestSeasonStartGeneratesFixturesAndClosesRegistration(t *testing.T) {
 	}
 }
 
+func TestSeasonUpdateRenamesActiveSeasonBeforeStart(t *testing.T) {
+	t.Parallel()
+
+	handler := newSeasonHandlerWithNow(time.Date(2026, time.March, 18, 12, 0, 0, 0, time.UTC))
+	request := httptest.NewRequest(http.MethodPut, "/api/admin/season", bytes.NewBufferString(`{"name":"  Cardiff   Premier   League  "}`))
+
+	recorder := hitEndpoint(t, handler.season.handleSeasonUpdate, request, http.StatusOK)
+
+	var response seasonSummaryResponse
+	if err := json.Unmarshal(recorder.Body.Bytes(), &response); err != nil {
+		t.Fatalf("expected valid season response, got %v", err)
+	}
+
+	if response.Name != "Cardiff Premier League" {
+		t.Fatalf("expected normalized season name, got %q", response.Name)
+	}
+	if !response.RegistrationOpen {
+		t.Fatal("expected registration to remain open after rename")
+	}
+}
+
+func TestSeasonUpdateRejectsInvalidName(t *testing.T) {
+	t.Parallel()
+
+	handler := newSeasonHandlerWithNow(time.Date(2026, time.March, 18, 12, 0, 0, 0, time.UTC))
+	request := httptest.NewRequest(http.MethodPut, "/api/admin/season", bytes.NewBufferString(`{"name":" "}`))
+
+	recorder := hitEndpoint(t, handler.season.handleSeasonUpdate, request, http.StatusBadRequest)
+	assertErrorCode(t, recorder.Body.Bytes(), "season_name_required")
+}
+
+func TestSeasonUpdateLocksAfterSeasonStart(t *testing.T) {
+	t.Parallel()
+
+	handler := newSeasonHandlerWithNow(time.Date(2026, time.March, 18, 12, 0, 0, 0, time.UTC))
+	registerTestPlayers(t, handler.registration, []string{"Luke Humphries", "Michael Smith"})
+	hitEndpoint(t, handler.season.handleSeasonStart, httptest.NewRequest(http.MethodPost, "/api/admin/season/start", nil), http.StatusCreated)
+
+	request := httptest.NewRequest(http.MethodPut, "/api/admin/season", bytes.NewBufferString(`{"name":"Locked League"}`))
+	recorder := hitEndpoint(t, handler.season.handleSeasonUpdate, request, http.StatusConflict)
+	assertErrorCode(t, recorder.Body.Bytes(), "season_started")
+}
+
 func TestPublicFixturesHideFutureWeekDetailsUntilUnlock(t *testing.T) {
 	t.Parallel()
 

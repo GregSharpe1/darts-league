@@ -110,10 +110,16 @@ func writeDomainError(w http.ResponseWriter, err error) {
 	switch {
 	case errors.Is(err, league.ErrDisplayNameRequired):
 		writeError(w, http.StatusBadRequest, "display_name_required", "Display name is required.")
+	case errors.Is(err, league.ErrSeasonNameRequired):
+		writeError(w, http.StatusBadRequest, "season_name_required", "League name is required.")
+	case errors.Is(err, league.ErrSeasonNameLength):
+		writeError(w, http.StatusBadRequest, "season_name_length", "League name must be between 2 and 60 characters.")
 	case errors.Is(err, league.ErrDuplicatePlayerName):
 		writeError(w, http.StatusConflict, "duplicate_display_name", "Display name already exists for this season.")
 	case errors.Is(err, league.ErrRegistrationClosed):
 		writeError(w, http.StatusConflict, "registration_closed", "Registration is closed for the active season.")
+	case errors.Is(err, league.ErrSeasonRenameLocked):
+		writeError(w, http.StatusConflict, "season_started", "League name can only be changed before the season starts.")
 	case errors.Is(err, league.ErrPlayerDeleteLocked):
 		writeError(w, http.StatusConflict, "season_started", "Players can only be deleted before the season starts.")
 	case errors.Is(err, league.ErrPlayerNotFound):

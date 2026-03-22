@@ -6,7 +6,7 @@ import App from './App'
 
 describe('App', () => {
   beforeEach(() => {
-    const state = { authenticated: false, seasonStarted: false }
+    const state = { authenticated: false, seasonStarted: false, seasonName: 'MVP Season' }
 
     vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
       const path = typeof input === 'string' ? input : input.toString()
@@ -16,7 +16,7 @@ describe('App', () => {
         return response({
           id: 1,
           instance_name: 'Cardiff Office - Darts League',
-          name: 'MVP Season',
+          name: state.seasonName,
           status: state.seasonStarted ? 'started' : 'registration_open',
           timezone: 'Europe/London',
           registration_open: !state.seasonStarted,
@@ -110,7 +110,13 @@ describe('App', () => {
 
       if (path === '/api/admin/season/start' && method === 'POST') {
         state.seasonStarted = true
-        return response({ id: 1, instance_name: 'Cardiff Office - Darts League', name: 'MVP Season', status: 'started', timezone: 'Europe/London', registration_open: false, player_count: 4, week_count: 3 })
+        return response({ id: 1, instance_name: 'Cardiff Office - Darts League', name: state.seasonName, status: 'started', timezone: 'Europe/London', registration_open: false, player_count: 4, week_count: 3 })
+      }
+
+      if (path === '/api/admin/season' && method === 'PUT') {
+        const body = JSON.parse(String(init?.body ?? '{}'))
+        state.seasonName = body.name
+        return response({ id: 1, instance_name: 'Cardiff Office - Darts League', name: state.seasonName, status: state.seasonStarted ? 'started' : 'registration_open', timezone: 'Europe/London', registration_open: !state.seasonStarted, player_count: 4, week_count: state.seasonStarted ? 3 : 0 })
       }
 
       if (path.startsWith('/api/admin/players/') && method === 'DELETE') {
@@ -200,6 +206,23 @@ describe('App', () => {
 
     expect(screen.getAllByText(/roster locked/i).length).toBeGreaterThan(0)
     expect(screen.getAllByRole('button', { name: /start season/i })[0]).toBeDisabled()
+  })
+
+  it('lets the admin rename the league before the season starts', async () => {
+    renderApp('/admin')
+
+    fireEvent.change(screen.getByLabelText(/username/i), { target: { value: 'admin' } })
+    fireEvent.change(screen.getByLabelText(/password/i), { target: { value: 'secret' } })
+    fireEvent.click(screen.getByRole('button', { name: /unlock admin tools/i }))
+
+    expect(await screen.findByRole('heading', { name: /league settings/i })).toBeInTheDocument()
+
+    fireEvent.change(screen.getByLabelText(/league name/i), { target: { value: 'Cardiff Premier League' } })
+    fireEvent.click(screen.getByRole('button', { name: /save league name/i }))
+
+    await waitFor(() => {
+      expect(screen.getAllByText(/cardiff premier league/i).length).toBeGreaterThan(0)
+    })
   })
 })
 

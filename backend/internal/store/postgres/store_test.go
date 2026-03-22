@@ -73,6 +73,40 @@ func TestStoreSeasonPlayerAndResultFlow(t *testing.T) {
 	}
 }
 
+func TestStoreUpsertSeasonUpdatesName(t *testing.T) {
+	databaseURL := os.Getenv("TEST_DATABASE_URL")
+	if databaseURL == "" {
+		t.Skip("TEST_DATABASE_URL not set")
+	}
+
+	ctx := context.Background()
+	store, err := Open(ctx, databaseURL)
+	if err != nil {
+		t.Fatalf("expected postgres store to open, got %v", err)
+	}
+	defer store.Close()
+	resetTables(t, ctx, store)
+
+	season, err := store.EnsureActiveSeason(ctx, league.NewSeason("Integration Season"))
+	if err != nil {
+		t.Fatalf("expected active season, got %v", err)
+	}
+
+	season.Name = "Office Premier League"
+	season, err = store.UpsertSeason(ctx, season)
+	if err != nil {
+		t.Fatalf("expected season rename, got %v", err)
+	}
+
+	reloaded, err := store.GetActiveSeason(ctx)
+	if err != nil {
+		t.Fatalf("expected reloaded season, got %v", err)
+	}
+	if reloaded.Name != "Office Premier League" {
+		t.Fatalf("expected updated season name, got %q", reloaded.Name)
+	}
+}
+
 func resetTables(t *testing.T, ctx context.Context, store *Store) {
 	t.Helper()
 	_, err := store.pool.Exec(ctx, `TRUNCATE admin_audit_log, results, fixtures, players, seasons RESTART IDENTITY CASCADE`)
