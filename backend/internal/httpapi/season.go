@@ -1,6 +1,7 @@
 package httpapi
 
 import (
+	"encoding/json"
 	"net/http"
 
 	"github.com/greg/darts-league/backend/internal/league"
@@ -18,6 +19,7 @@ func NewSeasonHandler(seasons league.SeasonService, fixtures league.FixtureServi
 
 func (h SeasonHandler) RegisterRoutes(mux *http.ServeMux, requireAdmin func(http.HandlerFunc) http.HandlerFunc) {
 	mux.HandleFunc("GET /api/season", h.handleSeasonSummary)
+	mux.HandleFunc("PUT /api/admin/season", requireAdmin(h.handleSeasonUpdate))
 	mux.HandleFunc("POST /api/admin/season/start", requireAdmin(h.handleSeasonStart))
 	mux.HandleFunc("GET /api/admin/fixtures", requireAdmin(h.handleAdminFixtures))
 	mux.HandleFunc("GET /api/fixtures", h.handlePublicFixtures)
@@ -42,6 +44,26 @@ func (h SeasonHandler) handleSeasonStart(w http.ResponseWriter, r *http.Request)
 	}
 
 	writeJSON(w, http.StatusCreated, h.toSeasonSummaryResponse(summary))
+}
+
+type updateSeasonRequest struct {
+	Name string `json:"name"`
+}
+
+func (h SeasonHandler) handleSeasonUpdate(w http.ResponseWriter, r *http.Request) {
+	var req updateSeasonRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid_json", "Request body must be valid JSON.")
+		return
+	}
+
+	summary, err := h.seasons.UpdateName(r.Context(), req.Name)
+	if err != nil {
+		writeDomainError(w, err)
+		return
+	}
+
+	writeJSON(w, http.StatusOK, h.toSeasonSummaryResponse(summary))
 }
 
 func (h SeasonHandler) handlePublicFixtures(w http.ResponseWriter, r *http.Request) {

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 	"time"
+	"unicode/utf8"
 )
 
 var (
@@ -12,6 +13,9 @@ var (
 	ErrDisplayNameRequired = errors.New("display name is required")
 	ErrDuplicatePlayerName = errors.New("display name already exists in this season")
 	ErrPlayerDeleteLocked  = errors.New("players can only be deleted before the season starts")
+	ErrSeasonNameRequired  = errors.New("season name is required")
+	ErrSeasonNameLength    = errors.New("season name must be between 2 and 60 characters")
+	ErrSeasonRenameLocked  = errors.New("season name can only be changed before the season starts")
 )
 
 type SeasonStatus string
@@ -117,4 +121,22 @@ func (b RegistrationBook) ValidatePlayerDelete(season Season) error {
 
 func NormalizeDisplayName(name string) string {
 	return strings.ToLower(strings.Join(strings.Fields(name), " "))
+}
+
+func NormalizeSeasonName(name string) string {
+	return strings.Join(strings.Fields(name), " ")
+}
+
+func ValidateSeasonName(name string) error {
+	normalized := NormalizeSeasonName(name)
+	if normalized == "" {
+		return ErrSeasonNameRequired
+	}
+
+	length := utf8.RuneCountInString(normalized)
+	if length < 2 || length > 60 {
+		return ErrSeasonNameLength
+	}
+
+	return nil
 }

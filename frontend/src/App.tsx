@@ -16,6 +16,7 @@ import {
   useRegisterPlayer,
   useSaveResult,
   useUndoResult,
+  useUpdateSeason,
   useSeasonStart,
   useSeasonSummary,
   useStandings,
@@ -84,6 +85,7 @@ function HomePage() {
         <div className="hero-copy">
           <span className="eyebrow">Current week unlocked</span>
           <h1>Fixtures with a little theatre.</h1>
+          <p className="fixture-meta">{seasonQuery.data?.name ?? 'Active season'}</p>
           <p>
             The public board shows this week in full, keeps future pairings on the radar, and holds the reveal until Monday morning at 09:00 Europe/London.
           </p>
@@ -184,6 +186,7 @@ function HomePage() {
 }
 
 function StandingsPage() {
+  const seasonQuery = useSeasonSummary()
   const standingsQuery = useStandings()
 
   return (
@@ -191,6 +194,7 @@ function StandingsPage() {
       <div className="page-intro">
         <span className="eyebrow">Live table</span>
         <h1>Standings</h1>
+        <p className="fixture-meta">{seasonQuery.data?.name ?? 'Active season'}</p>
         <p>Public labels prefer nicknames, while the table still rewards clean legs and relentless finishing.</p>
       </div>
 
@@ -262,6 +266,7 @@ function RegisterPage() {
       <section className="page-intro">
         <span className="eyebrow">Public registration</span>
         <h1>Enter the league</h1>
+        <p className="fixture-meta">{seasonQuery.data?.name ?? 'Active season'}</p>
         <p>Registration stays open until the admin starts the season. Display names are unique per season and nicknames stay optional.</p>
       </section>
 
@@ -324,6 +329,7 @@ function AdminPage() {
   const isAuthenticated = playersQuery.isSuccess
   const loginMutation = useAdminLogin()
   const logoutMutation = useAdminLogout()
+  const updateSeasonMutation = useUpdateSeason()
   const seasonStartMutation = useSeasonStart()
   const deletePlayerMutation = useDeletePlayer()
   const undoResultMutation = useUndoResult()
@@ -332,9 +338,14 @@ function AdminPage() {
   const saveResultMutation = useSaveResult()
   const [username, setUsername] = useState('admin')
   const [password, setPassword] = useState('')
+  const [seasonName, setSeasonName] = useState('')
 
   const unauthenticated = playersQuery.error instanceof ApiError && playersQuery.error.status === 401
   const players = playersQuery.data ?? []
+
+  useEffect(() => {
+    setSeasonName(seasonQuery.data?.name ?? '')
+  }, [seasonQuery.data?.name])
 
   const handleLogin = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -396,6 +407,35 @@ function AdminPage() {
           {seasonQuery.data && !seasonQuery.data.registration_open ? <StateNotice message="Registration is locked and player deletion is now disabled for this season." compact /> : null}
 
           <section className="admin-grid admin-grid-wide">
+            <article className="admin-card">
+              <h2>League settings</h2>
+              <p>Name the active league before the season starts. The saved name appears anywhere the current season label is shown.</p>
+              <form
+                className="admin-login"
+                onSubmit={(event) => {
+                  event.preventDefault()
+                  updateSeasonMutation.mutate({ name: seasonName })
+                }}
+              >
+                <div className="field">
+                  <label htmlFor="season-name">League name</label>
+                  <input
+                    id="season-name"
+                    name="season-name"
+                    value={seasonName}
+                    onChange={(event) => setSeasonName(event.target.value)}
+                    placeholder="Cardiff Premier League"
+                    disabled={!seasonQuery.data?.registration_open || updateSeasonMutation.isPending}
+                  />
+                </div>
+                <button type="submit" disabled={!seasonQuery.data?.registration_open || updateSeasonMutation.isPending || seasonName.trim() === (seasonQuery.data?.name ?? '').trim()}>
+                  {updateSeasonMutation.isPending ? 'Saving...' : 'Save league name'}
+                </button>
+              </form>
+              {updateSeasonMutation.error ? <StateNotice tone="error" message={readError(updateSeasonMutation.error)} compact /> : null}
+              {seasonQuery.data && !seasonQuery.data.registration_open ? <StateNotice message="League name is locked once the season has started." compact /> : null}
+            </article>
+
             <article className="admin-card">
               <h2>Registered players</h2>
               {playersQuery.isLoading ? <StateNotice message="Loading admin roster..." compact /> : null}
