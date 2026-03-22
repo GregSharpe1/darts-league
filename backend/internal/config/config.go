@@ -12,6 +12,9 @@ type Config struct {
 	AdminUser          string
 	AdminPass          string
 	AdminSessionSecret string
+	SlackBotToken      string
+	SlackPublicChannel string
+	SlackAdminChannel  string
 	NowOverride        string
 }
 
@@ -24,6 +27,9 @@ func Load() Config {
 		AdminUser:          envOrDefault("ADMIN_USERNAME", "admin"),
 		AdminPass:          envOrDefault("ADMIN_PASSWORD", "change-me"),
 		AdminSessionSecret: envOrDefault("ADMIN_SESSION_SECRET", "dev-admin-session-secret"),
+		SlackBotToken:      os.Getenv("SLACK_BOT_TOKEN"),
+		SlackPublicChannel: os.Getenv("SLACK_PUBLIC_CHANNEL_ID"),
+		SlackAdminChannel:  os.Getenv("SLACK_ADMIN_CHANNEL_ID"),
 	}
 }
 

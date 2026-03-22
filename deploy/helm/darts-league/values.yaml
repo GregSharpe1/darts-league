@@ -45,6 +45,8 @@ backend:
     httpAddress: ":8080"
     appTimezone: Europe/London
     appNow: ""
+    slackPublicChannelId: ""
+    slackAdminChannelId: ""
   auth:
     existingSecret: ""
     existingSecretKeys:
@@ -54,6 +56,16 @@ backend:
     username: admin
     password: change-me
     sessionSecret: change-this-session-secret
+  slack:
+    existingSecret: ""
+    existingSecretKeys:
+      botToken: SLACK_BOT_TOKEN
+    botToken: ""
+  notifications:
+    enabled: false
+    timeZone: Europe/London
+    weeklyFixturesSchedule: "0 9 * * 1"
+    weeklySummarySchedule: "0 9 * * 5"
   resources:
     requests:
       cpu: 100m

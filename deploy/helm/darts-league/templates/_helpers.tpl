@@ -123,6 +123,10 @@ server {
 {{- end -}}
 {{- end -}}
 
+{{- define "darts-league.backendSlackSecretName" -}}
+{{- default (printf "%s-backend-slack" (include "darts-league.fullname" .)) .Values.backend.slack.existingSecret -}}
+{{- end -}}
+
 {{- define "darts-league.postgresSecretName" -}}
 {{- default (printf "%s-postgres" (include "darts-league.fullname" .)) .Values.postgres.auth.existingSecret -}}
 {{- end -}}

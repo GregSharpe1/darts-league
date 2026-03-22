@@ -37,18 +37,36 @@ type Store interface {
 }
 
 type RegistrationService struct {
-	store Store
-	now   func() time.Time
+	store    Store
+	now      func() time.Time
+	notifier RegistrationNotifier
 }
+
+type RegistrationNotifier interface {
+	NotifyPlayerRegistered(ctx context.Context, player Player, totalRegistered int)
+}
+
+type noopRegistrationNotifier struct{}
+
+func (noopRegistrationNotifier) NotifyPlayerRegistered(_ context.Context, _ Player, _ int) {}
 
 func NewRegistrationService(store Store) RegistrationService {
 	return NewRegistrationServiceWithNow(store, time.Now)
 }
 
 func NewRegistrationServiceWithNow(store Store, now func() time.Time) RegistrationService {
+	return NewRegistrationServiceWithNowAndNotifier(store, now, noopRegistrationNotifier{})
+}
+
+func NewRegistrationServiceWithNowAndNotifier(store Store, now func() time.Time, notifier RegistrationNotifier) RegistrationService {
+	if notifier == nil {
+		notifier = noopRegistrationNotifier{}
+	}
+
 	return RegistrationService{
-		store: store,
-		now:   now,
+		store:    store,
+		now:      now,
+		notifier: notifier,
 	}
 }
 
@@ -68,7 +86,14 @@ func (s RegistrationService) RegisterPlayer(ctx context.Context, player Player) 
 	player.Nickname = normalizeSpacing(player.Nickname)
 	player.RegisteredAt = s.now().UTC()
 
-	return s.store.CreatePlayer(ctx, player)
+	created, err := s.store.CreatePlayer(ctx, player)
+	if err != nil {
+		return Player{}, err
+	}
+
+	s.notifier.NotifyPlayerRegistered(ctx, created, len(existingPlayers)+1)
+
+	return created, nil
 }
 
 func (s RegistrationService) ListPlayers(ctx context.Context) ([]Player, error) {

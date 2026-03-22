@@ -114,11 +114,11 @@ This file tracks the agreed implementation plan and current progress for the `da
 
 ## Phase 9 - Later Feature: Slack Webhook
 
-- [ ] Add scheduled Monday `09:00 Europe/London` Slack webhook job
-- [ ] Post weekly fixtures to Slack using a webhook
-- [ ] Post to a separate "admin" channel when someone signs up, the slack message should include their name and the time signed up.
-- [ ] Post on a Friday morning to the main Slack channel with a summary of the weeks games and current score.
-- [ ] Add retry/error logging for failed webhook delivery
+- [x] Add scheduled Monday `09:00 Europe/London` Slack app job
+- [x] Post weekly fixtures to Slack using the public Slack app channel
+- [x] Post to a separate admin Slack channel when someone signs up, including their name and the time signed up
+- [x] Post on Friday morning to the main Slack channel with a summary of the week's games and full standings
+- [x] Add retry/error logging for failed Slack delivery
 - [ ] Optionally add admin-triggered manual resend
 
 ## Immediate Next Steps

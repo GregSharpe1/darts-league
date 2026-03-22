@@ -25,6 +25,8 @@ backend:
     sessionSecret: dev-admin-session-secret
   env:
     appNow: "2026-04-14T10:00:00Z"
+    slackPublicChannelId: ""
+    slackAdminChannelId: ""
   resources:
     requests:
       cpu: 50m

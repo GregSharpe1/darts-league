@@ -17,6 +17,7 @@ spec:
         checksum/config: {{ include (print $.Template.BasePath "/backend-configmap.yaml") . | sha256sum }}
         checksum/auth-secret: {{ if .Values.backend.auth.existingSecret }}"external-secret"{{ else }}{{ include (print $.Template.BasePath "/backend-auth-secret.yaml") . | sha256sum | quote }}{{ end }}
         checksum/db-secret: {{ if .Values.postgres.enabled }}"postgres-generated"{{ else if .Values.externalDatabase.existingSecret }}"external-secret"{{ else }}{{ include (print $.Template.BasePath "/backend-db-secret.yaml") . | sha256sum | quote }}{{ end }}
+        checksum/slack-secret: {{ if .Values.backend.slack.existingSecret }}"external-secret"{{ else }}{{ include (print $.Template.BasePath "/backend-slack-secret.yaml") . | sha256sum | quote }}{{ end }}
         {{- with .Values.global.podAnnotations }}
         {{- toYaml . | nindent 8 }}
         {{- end }}
@@ -64,6 +65,11 @@ spec:
                 secretKeyRef:
                   name: {{ include "darts-league.backendAuthSecretName" . }}
                   key: {{ .Values.backend.auth.existingSecretKeys.sessionSecret }}
+            - name: SLACK_BOT_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "darts-league.backendSlackSecretName" . }}
+                  key: {{ .Values.backend.slack.existingSecretKeys.botToken }}
           livenessProbe:
             httpGet:
               path: /healthz

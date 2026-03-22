@@ -22,6 +22,7 @@
 - Admin player deletion before season start
 - Admin result entry, editing, undo, and audit history
 - Fixed match format: `501`, first to `3` legs
+- Slack app notifications for admin signups and weekly league updates
 
 ## Repository Layout
 
@@ -119,6 +120,44 @@ Default local credentials from `docker-compose.yml`:
 - Username: `admin`
 - Password: `change-me`
 
+## Slack Integration
+
+The backend supports an optional Slack app integration.
+
+Quick setup:
+
+1. Go to https://api.slack.com/apps and create a new app for your workspace.
+2. Under `OAuth & Permissions`, add the `chat:write` bot scope.
+3. Install the app to your workspace and copy the bot token (`xoxb-...`).
+4. Invite the app to both Slack channels you want to use.
+5. Copy the channel IDs for the public and admin channels from Slack.
+
+If Slack returns `channel_not_found`, the usual causes are:
+
+- the value is a channel name instead of a channel ID
+- the app has not been invited to the channel yet
+- the admin channel is private and the bot is not a member
+- for public channels, the app may also need `chat:write.public` if it is not invited
+
+Set these environment variables to enable it:
+
+- `SLACK_BOT_TOKEN`
+- `SLACK_PUBLIC_CHANNEL_ID`
+- `SLACK_ADMIN_CHANNEL_ID`
+
+Behavior:
+
+- successful player registrations post to the admin Slack channel
+- Monday `09:00 Europe/London` posts this week's fixtures to the public channel
+- Friday `09:00 Europe/London` posts this week's results plus the full standings table to the public channel
+
+You can test the scheduled message commands locally from `backend/`:
+
+```bash
+go run ./cmd/api notify weekly-fixtures or docker compose exec backend /usr/local/bin/darts-league-api notify weekly-fixtures
+go run ./cmd/api notify weekly-summary or docker compose exec backend /usr/local/bin/darts-league-api notify weekly-summary
+```
+
 ## Testing
 
 Run backend and frontend unit tests:
@@ -169,4 +208,4 @@ Some important locked rules in the current MVP:
 
 ## Next Phase
 
-Planned later work includes Slack webhook notifications for league updates.
+Planned later work includes Slack delivery idempotency and optional manual resend controls.
