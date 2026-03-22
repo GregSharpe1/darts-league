@@ -1,0 +1,123 @@
+{{- if .Values.backend.notifications.enabled }}
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ include "darts-league.backendName" . }}-weekly-fixtures
+  labels:
+    {{- include "darts-league.backendLabels" . | nindent 4 }}
+spec:
+  schedule: {{ .Values.backend.notifications.weeklyFixturesSchedule | quote }}
+  timeZone: {{ .Values.backend.notifications.timeZone | quote }}
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 2
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            {{- include "darts-league.backendSelectorLabels" . | nindent 12 }}
+        spec:
+          restartPolicy: Never
+          {{- with .Values.global.imagePullSecrets }}
+          imagePullSecrets:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          securityContext:
+            {{- toYaml .Values.backend.podSecurityContext | nindent 12 }}
+          containers:
+            - name: weekly-fixtures
+              image: {{ include "darts-league.backendImage" . }}
+              imagePullPolicy: {{ .Values.backend.image.pullPolicy }}
+              args: ["notify", "weekly-fixtures"]
+              envFrom:
+                - configMapRef:
+                    name: {{ include "darts-league.backendName" . }}
+              env:
+                - name: DATABASE_URL
+                  valueFrom:
+                    secretKeyRef:
+                      {{- if .Values.postgres.enabled }}
+                      name: {{ include "darts-league.postgresSecretName" . }}
+                      key: DATABASE_URL
+                      {{- else }}
+                      name: {{ include "darts-league.backendDatabaseSecretName" . }}
+                      key: {{ default "DATABASE_URL" .Values.externalDatabase.existingSecretKey }}
+                      {{- end }}
+                - name: SLACK_BOT_TOKEN
+                  valueFrom:
+                    secretKeyRef:
+                      name: {{ include "darts-league.backendSlackSecretName" . }}
+                      key: {{ .Values.backend.slack.existingSecretKeys.botToken }}
+              resources:
+                {{- toYaml .Values.backend.resources | nindent 16 }}
+              securityContext:
+                {{- toYaml .Values.backend.securityContext | nindent 16 }}
+              volumeMounts:
+                - name: tmp
+                  mountPath: /tmp
+          volumes:
+            - name: tmp
+              emptyDir: {}
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ include "darts-league.backendName" . }}-weekly-summary
+  labels:
+    {{- include "darts-league.backendLabels" . | nindent 4 }}
+spec:
+  schedule: {{ .Values.backend.notifications.weeklySummarySchedule | quote }}
+  timeZone: {{ .Values.backend.notifications.timeZone | quote }}
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 2
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            {{- include "darts-league.backendSelectorLabels" . | nindent 12 }}
+        spec:
+          restartPolicy: Never
+          {{- with .Values.global.imagePullSecrets }}
+          imagePullSecrets:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          securityContext:
+            {{- toYaml .Values.backend.podSecurityContext | nindent 12 }}
+          containers:
+            - name: weekly-summary
+              image: {{ include "darts-league.backendImage" . }}
+              imagePullPolicy: {{ .Values.backend.image.pullPolicy }}
+              args: ["notify", "weekly-summary"]
+              envFrom:
+                - configMapRef:
+                    name: {{ include "darts-league.backendName" . }}
+              env:
+                - name: DATABASE_URL
+                  valueFrom:
+                    secretKeyRef:
+                      {{- if .Values.postgres.enabled }}
+                      name: {{ include "darts-league.postgresSecretName" . }}
+                      key: DATABASE_URL
+                      {{- else }}
+                      name: {{ include "darts-league.backendDatabaseSecretName" . }}
+                      key: {{ default "DATABASE_URL" .Values.externalDatabase.existingSecretKey }}
+                      {{- end }}
+                - name: SLACK_BOT_TOKEN
+                  valueFrom:
+                    secretKeyRef:
+                      name: {{ include "darts-league.backendSlackSecretName" . }}
+                      key: {{ .Values.backend.slack.existingSecretKeys.botToken }}
+              resources:
+                {{- toYaml .Values.backend.resources | nindent 16 }}
+              securityContext:
+                {{- toYaml .Values.backend.securityContext | nindent 16 }}
+              volumeMounts:
+                - name: tmp
+                  mountPath: /tmp
+          volumes:
+            - name: tmp
+              emptyDir: {}
+{{- end }}

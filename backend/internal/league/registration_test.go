@@ -1,6 +1,7 @@
 package league
 
 import (
+	"context"
 	"errors"
 	"testing"
 	"time"
@@ -88,4 +89,57 @@ func TestRegistrationBookAllowsPlayerDeleteOnlyBeforeSeasonStart(t *testing.T) {
 	if !errors.Is(err, ErrPlayerDeleteLocked) {
 		t.Fatalf("expected delete locked error, got %v", err)
 	}
+}
+
+func TestRegistrationServiceNotifiesAfterSuccessfulSignup(t *testing.T) {
+	t.Parallel()
+
+	store := NewMemoryStore()
+	notifier := &stubRegistrationNotifier{}
+	service := NewRegistrationServiceWithNowAndNotifier(store, func() time.Time {
+		return time.Date(2026, time.March, 18, 12, 0, 0, 0, time.UTC)
+	}, notifier)
+
+	player, err := service.RegisterPlayer(context.Background(), Player{DisplayName: "Luke Humphries", Nickname: "The Freeze"})
+	if err != nil {
+		t.Fatalf("expected registration to succeed, got %v", err)
+	}
+
+	if len(notifier.players) != 1 {
+		t.Fatalf("expected notifier to receive 1 player, got %d", len(notifier.players))
+	}
+
+	if notifier.players[0].ID != player.ID {
+		t.Fatalf("expected notified player id %d, got %d", player.ID, notifier.players[0].ID)
+	}
+
+	if notifier.totals[0] != 1 {
+		t.Fatalf("expected total registered count 1, got %d", notifier.totals[0])
+	}
+}
+
+func TestRegistrationServiceSkipsNotifierOnValidationFailure(t *testing.T) {
+	t.Parallel()
+
+	store := NewMemoryStore()
+	notifier := &stubRegistrationNotifier{}
+	service := NewRegistrationServiceWithNowAndNotifier(store, time.Now, notifier)
+
+	if _, err := service.RegisterPlayer(context.Background(), Player{DisplayName: "   "}); !errors.Is(err, ErrDisplayNameRequired) {
+		t.Fatalf("expected display name required error, got %v", err)
+	}
+
+	if len(notifier.players) != 0 {
+		t.Fatalf("expected notifier not to be called, got %d calls", len(notifier.players))
+	}
+}
+
+type stubRegistrationNotifier struct {
+	players []Player
+	totals  []int
+}
+
+func (n *stubRegistrationNotifier) NotifyPlayerRegistered(_ context.Context, player Player, totalRegistered int) {
+	n.players = append(n.players, player)
+	n.totals = append(n.totals, totalRegistered)
 }

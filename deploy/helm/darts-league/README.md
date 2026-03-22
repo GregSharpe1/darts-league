@@ -81,6 +81,40 @@ postgres:
   enabled: true
 ```
 
+## Slack notifications
+
+To enable Slack app delivery, provide the public and admin channel IDs through
+backend environment values and the bot token through the Slack secret values:
+
+```yaml
+backend:
+  env:
+    slackPublicChannelId: C0123456789
+    slackAdminChannelId: C0987654321
+  slack:
+    botToken: xoxb-replace-me
+  notifications:
+    enabled: true
+    timeZone: Europe/London
+    weeklyFixturesSchedule: "0 9 * * 1"
+    weeklySummarySchedule: "0 9 * * 5"
+```
+
+Or reference an existing secret containing the bot token key:
+
+```yaml
+backend:
+  slack:
+    existingSecret: darts-league-slack
+    existingSecretKeys:
+      botToken: SLACK_BOT_TOKEN
+```
+
+When enabled, the chart creates two backend CronJobs:
+
+- Monday `09:00 Europe/London` for weekly fixtures
+- Friday `09:00 Europe/London` for the weekly summary and full standings
+
 The bundled PostgreSQL chart stores its cluster data under a dedicated `PGDATA`
 subdirectory so mounted volumes do not fail on `lost+found`, and it applies an
 `fsGroup` compatible with the upstream `postgres` image.
