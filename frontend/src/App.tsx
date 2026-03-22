@@ -38,7 +38,7 @@ function App() {
           <div className="brand-badge" aria-hidden="true" />
           <div className="brand-copy">
             <strong>{instanceName}</strong>
-            <span>Monday unlocks. Saturday bragging rights.</span>
+            <span>Fixtures in order. Results on record.</span>
           </div>
         </div>
         <nav className="primary-nav" aria-label="Primary">
@@ -83,11 +83,11 @@ function HomePage() {
     <>
       <section className="hero-panel">
         <div className="hero-copy">
-          <span className="eyebrow">Current week unlocked</span>
-          <h1>Fixtures with a little theatre.</h1>
+          <span className="eyebrow">Match office</span>
+          <h1>The match office is open.</h1>
           <p className="fixture-meta">{seasonQuery.data?.name ?? 'Active season'}</p>
           <p>
-            The public board shows this week in full, keeps future pairings on the radar, and holds the reveal until Monday morning at 09:00 Europe/London.
+            Follow the live week, see the upcoming queue, and wait for the Monday morning 09:00 release before the next details are shown.
           </p>
           <div className="hero-actions">
             {seasonQuery.data?.registration_open ? <NavLink to="/register">Join before season start</NavLink> : null}
@@ -97,15 +97,15 @@ function HomePage() {
 
         <div className="hero-side">
           <article className="metric-card">
-            <span className="section-eyebrow">League pulse</span>
+            <span className="section-eyebrow">Season desk</span>
             <strong>{seasonQuery.data?.player_count ?? '-'}</strong>
-            <p>{seasonQuery.data?.registration_open ? 'players registered before the season start action.' : `season live across ${seasonQuery.data?.week_count ?? 0} weeks.`}</p>
+            <p>{seasonQuery.data?.registration_open ? 'players registered before the season start action.' : `season running across ${seasonQuery.data?.week_count ?? 0} weeks.`}</p>
           </article>
           <article className="info-card">
             <div className="card-header">
               <div className="card-copy">
-                <h2>Next reveal</h2>
-                <p>Future week cards stay visible, with pairings shown and details intentionally obscured.</p>
+                <h2>Release clock</h2>
+                <p>Upcoming weeks stay listed, with pairings on show and extra detail held until unlock.</p>
               </div>
               <span className="status-pill locked">09:00 Monday</span>
             </div>
@@ -192,10 +192,10 @@ function StandingsPage() {
   return (
     <section className="standings-card">
       <div className="page-intro">
-        <span className="eyebrow">Live table</span>
+        <span className="eyebrow">League sheet</span>
         <h1>Standings</h1>
         <p className="fixture-meta">{seasonQuery.data?.name ?? 'Active season'}</p>
-        <p>Public labels prefer nicknames, while the table still rewards clean legs and relentless finishing.</p>
+        <p>Public labels prefer nicknames, while the table keeps points and leg totals easy to read at a glance.</p>
       </div>
 
       {standingsQuery.isLoading ? <StateNotice message="Loading live standings..." /> : null}
@@ -265,9 +265,9 @@ function RegisterPage() {
     <>
       <section className="page-intro">
         <span className="eyebrow">Public registration</span>
-        <h1>Enter the league</h1>
+        <h1>Add your name to the slate</h1>
         <p className="fixture-meta">{seasonQuery.data?.name ?? 'Active season'}</p>
-        <p>Registration stays open until the admin starts the season. Display names are unique per season and nicknames stay optional.</p>
+        <p>Registration stays open until the admin starts the season. Display names stay unique per season and nicknames remain optional.</p>
       </section>
 
       {seasonQuery.data && !seasonQuery.data.registration_open ? (
@@ -291,7 +291,7 @@ function RegisterPage() {
         <section className="register-grid">
           <article className="register-card">
             <h2>Player sign-up</h2>
-            <p>Keep it fast for MVP: one required name, one optional darts nickname.</p>
+            <p>Keep it direct for MVP: one required name and one optional darts nickname.</p>
             <form className="form-preview" onSubmit={handleSubmit}>
               <div className="field">
                 <label htmlFor="display-name">Display name</label>
@@ -357,8 +357,8 @@ function AdminPage() {
     <>
       <section className="page-intro">
         <span className="eyebrow">Restricted area</span>
-        <h1>Admin control</h1>
-        <p>One shared admin account manages player cleanup, season start, and fixed-format result entry across the full schedule.</p>
+        <h1>League desk</h1>
+        <p>One shared admin account manages the roster, season start, and fixed-format score entry across the full schedule.</p>
       </section>
 
       {!isAuthenticated ? (
