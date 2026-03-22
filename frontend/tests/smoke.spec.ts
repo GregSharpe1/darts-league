@@ -1,6 +1,6 @@
 import { mkdir } from 'node:fs/promises'
-import { execSync } from 'node:child_process'
 import path from 'node:path'
+import { execSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 
 import { expect, test, type Page } from '@playwright/test'
