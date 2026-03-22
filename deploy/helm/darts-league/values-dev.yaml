@@ -6,7 +6,7 @@
 frontend:
   image:
     repository: "ghcr.io/gregsharpe1/darts-league-frontend"
-    tag: "pr-6-8bf923e"
+    tag: "v0.0.4"
   resources:
     requests:
       cpu: 50m
@@ -18,7 +18,7 @@ frontend:
 backend:
   image:
     repository: "ghcr.io/gregsharpe1/darts-league-backend"
-    tag: "pr-6-8bf923e"
+    tag: "v0.0.4"
   auth:
     username: admin
     password: change-me
