@@ -115,3 +115,8 @@ Write tests before or alongside implementation for:
 - Make server-side time logic authoritative
 - Treat season start as effectively irreversible for MVP once fixtures are generated
 - Keep file edits ASCII unless a file already requires otherwise
+
+## Repository Workflows
+
+- Reusable repo-local workflow docs can live under `.agents/skills/`
+- Use `.agents/skills/feature-pr-workflow/SKILL.md` when a change should go through the full inspect -> implement -> test -> branch -> commit -> push -> PR flow
