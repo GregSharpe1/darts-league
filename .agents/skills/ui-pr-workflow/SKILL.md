@@ -68,6 +68,9 @@ Workflow:
   - `public-post-start.png`
 - add extra feature-specific screenshots when the changed UI area is not already covered by the required set
 - confirm the screenshot files are updated before staging
+- after pushing the branch, embed the screenshots directly in the PR body, not just as path bullets
+- build image URLs from the pushed repo slug plus the pushed HEAD commit SHA so the rendered images are stable, for example: `https://raw.githubusercontent.com/<owner>/<repo>/<commit-sha>/docs/pr-screenshots/<branch-name>/register-open.png`
+- keep the file-path bullets in the PR body too, but add rendered markdown images underneath them so reviewers can see the screenshots inline on GitHub
 
 7. Review before git actions
 - inspect `git diff` and `git status`
@@ -101,7 +104,25 @@ Workflow:
 ```
 
 - prefer embedded markdown images in the PR body so reviewers can see the screenshots without clicking through
-- use raw GitHub content URLs in the PR body, because repo-relative image paths may render as links instead of inline images
+- docs/pr-screenshots/<branch-name>/register-open.png
+- docs/pr-screenshots/<branch-name>/admin-pre-start.png
+- docs/pr-screenshots/<branch-name>/admin-post-start.png
+- docs/pr-screenshots/<branch-name>/public-post-start.png
+
+### Register Open
+![Register open](https://raw.githubusercontent.com/<owner>/<repo>/<commit-sha>/docs/pr-screenshots/<branch-name>/register-open.png)
+
+### Admin Pre Start
+![Admin pre start](https://raw.githubusercontent.com/<owner>/<repo>/<commit-sha>/docs/pr-screenshots/<branch-name>/admin-pre-start.png)
+
+### Admin Post Start
+![Admin post start](https://raw.githubusercontent.com/<owner>/<repo>/<commit-sha>/docs/pr-screenshots/<branch-name>/admin-post-start.png)
+
+### Public Post Start
+![Public post start](https://raw.githubusercontent.com/<owner>/<repo>/<commit-sha>/docs/pr-screenshots/<branch-name>/public-post-start.png)
+```
+
+- before calling `gh pr create`, gather the repo owner/name with `gh repo view --json owner,name` and the pushed commit SHA with `git rev-parse HEAD`, then interpolate those values into the markdown image URLs above
 
 9. Final response
 - report:
