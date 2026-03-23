@@ -176,6 +176,24 @@ istio:
           name: http
           protocol: HTTP
         hosts: []
+      ## HTTPS example -- uncomment and set credentialName to the Kubernetes
+      ## Secret (in the istio-system namespace) that holds your TLS cert:
+      # - port:
+      #     number: 443
+      #     name: https
+      #     protocol: HTTPS
+      #   tls:
+      #     mode: SIMPLE
+      #     credentialName: my-tls-secret
+      #   hosts: []
+      ## To redirect HTTP to HTTPS, replace the port-80 entry above with:
+      # - port:
+      #     number: 80
+      #     name: http-redirect
+      #     protocol: HTTP
+      #   tls:
+      #     httpsRedirect: true
+      #   hosts: []
   virtualService:
     hosts: []
     gateways: []
