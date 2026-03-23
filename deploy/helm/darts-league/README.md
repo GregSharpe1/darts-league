@@ -130,6 +130,32 @@ subdirectory so mounted volumes do not fail on `lost+found`, and it applies an
   Istio `Gateway` and `VirtualService` resources.
 - The Istio path is HTTP-only by default and routes traffic to the frontend
   service, which then proxies `/api` traffic to the backend.
+- To enable TLS on the Istio Gateway, add an HTTPS server entry with a
+  `credentialName` pointing to the Kubernetes Secret (in `istio-system`) that
+  holds your certificate:
+
+```yaml
+istio:
+  enabled: true
+  gateway:
+    servers:
+      - port:
+          number: 443
+          name: https
+          protocol: HTTPS
+        tls:
+          mode: SIMPLE
+          credentialName: my-tls-secret
+      - port:
+          number: 80
+          name: http-redirect
+          protocol: HTTP
+        tls:
+          httpsRedirect: true
+  virtualService:
+    hosts:
+      - darts.example.com
+```
 
 ## Makefile workflow
 
