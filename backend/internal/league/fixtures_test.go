@@ -1,6 +1,7 @@
 package league
 
 import (
+	"fmt"
 	"testing"
 	"time"
 )
@@ -74,6 +75,74 @@ func TestWeekScheduleTimePreservesLondonLocalTimeAcrossDST(t *testing.T) {
 	}
 	if weekTwo.Location().String() != "Europe/London" {
 		t.Fatalf("expected London location, got %s", weekTwo.Location())
+	}
+}
+
+func TestNoPairingAppearsInMultipleWeeks(t *testing.T) {
+	t.Parallel()
+
+	const playerCount = 32
+
+	season := NewSeason("Big League 2026")
+	season.ID = 1
+	season = season.Start(time.Date(2026, time.March, 10, 12, 0, 0, 0, time.UTC))
+
+	players := make([]Player, playerCount)
+	for i := range players {
+		players[i] = Player{
+			ID:          int64(i + 1),
+			DisplayName: fmt.Sprintf("Player %02d", i+1),
+		}
+	}
+
+	fixtures, err := GenerateRoundRobinFixtures(season, players)
+	if err != nil {
+		t.Fatalf("expected fixtures, got error: %v", err)
+	}
+
+	expectedFixtures := playerCount * (playerCount - 1) / 2
+	if len(fixtures) != expectedFixtures {
+		t.Fatalf("expected %d fixtures (C(%d,2)), got %d", expectedFixtures, playerCount, len(fixtures))
+	}
+
+	// Check no pairing appears in more than one week.
+	type pair struct{ a, b int64 }
+	pairWeek := map[pair]int{}
+	for _, f := range fixtures {
+		a, b := f.PlayerOneID, f.PlayerTwoID
+		if a > b {
+			a, b = b, a
+		}
+		p := pair{a, b}
+		if prev, exists := pairWeek[p]; exists {
+			t.Fatalf("players %d and %d appear in both week %d and week %d", a, b, prev, f.WeekNumber)
+		}
+		pairWeek[p] = f.WeekNumber
+	}
+
+	if len(pairWeek) != expectedFixtures {
+		t.Fatalf("expected %d unique pairings, got %d", expectedFixtures, len(pairWeek))
+	}
+
+	// Check no player appears more than once in the same week.
+	weekPlayers := map[int]map[int64]bool{}
+	for _, f := range fixtures {
+		if weekPlayers[f.WeekNumber] == nil {
+			weekPlayers[f.WeekNumber] = map[int64]bool{}
+		}
+		if weekPlayers[f.WeekNumber][f.PlayerOneID] {
+			t.Fatalf("player %d appears twice in week %d", f.PlayerOneID, f.WeekNumber)
+		}
+		weekPlayers[f.WeekNumber][f.PlayerOneID] = true
+		if weekPlayers[f.WeekNumber][f.PlayerTwoID] {
+			t.Fatalf("player %d appears twice in week %d", f.PlayerTwoID, f.WeekNumber)
+		}
+		weekPlayers[f.WeekNumber][f.PlayerTwoID] = true
+	}
+
+	expectedWeeks := playerCount - 1
+	if len(weekPlayers) != expectedWeeks {
+		t.Fatalf("expected %d weeks, got %d", expectedWeeks, len(weekPlayers))
 	}
 }
 
