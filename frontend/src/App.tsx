@@ -595,19 +595,33 @@ function PlayerRoster({ players, registrationOpen, onDelete, isDeleting }: { pla
 }
 
 function AdminFixtureCard({ fixture, onSave, onUndo, isSaving, isUndoing }: { fixture: AdminFixture; onSave: (payload: { fixtureId: number; playerOneLegs: number; playerTwoLegs: number; playerOneAverage?: number; playerTwoAverage?: number }) => Promise<unknown>; onUndo: (fixtureId: number) => Promise<unknown>; isSaving: boolean; isUndoing: boolean }) {
-  const [playerOneLegs, setPlayerOneLegs] = useState(String(fixture.result?.player_one_legs ?? 3))
+  const [playerOneLegs, setPlayerOneLegs] = useState(String(fixture.result?.player_one_legs ?? fixture.legs_to_win))
   const [playerTwoLegs, setPlayerTwoLegs] = useState(String(fixture.result?.player_two_legs ?? 0))
   const [playerOneAverage, setPlayerOneAverage] = useState(formatAverage(fixture.result?.player_one_average))
   const [playerTwoAverage, setPlayerTwoAverage] = useState(formatAverage(fixture.result?.player_two_average))
   const [statusMessage, setStatusMessage] = useState('')
 
+  const playerOneLegsValue = Number(playerOneLegs)
+  const playerTwoLegsValue = Number(playerTwoLegs)
+  const legsToWin = fixture.legs_to_win
+  const bestOfLegs = (legsToWin * 2) - 1
+  const isValidScoreline = Number.isInteger(playerOneLegsValue) && Number.isInteger(playerTwoLegsValue) && (
+    (playerOneLegsValue === legsToWin && playerTwoLegsValue >= 0 && playerTwoLegsValue < legsToWin) ||
+    (playerTwoLegsValue === legsToWin && playerOneLegsValue >= 0 && playerOneLegsValue < legsToWin)
+  )
+  const scorelineHint = `Valid scores: ${legsToWin}-0 to ${legsToWin}-${Math.max(0, legsToWin - 1)} (or reversed).`
+
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     setStatusMessage('')
+    if (!isValidScoreline) {
+      setStatusMessage(`Enter a valid first-to-${legsToWin} score. ${scorelineHint}`)
+      return
+    }
     await onSave({
       fixtureId: fixture.id,
-      playerOneLegs: Number(playerOneLegs),
-      playerTwoLegs: Number(playerTwoLegs),
+      playerOneLegs: playerOneLegsValue,
+      playerTwoLegs: playerTwoLegsValue,
       playerOneAverage: playerOneAverage === '' ? undefined : Number(playerOneAverage),
       playerTwoAverage: playerTwoAverage === '' ? undefined : Number(playerTwoAverage),
     })
@@ -625,18 +639,19 @@ function AdminFixtureCard({ fixture, onSave, onUndo, isSaving, isUndoing }: { fi
       <div className="admin-week-header">
         <div>
           <strong>{fixture.player_one} vs {fixture.player_two}</strong>
-                  <div className="fixture-meta">{fixture.game_variant} first to {fixture.legs_to_win} - players arrange within the week</div>
-                </div>
+          <div className="fixture-meta">{fixture.game_variant} first to {fixture.legs_to_win} - players arrange within the week</div>
+        </div>
         <span className={`status-pill ${fixture.result ? 'live' : 'locked'}`}>{fixture.result ? `Recorded ${fixture.result.player_one_legs}-${fixture.result.player_two_legs}` : 'No result yet'}</span>
       </div>
+      <p className="score-rule-badge">Scoring rule: first to {legsToWin} (best of {bestOfLegs}).</p>
       <form className="score-form" onSubmit={handleSubmit}>
         <div className="score-field">
           <label htmlFor={`p1-${fixture.id}`}>{fixture.player_one} legs</label>
-          <input id={`p1-${fixture.id}`} value={playerOneLegs} onChange={(event) => setPlayerOneLegs(event.target.value)} inputMode="numeric" />
+          <input id={`p1-${fixture.id}`} type="number" min={0} max={legsToWin} step={1} value={playerOneLegs} onChange={(event) => setPlayerOneLegs(event.target.value)} inputMode="numeric" />
         </div>
         <div className="score-field">
           <label htmlFor={`p2-${fixture.id}`}>{fixture.player_two} legs</label>
-          <input id={`p2-${fixture.id}`} value={playerTwoLegs} onChange={(event) => setPlayerTwoLegs(event.target.value)} inputMode="numeric" />
+          <input id={`p2-${fixture.id}`} type="number" min={0} max={legsToWin} step={1} value={playerTwoLegs} onChange={(event) => setPlayerTwoLegs(event.target.value)} inputMode="numeric" />
         </div>
         <div className="score-field">
           <label htmlFor={`a1-${fixture.id}`}>{fixture.player_one} avg</label>
@@ -646,9 +661,10 @@ function AdminFixtureCard({ fixture, onSave, onUndo, isSaving, isUndoing }: { fi
           <label htmlFor={`a2-${fixture.id}`}>{fixture.player_two} avg</label>
           <input id={`a2-${fixture.id}`} value={playerTwoAverage} onChange={(event) => setPlayerTwoAverage(event.target.value)} inputMode="decimal" placeholder="88.2" />
         </div>
-        <button type="submit" disabled={isSaving}>{isSaving ? 'Saving...' : 'Save score'}</button>
+        <button type="submit" disabled={isSaving || !isValidScoreline}>{isSaving ? 'Saving...' : 'Save score'}</button>
         {fixture.result ? <button className="secondary-button" type="button" onClick={handleUndo} disabled={isUndoing}>{isUndoing ? 'Undoing...' : 'Undo result'}</button> : null}
       </form>
+      {!isValidScoreline ? <p className="fixture-meta">{scorelineHint}</p> : null}
       {statusMessage ? <p className="fixture-meta">{statusMessage}</p> : null}
       {fixture.result?.player_one_average !== undefined || fixture.result?.player_two_average !== undefined ? (
         <p className="fixture-meta">Averages: {fixture.player_one} {formatAverage(fixture.result?.player_one_average) || '-'} / {fixture.player_two} {formatAverage(fixture.result?.player_two_average) || '-'}</p>

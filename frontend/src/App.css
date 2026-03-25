@@ -586,6 +586,20 @@
   margin-top: 0.9rem;
 }
 
+.score-rule-badge {
+  display: inline-flex;
+  margin-top: 0.75rem;
+  margin-bottom: 0.1rem;
+  padding: 0.35rem 0.65rem;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--color-muted);
+  font-size: 0.78rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
 .score-field {
   display: grid;
   gap: 0.35rem;

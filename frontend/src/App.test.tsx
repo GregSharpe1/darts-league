@@ -196,9 +196,26 @@ describe('App', () => {
     expect(screen.getByText(/recorded 3-1/i)).toBeInTheDocument()
     expect(screen.getByLabelText(/the freeze \(luke humphries\) legs/i)).toBeInTheDocument()
     expect(screen.getByLabelText(/the freeze \(luke humphries\) avg/i)).toHaveValue('96.4')
+    expect(screen.getByText(/scoring rule: first to 3 \(best of 5\)/i)).toBeInTheDocument()
     expect(screen.getAllByText(/the freeze \(luke humphries\) vs bully boy \(michael smith\)/i).length).toBeGreaterThan(0)
     expect(screen.getByRole('button', { name: /undo result/i })).toBeInTheDocument()
     expect(screen.getByText(/result edited/i)).toBeInTheDocument()
+  })
+
+  it('prevents saving an invalid scoreline for the fixture format', async () => {
+    renderApp('/admin')
+
+    fireEvent.change(screen.getByLabelText(/username/i), { target: { value: 'admin' } })
+    fireEvent.change(screen.getByLabelText(/password/i), { target: { value: 'secret' } })
+    fireEvent.click(screen.getByRole('button', { name: /unlock admin tools/i }))
+
+    await screen.findByRole('heading', { name: /registered players/i })
+
+    fireEvent.change(screen.getByLabelText(/the freeze \(luke humphries\) legs/i), { target: { value: '1' } })
+    fireEvent.change(screen.getByLabelText(/bully boy \(michael smith\) legs/i), { target: { value: '1' } })
+
+    expect(screen.getByText(/valid scores: 3-0 to 3-2/i)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /save score/i })).toBeDisabled()
   })
 
   it('locks admin roster controls after the season starts', async () => {
