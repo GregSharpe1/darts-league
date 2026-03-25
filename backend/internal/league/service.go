@@ -160,6 +160,10 @@ type SeasonSummary struct {
 	RegistrationOpen bool
 	PlayerCount      int
 	WeekCount        int
+	GameVariant      string
+	LegsToWin        int
+	GamesPerWeek     int
+	TotalFixtures    int
 }
 
 type SeasonService struct {
@@ -207,6 +211,10 @@ func (s SeasonService) Summary(ctx context.Context) (SeasonSummary, error) {
 		RegistrationOpen: season.RegistrationOpen(),
 		PlayerCount:      len(players),
 		WeekCount:        weekCount,
+		GameVariant:      season.GameVariant,
+		LegsToWin:        season.LegsToWin,
+		GamesPerWeek:     season.GamesPerWeek,
+		TotalFixtures:    len(fixtures),
 	}, nil
 }
 
@@ -218,6 +226,17 @@ func (s SeasonService) StartSeason(ctx context.Context) (SeasonSummary, error) {
 
 	if !season.RegistrationOpen() {
 		return SeasonSummary{}, ErrSeasonAlreadyStarted
+	}
+
+	// Validate config at start time.
+	if err := ValidateGameVariant(season.GameVariant); err != nil {
+		return SeasonSummary{}, err
+	}
+	if err := ValidateLegsToWin(season.LegsToWin); err != nil {
+		return SeasonSummary{}, err
+	}
+	if err := ValidateGamesPerWeek(season.GamesPerWeek, len(players)); err != nil {
+		return SeasonSummary{}, err
 	}
 
 	startedSeason := season.Start(s.now().UTC())
@@ -262,6 +281,54 @@ func (s SeasonService) UpdateName(ctx context.Context, name string) (SeasonSumma
 	}
 
 	return s.Summary(ctx)
+}
+
+func (s SeasonService) UpdateConfig(ctx context.Context, gameVariant string, legsToWin, gamesPerWeek int) (SeasonSummary, error) {
+	season, err := s.store.GetActiveSeason(ctx)
+	if err != nil {
+		return SeasonSummary{}, err
+	}
+
+	if !season.RegistrationOpen() {
+		return SeasonSummary{}, ErrSeasonConfigLocked
+	}
+
+	if err := ValidateGameVariant(gameVariant); err != nil {
+		return SeasonSummary{}, err
+	}
+	if err := ValidateLegsToWin(legsToWin); err != nil {
+		return SeasonSummary{}, err
+	}
+
+	players, err := s.store.ListPlayersBySeason(ctx, season.ID)
+	if err != nil {
+		return SeasonSummary{}, err
+	}
+	if err := ValidateGamesPerWeek(gamesPerWeek, len(players)); err != nil {
+		return SeasonSummary{}, err
+	}
+
+	season.GameVariant = gameVariant
+	season.LegsToWin = legsToWin
+	season.GamesPerWeek = gamesPerWeek
+
+	if _, err := s.store.UpsertSeason(ctx, season); err != nil {
+		return SeasonSummary{}, err
+	}
+
+	return s.Summary(ctx)
+}
+
+func (s SeasonService) SchedulePreview(ctx context.Context) (SchedulePreview, error) {
+	season, err := s.store.GetActiveSeason(ctx)
+	if err != nil {
+		return SchedulePreview{}, err
+	}
+	players, err := s.store.ListPlayersBySeason(ctx, season.ID)
+	if err != nil {
+		return SchedulePreview{}, err
+	}
+	return ComputeSchedulePreview(len(players), season.GameVariant, season.LegsToWin, season.GamesPerWeek), nil
 }
 
 type PublicFixtureWeek struct {

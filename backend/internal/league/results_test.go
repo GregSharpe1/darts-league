@@ -11,16 +11,47 @@ func TestValidateResultScoreAcceptsOnlyFirstToThree(t *testing.T) {
 
 	valid := [][2]int{{3, 0}, {3, 1}, {3, 2}, {0, 3}, {1, 3}, {2, 3}}
 	for _, score := range valid {
-		if err := ValidateResultScore(score[0], score[1]); err != nil {
+		if err := ValidateResultScore(score[0], score[1], 3); err != nil {
 			t.Fatalf("expected score %v to be valid, got %v", score, err)
 		}
 	}
 
 	invalid := [][2]int{{3, 3}, {2, 2}, {4, 0}, {0, 0}, {1, 2}}
 	for _, score := range invalid {
-		if err := ValidateResultScore(score[0], score[1]); err == nil {
+		if err := ValidateResultScore(score[0], score[1], 3); err == nil {
 			t.Fatalf("expected score %v to be invalid", score)
 		}
+	}
+}
+
+func TestValidateResultScoreWithVariableLegsToWin(t *testing.T) {
+	t.Parallel()
+
+	// First to 1: only 1-0 or 0-1 valid
+	if err := ValidateResultScore(1, 0, 1); err != nil {
+		t.Fatalf("expected 1-0 to be valid for first-to-1, got %v", err)
+	}
+	if err := ValidateResultScore(0, 1, 1); err != nil {
+		t.Fatalf("expected 0-1 to be valid for first-to-1, got %v", err)
+	}
+	if err := ValidateResultScore(1, 1, 1); err == nil {
+		t.Fatal("expected 1-1 to be invalid for first-to-1")
+	}
+
+	// First to 5: valid scores include 5-0 through 5-4
+	for loser := 0; loser < 5; loser++ {
+		if err := ValidateResultScore(5, loser, 5); err != nil {
+			t.Fatalf("expected 5-%d to be valid for first-to-5, got %v", loser, err)
+		}
+		if err := ValidateResultScore(loser, 5, 5); err != nil {
+			t.Fatalf("expected %d-5 to be valid for first-to-5, got %v", loser, err)
+		}
+	}
+	if err := ValidateResultScore(5, 5, 5); err == nil {
+		t.Fatal("expected 5-5 to be invalid for first-to-5")
+	}
+	if err := ValidateResultScore(4, 3, 5); err == nil {
+		t.Fatal("expected 4-3 to be invalid for first-to-5")
 	}
 }
 

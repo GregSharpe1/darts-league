@@ -62,13 +62,13 @@ func (s *Store) EnsureActiveSeason(ctx context.Context, season league.Season) (l
 
 func (s *Store) GetActiveSeason(ctx context.Context) (league.Season, error) {
 	row := s.pool.QueryRow(ctx, `
-		SELECT id, name, status, timezone, started_at
+		SELECT id, name, status, timezone, started_at, game_variant, legs_to_win, games_per_week
 		FROM seasons
 		ORDER BY id DESC
 		LIMIT 1
 	`)
 	var season league.Season
-	if err := row.Scan(&season.ID, &season.Name, &season.Status, &season.Timezone, &season.StartedAt); err != nil {
+	if err := row.Scan(&season.ID, &season.Name, &season.Status, &season.Timezone, &season.StartedAt, &season.GameVariant, &season.LegsToWin, &season.GamesPerWeek); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return league.Season{}, league.ErrSeasonNotFound
 		}
@@ -367,11 +367,11 @@ func (s *Store) DeletePlayer(ctx context.Context, seasonID, playerID int64) erro
 func (s *Store) UpsertSeason(ctx context.Context, season league.Season) (league.Season, error) {
 	if season.ID == 0 {
 		row := s.pool.QueryRow(ctx, `
-			INSERT INTO seasons (name, status, timezone, started_at)
-			VALUES ($1, $2, $3, $4)
-			RETURNING id, name, status, timezone, started_at
-		`, season.Name, season.Status, season.Timezone, season.StartedAt)
-		if err := row.Scan(&season.ID, &season.Name, &season.Status, &season.Timezone, &season.StartedAt); err != nil {
+			INSERT INTO seasons (name, status, timezone, started_at, game_variant, legs_to_win, games_per_week)
+			VALUES ($1, $2, $3, $4, $5, $6, $7)
+			RETURNING id, name, status, timezone, started_at, game_variant, legs_to_win, games_per_week
+		`, season.Name, season.Status, season.Timezone, season.StartedAt, season.GameVariant, season.LegsToWin, season.GamesPerWeek)
+		if err := row.Scan(&season.ID, &season.Name, &season.Status, &season.Timezone, &season.StartedAt, &season.GameVariant, &season.LegsToWin, &season.GamesPerWeek); err != nil {
 			return league.Season{}, err
 		}
 		return season, nil
@@ -379,11 +379,11 @@ func (s *Store) UpsertSeason(ctx context.Context, season league.Season) (league.
 
 	row := s.pool.QueryRow(ctx, `
 		UPDATE seasons
-		SET name = $2, status = $3, timezone = $4, started_at = $5
+		SET name = $2, status = $3, timezone = $4, started_at = $5, game_variant = $6, legs_to_win = $7, games_per_week = $8
 		WHERE id = $1
-		RETURNING id, name, status, timezone, started_at
-	`, season.ID, season.Name, season.Status, season.Timezone, season.StartedAt)
-	if err := row.Scan(&season.ID, &season.Name, &season.Status, &season.Timezone, &season.StartedAt); err != nil {
+		RETURNING id, name, status, timezone, started_at, game_variant, legs_to_win, games_per_week
+	`, season.ID, season.Name, season.Status, season.Timezone, season.StartedAt, season.GameVariant, season.LegsToWin, season.GamesPerWeek)
+	if err := row.Scan(&season.ID, &season.Name, &season.Status, &season.Timezone, &season.StartedAt, &season.GameVariant, &season.LegsToWin, &season.GamesPerWeek); err != nil {
 		return league.Season{}, err
 	}
 	return season, nil

@@ -409,6 +409,59 @@
   color: #7d7f85;
 }
 
+.field select {
+  min-height: 3rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 1rem;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--color-text);
+  padding: 0 0.95rem;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%237d7f85' stroke-width='1.5' fill='none'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.95rem center;
+}
+
+.field select option {
+  background: #1a1a1c;
+  color: var(--color-text);
+}
+
+.admin-confirm-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(6px);
+  padding: 1.5rem;
+}
+
+.admin-confirm-card {
+  max-width: 480px;
+  width: 100%;
+  text-align: center;
+}
+
+.confirm-summary {
+  margin: 1.25rem 0;
+  padding: 1rem;
+  border-radius: 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.confirm-summary p {
+  margin: 0.3rem 0;
+}
+
+.admin-confirm-card .toolbar-actions {
+  justify-content: center;
+  margin-top: 1.25rem;
+}
+
 .admin-login {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));

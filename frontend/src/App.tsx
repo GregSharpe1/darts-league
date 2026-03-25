@@ -12,11 +12,14 @@ import {
   useAdminPlayers,
   useAuditLog,
   useDeletePlayer,
+  useGamesPerWeekPresets,
   usePublicFixtures,
   useRegisterPlayer,
   useSaveResult,
+  useSchedulePreview,
   useUndoResult,
   useUpdateSeason,
+  useUpdateSeasonConfig,
   useSeasonStart,
   useSeasonSummary,
   useStandings,
@@ -101,6 +104,13 @@ function HomePage() {
             <strong>{seasonQuery.data?.player_count ?? '-'}</strong>
             <p>{seasonQuery.data?.registration_open ? 'players registered before the season start action.' : `season live across ${seasonQuery.data?.week_count ?? 0} weeks.`}</p>
           </article>
+          {seasonQuery.data && !seasonQuery.data.registration_open ? (
+            <article className="metric-card">
+              <span className="section-eyebrow">Match format</span>
+              <strong>{seasonQuery.data.game_variant}</strong>
+              <p>First to {seasonQuery.data.legs_to_win} legs | {seasonQuery.data.games_per_week} game{seasonQuery.data.games_per_week !== 1 ? 's' : ''} per week</p>
+            </article>
+          ) : null}
           <article className="info-card">
             <div className="card-header">
               <div className="card-copy">
@@ -330,15 +340,22 @@ function AdminPage() {
   const loginMutation = useAdminLogin()
   const logoutMutation = useAdminLogout()
   const updateSeasonMutation = useUpdateSeason()
+  const updateConfigMutation = useUpdateSeasonConfig()
   const seasonStartMutation = useSeasonStart()
   const deletePlayerMutation = useDeletePlayer()
   const undoResultMutation = useUndoResult()
   const fixturesQuery = useAdminFixtures(isAuthenticated)
   const auditQuery = useAuditLog(isAuthenticated)
   const saveResultMutation = useSaveResult()
+  const presetsQuery = useGamesPerWeekPresets(isAuthenticated && Boolean(seasonQuery.data?.registration_open))
+  const previewQuery = useSchedulePreview(isAuthenticated && Boolean(seasonQuery.data?.registration_open))
   const [username, setUsername] = useState('admin')
   const [password, setPassword] = useState('')
   const [seasonName, setSeasonName] = useState('')
+  const [gameVariant, setGameVariant] = useState('501')
+  const [legsToWin, setLegsToWin] = useState('3')
+  const [gamesPerWeek, setGamesPerWeek] = useState('1')
+  const [showStartConfirm, setShowStartConfirm] = useState(false)
 
   const unauthenticated = playersQuery.error instanceof ApiError && playersQuery.error.status === 401
   const players = playersQuery.data ?? []
@@ -346,6 +363,14 @@ function AdminPage() {
   useEffect(() => {
     setSeasonName(seasonQuery.data?.name ?? '')
   }, [seasonQuery.data?.name])
+
+  useEffect(() => {
+    if (seasonQuery.data) {
+      setGameVariant(seasonQuery.data.game_variant || '501')
+      setLegsToWin(String(seasonQuery.data.legs_to_win || 3))
+      setGamesPerWeek(String(seasonQuery.data.games_per_week || 1))
+    }
+  }, [seasonQuery.data?.game_variant, seasonQuery.data?.legs_to_win, seasonQuery.data?.games_per_week])
 
   const handleLogin = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -400,16 +425,33 @@ function AdminPage() {
             </div>
             <div className="toolbar-actions">
               <button className="secondary-button" type="button" onClick={() => logoutMutation.mutate()} disabled={logoutMutation.isPending}>{logoutMutation.isPending ? 'Logging out...' : 'Log out'}</button>
-              <button type="button" onClick={() => seasonStartMutation.mutate()} disabled={!seasonQuery.data?.registration_open || seasonStartMutation.isPending}>{seasonStartMutation.isPending ? 'Starting season...' : 'Start season'}</button>
+              <button type="button" onClick={() => setShowStartConfirm(true)} disabled={!seasonQuery.data?.registration_open || seasonStartMutation.isPending || (seasonQuery.data?.player_count ?? 0) < 2}>{seasonStartMutation.isPending ? 'Starting season...' : 'Start season'}</button>
             </div>
           </section>
+          {showStartConfirm && previewQuery.data ? (
+            <section className="admin-confirm-overlay">
+              <article className="admin-card admin-confirm-card">
+                <h2>Start Season?</h2>
+                <div className="confirm-summary">
+                  <p><strong>{previewQuery.data.player_count}</strong> players | <strong>{previewQuery.data.game_variant}</strong> | First to <strong>{previewQuery.data.legs_to_win}</strong> legs</p>
+                  <p><strong>{previewQuery.data.games_per_week}</strong> game{previewQuery.data.games_per_week !== 1 ? 's' : ''} per player per week</p>
+                  <p className="fixture-meta">{previewQuery.data.week_count} weeks, {previewQuery.data.total_fixtures} total fixtures</p>
+                </div>
+                <p className="fixture-meta">This cannot be undone.</p>
+                <div className="toolbar-actions">
+                  <button className="secondary-button" type="button" onClick={() => setShowStartConfirm(false)}>Cancel</button>
+                  <button type="button" onClick={() => { seasonStartMutation.mutate(); setShowStartConfirm(false) }} disabled={seasonStartMutation.isPending}>{seasonStartMutation.isPending ? 'Starting...' : 'Start Season'}</button>
+                </div>
+              </article>
+            </section>
+          ) : null}
           {seasonStartMutation.error ? <StateNotice tone="error" message={readError(seasonStartMutation.error)} compact /> : null}
           {seasonQuery.data && !seasonQuery.data.registration_open ? <StateNotice message="Registration is locked and player deletion is now disabled for this season." compact /> : null}
 
           <section className="admin-grid admin-grid-wide">
             <article className="admin-card">
               <h2>League settings</h2>
-              <p>Name the active league before the season starts. The saved name appears anywhere the current season label is shown.</p>
+              <p>Configure the league before the season starts. All settings are locked once fixtures are generated.</p>
               <form
                 className="admin-login"
                 onSubmit={(event) => {
@@ -433,7 +475,64 @@ function AdminPage() {
                 </button>
               </form>
               {updateSeasonMutation.error ? <StateNotice tone="error" message={readError(updateSeasonMutation.error)} compact /> : null}
-              {seasonQuery.data && !seasonQuery.data.registration_open ? <StateNotice message="League name is locked once the season has started." compact /> : null}
+
+              <form
+                className="admin-login"
+                onSubmit={(event) => {
+                  event.preventDefault()
+                  updateConfigMutation.mutate({ game_variant: gameVariant, legs_to_win: Number(legsToWin), games_per_week: Number(gamesPerWeek) })
+                }}
+              >
+                <div className="field">
+                  <label htmlFor="game-variant">Game variant</label>
+                  <select
+                    id="game-variant"
+                    value={gameVariant}
+                    onChange={(event) => setGameVariant(event.target.value)}
+                    disabled={!seasonQuery.data?.registration_open || updateConfigMutation.isPending}
+                  >
+                    <option value="501">501</option>
+                    <option value="301">301</option>
+                  </select>
+                </div>
+                <div className="field">
+                  <label htmlFor="legs-to-win">First to (legs)</label>
+                  <input
+                    id="legs-to-win"
+                    name="legs-to-win"
+                    type="number"
+                    min="1"
+                    value={legsToWin}
+                    onChange={(event) => setLegsToWin(event.target.value)}
+                    disabled={!seasonQuery.data?.registration_open || updateConfigMutation.isPending}
+                  />
+                </div>
+                <div className="field">
+                  <label htmlFor="games-per-week">Games per player per week</label>
+                  <select
+                    id="games-per-week"
+                    value={gamesPerWeek}
+                    onChange={(event) => setGamesPerWeek(event.target.value)}
+                    disabled={!seasonQuery.data?.registration_open || updateConfigMutation.isPending || !presetsQuery.data}
+                  >
+                    {presetsQuery.data?.map((preset) => (
+                      <option key={preset.games_per_week} value={String(preset.games_per_week)}>
+                        {preset.games_per_week} game{preset.games_per_week !== 1 ? 's' : ''}/week ({preset.week_count} week{preset.week_count !== 1 ? 's' : ''})
+                      </option>
+                    ))}
+                    {(!presetsQuery.data || presetsQuery.data.length === 0) ? <option value={gamesPerWeek}>{gamesPerWeek} game{Number(gamesPerWeek) !== 1 ? 's' : ''}/week</option> : null}
+                  </select>
+                </div>
+                <button type="submit" disabled={
+                  !seasonQuery.data?.registration_open ||
+                  updateConfigMutation.isPending ||
+                  (gameVariant === (seasonQuery.data?.game_variant ?? '501') && Number(legsToWin) === (seasonQuery.data?.legs_to_win ?? 3) && Number(gamesPerWeek) === (seasonQuery.data?.games_per_week ?? 1))
+                }>
+                  {updateConfigMutation.isPending ? 'Saving...' : 'Save match config'}
+                </button>
+              </form>
+              {updateConfigMutation.error ? <StateNotice tone="error" message={readError(updateConfigMutation.error)} compact /> : null}
+              {seasonQuery.data && !seasonQuery.data.registration_open ? <StateNotice message="All settings are locked once the season has started." compact /> : null}
             </article>
 
             <article className="admin-card">

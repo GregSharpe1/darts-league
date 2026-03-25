@@ -22,6 +22,10 @@ describe('App', () => {
           registration_open: !state.seasonStarted,
           player_count: 4,
           week_count: state.seasonStarted ? 3 : 0,
+          game_variant: '501',
+          legs_to_win: 3,
+          games_per_week: 1,
+          total_fixtures: state.seasonStarted ? 6 : 0,
         })
       }
 
@@ -110,13 +114,25 @@ describe('App', () => {
 
       if (path === '/api/admin/season/start' && method === 'POST') {
         state.seasonStarted = true
-        return response({ id: 1, instance_name: 'Cardiff Office - Darts League', name: state.seasonName, status: 'started', timezone: 'Europe/London', registration_open: false, player_count: 4, week_count: 3 })
+        return response({ id: 1, instance_name: 'Cardiff Office - Darts League', name: state.seasonName, status: 'started', timezone: 'Europe/London', registration_open: false, player_count: 4, week_count: 3, game_variant: '501', legs_to_win: 3, games_per_week: 1, total_fixtures: 6 })
       }
 
       if (path === '/api/admin/season' && method === 'PUT') {
         const body = JSON.parse(String(init?.body ?? '{}'))
         state.seasonName = body.name
-        return response({ id: 1, instance_name: 'Cardiff Office - Darts League', name: state.seasonName, status: state.seasonStarted ? 'started' : 'registration_open', timezone: 'Europe/London', registration_open: !state.seasonStarted, player_count: 4, week_count: state.seasonStarted ? 3 : 0 })
+        return response({ id: 1, instance_name: 'Cardiff Office - Darts League', name: state.seasonName, status: state.seasonStarted ? 'started' : 'registration_open', timezone: 'Europe/London', registration_open: !state.seasonStarted, player_count: 4, week_count: state.seasonStarted ? 3 : 0, game_variant: '501', legs_to_win: 3, games_per_week: 1, total_fixtures: state.seasonStarted ? 6 : 0 })
+      }
+
+      if (path === '/api/admin/season/config' && method === 'PUT') {
+        return response({ id: 1, instance_name: 'Cardiff Office - Darts League', name: state.seasonName, status: 'registration_open', timezone: 'Europe/London', registration_open: true, player_count: 4, week_count: 0, game_variant: '501', legs_to_win: 3, games_per_week: 1, total_fixtures: 0 })
+      }
+
+      if (path === '/api/admin/season/presets') {
+        return response({ presets: [{ games_per_week: 1, week_count: 3 }, { games_per_week: 2, week_count: 2 }, { games_per_week: 3, week_count: 1 }] })
+      }
+
+      if (path === '/api/admin/season/preview') {
+        return response({ player_count: 4, game_variant: '501', legs_to_win: 3, games_per_week: 1, week_count: 3, total_fixtures: 6 })
       }
 
       if (path.startsWith('/api/admin/players/') && method === 'DELETE') {
@@ -195,7 +211,17 @@ describe('App', () => {
     await screen.findByRole('heading', { name: /registered players/i })
     expect(screen.getAllByRole('button', { name: /^delete$/i }).length).toBeGreaterThan(0)
 
+    // Click "Start season" to open the confirmation dialog.
     fireEvent.click(screen.getAllByRole('button', { name: /start season/i })[0])
+
+    // Wait for the confirmation dialog to appear with the preview data.
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: /start season\?/i })).toBeInTheDocument()
+    })
+
+    // Click "Start Season" in the confirmation dialog to actually start.
+    const confirmButtons = screen.getAllByRole('button', { name: /^start season$/i })
+    fireEvent.click(confirmButtons[confirmButtons.length - 1])
 
     await waitFor(() => {
       expect(screen.getByText(/registration is locked and player deletion is now disabled/i)).toBeInTheDocument()

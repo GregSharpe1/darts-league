@@ -68,9 +68,12 @@ func SnapshotFromResult(result Result) *ResultSnapshot {
 	}
 }
 
-func ValidateResultScore(playerOneLegs, playerTwoLegs int) error {
-	valid := (playerOneLegs == LegsToWin && playerTwoLegs >= 0 && playerTwoLegs < LegsToWin) ||
-		(playerTwoLegs == LegsToWin && playerOneLegs >= 0 && playerOneLegs < LegsToWin)
+func ValidateResultScore(playerOneLegs, playerTwoLegs, legsToWin int) error {
+	if legsToWin < 1 {
+		legsToWin = DefaultLegsToWin
+	}
+	valid := (playerOneLegs == legsToWin && playerTwoLegs >= 0 && playerTwoLegs < legsToWin) ||
+		(playerTwoLegs == legsToWin && playerOneLegs >= 0 && playerOneLegs < legsToWin)
 	if !valid {
 		return ErrInvalidResult
 	}
@@ -78,7 +81,7 @@ func ValidateResultScore(playerOneLegs, playerTwoLegs int) error {
 }
 
 func WinnerIDForFixture(fixture Fixture, playerOneLegs, playerTwoLegs int) (int64, error) {
-	if err := ValidateResultScore(playerOneLegs, playerTwoLegs); err != nil {
+	if err := ValidateResultScore(playerOneLegs, playerTwoLegs, fixture.LegsToWin); err != nil {
 		return 0, err
 	}
 	if playerOneLegs > playerTwoLegs {

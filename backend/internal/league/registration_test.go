@@ -134,6 +134,104 @@ func TestRegistrationServiceSkipsNotifierOnValidationFailure(t *testing.T) {
 	}
 }
 
+func TestValidateGameVariant(t *testing.T) {
+	t.Parallel()
+
+	if err := ValidateGameVariant("501"); err != nil {
+		t.Fatalf("expected 501 to be valid, got %v", err)
+	}
+	if err := ValidateGameVariant("301"); err != nil {
+		t.Fatalf("expected 301 to be valid, got %v", err)
+	}
+	if err := ValidateGameVariant("401"); err == nil {
+		t.Fatal("expected 401 to be invalid")
+	}
+	if err := ValidateGameVariant(""); err == nil {
+		t.Fatal("expected empty string to be invalid")
+	}
+}
+
+func TestValidateLegsToWin(t *testing.T) {
+	t.Parallel()
+
+	if err := ValidateLegsToWin(1); err != nil {
+		t.Fatalf("expected 1 to be valid, got %v", err)
+	}
+	if err := ValidateLegsToWin(10); err != nil {
+		t.Fatalf("expected 10 to be valid, got %v", err)
+	}
+	if err := ValidateLegsToWin(0); err == nil {
+		t.Fatal("expected 0 to be invalid")
+	}
+	if err := ValidateLegsToWin(-1); err == nil {
+		t.Fatal("expected -1 to be invalid")
+	}
+}
+
+func TestValidateGamesPerWeek(t *testing.T) {
+	t.Parallel()
+
+	if err := ValidateGamesPerWeek(1, 4); err != nil {
+		t.Fatalf("expected 1 game/week with 4 players to be valid, got %v", err)
+	}
+	if err := ValidateGamesPerWeek(3, 4); err != nil {
+		t.Fatalf("expected 3 games/week with 4 players to be valid, got %v", err)
+	}
+	if err := ValidateGamesPerWeek(4, 4); err == nil {
+		t.Fatal("expected 4 games/week with 4 players to be invalid (max is 3)")
+	}
+	if err := ValidateGamesPerWeek(0, 4); err == nil {
+		t.Fatal("expected 0 games/week to be invalid")
+	}
+}
+
+func TestGamesPerWeekPresets(t *testing.T) {
+	t.Parallel()
+
+	presets := GamesPerWeekPresets(6)
+	if len(presets) != 5 {
+		t.Fatalf("expected 5 presets for 6 players, got %d", len(presets))
+	}
+	// 1 game/week = 5 weeks
+	if presets[0].GamesPerWeek != 1 || presets[0].WeekCount != 5 {
+		t.Fatalf("expected 1 game/week = 5 weeks, got %+v", presets[0])
+	}
+	// 5 games/week = 1 week
+	if presets[4].GamesPerWeek != 5 || presets[4].WeekCount != 1 {
+		t.Fatalf("expected 5 games/week = 1 week, got %+v", presets[4])
+	}
+	// 2 games/week = 3 weeks (ceil(5/2))
+	if presets[1].GamesPerWeek != 2 || presets[1].WeekCount != 3 {
+		t.Fatalf("expected 2 games/week = 3 weeks, got %+v", presets[1])
+	}
+}
+
+func TestGamesPerWeekPresetsReturnNilForTooFewPlayers(t *testing.T) {
+	t.Parallel()
+
+	if presets := GamesPerWeekPresets(1); presets != nil {
+		t.Fatalf("expected nil presets for 1 player, got %+v", presets)
+	}
+	if presets := GamesPerWeekPresets(0); presets != nil {
+		t.Fatalf("expected nil presets for 0 players, got %+v", presets)
+	}
+}
+
+func TestComputeSchedulePreview(t *testing.T) {
+	t.Parallel()
+
+	preview := ComputeSchedulePreview(8, "501", 3, 2)
+	if preview.PlayerCount != 8 {
+		t.Fatalf("expected 8 players, got %d", preview.PlayerCount)
+	}
+	if preview.TotalFixtures != 28 {
+		t.Fatalf("expected 28 total fixtures for 8 players, got %d", preview.TotalFixtures)
+	}
+	if preview.WeekCount != 4 {
+		t.Fatalf("expected 4 weeks (ceil(7/2)), got %d", preview.WeekCount)
+	}
+}
+
 type stubRegistrationNotifier struct {
 	players []Player
 	totals  []int
