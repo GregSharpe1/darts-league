@@ -233,6 +233,158 @@ func TestAdminFixturesIncludeRecordedResults(t *testing.T) {
 	}
 }
 
+func TestSeasonSummaryIncludesMatchConfig(t *testing.T) {
+	t.Parallel()
+
+	handler := newSeasonHandlerWithNow(time.Date(2026, time.March, 20, 10, 0, 0, 0, time.UTC))
+	recorder := hitEndpoint(t, handler.season.handleSeasonSummary, httptest.NewRequest(http.MethodGet, "/api/season", nil), http.StatusOK)
+
+	var response seasonSummaryResponse
+	if err := json.Unmarshal(recorder.Body.Bytes(), &response); err != nil {
+		t.Fatalf("expected valid season response, got %v", err)
+	}
+
+	if response.GameVariant != "501" {
+		t.Fatalf("expected default game variant 501, got %q", response.GameVariant)
+	}
+	if response.LegsToWin != 3 {
+		t.Fatalf("expected default legs to win 3, got %d", response.LegsToWin)
+	}
+	if response.GamesPerWeek != 1 {
+		t.Fatalf("expected default games per week 1, got %d", response.GamesPerWeek)
+	}
+}
+
+func TestSeasonUpdateConfigBeforeStart(t *testing.T) {
+	t.Parallel()
+
+	handler := newSeasonHandlerWithNow(time.Date(2026, time.March, 18, 12, 0, 0, 0, time.UTC))
+	registerTestPlayers(t, handler.registration, []string{"Luke Humphries", "Michael Smith", "Peter Wright", "Gerwyn Price"})
+
+	request := httptest.NewRequest(http.MethodPut, "/api/admin/season/config", bytes.NewBufferString(`{"game_variant":"301","legs_to_win":5,"games_per_week":2}`))
+	recorder := hitEndpoint(t, handler.season.handleSeasonUpdateConfig, request, http.StatusOK)
+
+	var response seasonSummaryResponse
+	if err := json.Unmarshal(recorder.Body.Bytes(), &response); err != nil {
+		t.Fatalf("expected valid season response, got %v", err)
+	}
+
+	if response.GameVariant != "301" {
+		t.Fatalf("expected 301, got %q", response.GameVariant)
+	}
+	if response.LegsToWin != 5 {
+		t.Fatalf("expected 5, got %d", response.LegsToWin)
+	}
+	if response.GamesPerWeek != 2 {
+		t.Fatalf("expected 2, got %d", response.GamesPerWeek)
+	}
+}
+
+func TestSeasonUpdateConfigRejectsInvalidVariant(t *testing.T) {
+	t.Parallel()
+
+	handler := newSeasonHandlerWithNow(time.Date(2026, time.March, 18, 12, 0, 0, 0, time.UTC))
+	request := httptest.NewRequest(http.MethodPut, "/api/admin/season/config", bytes.NewBufferString(`{"game_variant":"401","legs_to_win":3,"games_per_week":1}`))
+	recorder := hitEndpoint(t, handler.season.handleSeasonUpdateConfig, request, http.StatusBadRequest)
+	assertErrorCode(t, recorder.Body.Bytes(), "invalid_game_variant")
+}
+
+func TestSeasonUpdateConfigLockedAfterStart(t *testing.T) {
+	t.Parallel()
+
+	handler := newSeasonHandlerWithNow(time.Date(2026, time.March, 18, 12, 0, 0, 0, time.UTC))
+	registerTestPlayers(t, handler.registration, []string{"Luke Humphries", "Michael Smith"})
+	hitEndpoint(t, handler.season.handleSeasonStart, httptest.NewRequest(http.MethodPost, "/api/admin/season/start", nil), http.StatusCreated)
+
+	request := httptest.NewRequest(http.MethodPut, "/api/admin/season/config", bytes.NewBufferString(`{"game_variant":"301","legs_to_win":5,"games_per_week":1}`))
+	recorder := hitEndpoint(t, handler.season.handleSeasonUpdateConfig, request, http.StatusConflict)
+	assertErrorCode(t, recorder.Body.Bytes(), "season_started")
+}
+
+func TestGamesPerWeekPresetsEndpoint(t *testing.T) {
+	t.Parallel()
+
+	handler := newSeasonHandlerWithNow(time.Date(2026, time.March, 18, 12, 0, 0, 0, time.UTC))
+	registerTestPlayers(t, handler.registration, []string{"Luke Humphries", "Michael Smith", "Peter Wright", "Gerwyn Price"})
+
+	recorder := hitEndpoint(t, handler.season.handleGamesPerWeekPresets, httptest.NewRequest(http.MethodGet, "/api/admin/season/presets", nil), http.StatusOK)
+
+	var response struct {
+		Presets []struct {
+			GamesPerWeek int `json:"games_per_week"`
+			WeekCount    int `json:"week_count"`
+		} `json:"presets"`
+	}
+	if err := json.Unmarshal(recorder.Body.Bytes(), &response); err != nil {
+		t.Fatalf("expected valid presets response, got %v", err)
+	}
+
+	if len(response.Presets) != 3 {
+		t.Fatalf("expected 3 presets for 4 players, got %d", len(response.Presets))
+	}
+	if response.Presets[0].GamesPerWeek != 1 || response.Presets[0].WeekCount != 3 {
+		t.Fatalf("expected first preset 1 game/week = 3 weeks, got %+v", response.Presets[0])
+	}
+}
+
+func TestSchedulePreviewEndpoint(t *testing.T) {
+	t.Parallel()
+
+	handler := newSeasonHandlerWithNow(time.Date(2026, time.March, 18, 12, 0, 0, 0, time.UTC))
+	registerTestPlayers(t, handler.registration, []string{"Luke Humphries", "Michael Smith", "Peter Wright", "Gerwyn Price"})
+
+	recorder := hitEndpoint(t, handler.season.handleSchedulePreview, httptest.NewRequest(http.MethodGet, "/api/admin/season/preview", nil), http.StatusOK)
+
+	var response struct {
+		PlayerCount   int    `json:"player_count"`
+		GameVariant   string `json:"game_variant"`
+		LegsToWin     int    `json:"legs_to_win"`
+		GamesPerWeek  int    `json:"games_per_week"`
+		WeekCount     int    `json:"week_count"`
+		TotalFixtures int    `json:"total_fixtures"`
+	}
+	if err := json.Unmarshal(recorder.Body.Bytes(), &response); err != nil {
+		t.Fatalf("expected valid preview response, got %v", err)
+	}
+
+	if response.PlayerCount != 4 || response.TotalFixtures != 6 || response.WeekCount != 3 {
+		t.Fatalf("unexpected preview: %+v", response)
+	}
+}
+
+func TestSeasonStartWithCustomConfig(t *testing.T) {
+	t.Parallel()
+
+	handler := newSeasonHandlerWithNow(time.Date(2026, time.March, 18, 12, 0, 0, 0, time.UTC))
+	registerTestPlayers(t, handler.registration, []string{"Luke Humphries", "Michael Smith", "Peter Wright", "Gerwyn Price"})
+
+	// Set custom config
+	configReq := httptest.NewRequest(http.MethodPut, "/api/admin/season/config", bytes.NewBufferString(`{"game_variant":"301","legs_to_win":2,"games_per_week":2}`))
+	hitEndpoint(t, handler.season.handleSeasonUpdateConfig, configReq, http.StatusOK)
+
+	// Start the season
+	recorder := hitEndpoint(t, handler.season.handleSeasonStart, httptest.NewRequest(http.MethodPost, "/api/admin/season/start", nil), http.StatusCreated)
+
+	var response seasonSummaryResponse
+	if err := json.Unmarshal(recorder.Body.Bytes(), &response); err != nil {
+		t.Fatalf("expected valid season response, got %v", err)
+	}
+
+	if response.GameVariant != "301" {
+		t.Fatalf("expected 301, got %q", response.GameVariant)
+	}
+	if response.LegsToWin != 2 {
+		t.Fatalf("expected first-to-2, got %d", response.LegsToWin)
+	}
+	// 4 players, 3 games per player, 2 games/week = 2 weeks
+	if response.WeekCount != 2 {
+		t.Fatalf("expected 2 weeks with custom config, got %d", response.WeekCount)
+	}
+	if response.TotalFixtures != 6 {
+		t.Fatalf("expected 6 total fixtures, got %d", response.TotalFixtures)
+	}
+}
+
 type seasonHandlerBundle struct {
 	store        *league.MemoryStore
 	clock        *testClock

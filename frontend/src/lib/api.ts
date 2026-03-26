@@ -22,6 +22,10 @@ export type SeasonSummary = {
   registration_open: boolean
   player_count: number
   week_count: number
+  game_variant: string
+  legs_to_win: number
+  games_per_week: number
+  total_fixtures: number
 }
 
 export type PublicFixture = {
@@ -126,6 +130,26 @@ type LoginRequest = {
 
 type UpdateSeasonRequest = {
   name: string
+}
+
+type UpdateSeasonConfigRequest = {
+  game_variant: string
+  legs_to_win: number
+  games_per_week: number
+}
+
+export type GamesPerWeekPreset = {
+  games_per_week: number
+  week_count: number
+}
+
+export type SchedulePreview = {
+  player_count: number
+  game_variant: string
+  legs_to_win: number
+  games_per_week: number
+  week_count: number
+  total_fixtures: number
 }
 
 type RegisterRequest = {
@@ -257,6 +281,34 @@ export function useUpdateSeason() {
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['season'] })
     },
+  })
+}
+
+export function useUpdateSeasonConfig() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (payload: UpdateSeasonConfigRequest) => request<SeasonSummary>('/api/admin/season/config', { method: 'PUT', body: JSON.stringify(payload) }),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['season'] })
+      await queryClient.invalidateQueries({ queryKey: ['admin', 'presets'] })
+      await queryClient.invalidateQueries({ queryKey: ['admin', 'preview'] })
+    },
+  })
+}
+
+export function useGamesPerWeekPresets(enabled: boolean) {
+  return useQuery({
+    queryKey: ['admin', 'presets'],
+    queryFn: async () => (await request<{ presets: GamesPerWeekPreset[] }>('/api/admin/season/presets')).presets,
+    enabled,
+  })
+}
+
+export function useSchedulePreview(enabled: boolean) {
+  return useQuery({
+    queryKey: ['admin', 'preview'],
+    queryFn: () => request<SchedulePreview>('/api/admin/season/preview'),
+    enabled,
   })
 }
 

@@ -12,11 +12,14 @@ import {
   useAdminPlayers,
   useAuditLog,
   useDeletePlayer,
+  useGamesPerWeekPresets,
   usePublicFixtures,
   useRegisterPlayer,
   useSaveResult,
+  useSchedulePreview,
   useUndoResult,
   useUpdateSeason,
+  useUpdateSeasonConfig,
   useSeasonStart,
   useSeasonSummary,
   useStandings,
@@ -101,6 +104,13 @@ function HomePage() {
             <strong>{seasonQuery.data?.player_count ?? '-'}</strong>
             <p>{seasonQuery.data?.registration_open ? 'players registered before the season start action.' : `season live across ${seasonQuery.data?.week_count ?? 0} weeks.`}</p>
           </article>
+          {seasonQuery.data && !seasonQuery.data.registration_open ? (
+            <article className="metric-card">
+              <span className="section-eyebrow">Match format</span>
+              <strong>{seasonQuery.data.game_variant}</strong>
+              <p>First to {seasonQuery.data.legs_to_win} legs | {seasonQuery.data.games_per_week} game{seasonQuery.data.games_per_week !== 1 ? 's' : ''} per week</p>
+            </article>
+          ) : null}
           <article className="info-card">
             <div className="card-header">
               <div className="card-copy">
@@ -330,15 +340,22 @@ function AdminPage() {
   const loginMutation = useAdminLogin()
   const logoutMutation = useAdminLogout()
   const updateSeasonMutation = useUpdateSeason()
+  const updateConfigMutation = useUpdateSeasonConfig()
   const seasonStartMutation = useSeasonStart()
   const deletePlayerMutation = useDeletePlayer()
   const undoResultMutation = useUndoResult()
   const fixturesQuery = useAdminFixtures(isAuthenticated)
   const auditQuery = useAuditLog(isAuthenticated)
   const saveResultMutation = useSaveResult()
+  const presetsQuery = useGamesPerWeekPresets(isAuthenticated && Boolean(seasonQuery.data?.registration_open))
+  const previewQuery = useSchedulePreview(isAuthenticated && Boolean(seasonQuery.data?.registration_open))
   const [username, setUsername] = useState('admin')
   const [password, setPassword] = useState('')
   const [seasonName, setSeasonName] = useState('')
+  const [gameVariant, setGameVariant] = useState('501')
+  const [legsToWin, setLegsToWin] = useState('3')
+  const [gamesPerWeek, setGamesPerWeek] = useState('1')
+  const [showStartConfirm, setShowStartConfirm] = useState(false)
 
   const unauthenticated = playersQuery.error instanceof ApiError && playersQuery.error.status === 401
   const players = playersQuery.data ?? []
@@ -346,6 +363,14 @@ function AdminPage() {
   useEffect(() => {
     setSeasonName(seasonQuery.data?.name ?? '')
   }, [seasonQuery.data?.name])
+
+  useEffect(() => {
+    if (seasonQuery.data) {
+      setGameVariant(seasonQuery.data.game_variant || '501')
+      setLegsToWin(String(seasonQuery.data.legs_to_win || 3))
+      setGamesPerWeek(String(seasonQuery.data.games_per_week || 1))
+    }
+  }, [seasonQuery.data?.game_variant, seasonQuery.data?.legs_to_win, seasonQuery.data?.games_per_week])
 
   const handleLogin = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -400,16 +425,33 @@ function AdminPage() {
             </div>
             <div className="toolbar-actions">
               <button className="secondary-button" type="button" onClick={() => logoutMutation.mutate()} disabled={logoutMutation.isPending}>{logoutMutation.isPending ? 'Logging out...' : 'Log out'}</button>
-              <button type="button" onClick={() => seasonStartMutation.mutate()} disabled={!seasonQuery.data?.registration_open || seasonStartMutation.isPending}>{seasonStartMutation.isPending ? 'Starting season...' : 'Start season'}</button>
+              <button type="button" onClick={() => setShowStartConfirm(true)} disabled={!seasonQuery.data?.registration_open || seasonStartMutation.isPending || (seasonQuery.data?.player_count ?? 0) < 2}>{seasonStartMutation.isPending ? 'Starting season...' : 'Start season'}</button>
             </div>
           </section>
+          {showStartConfirm && previewQuery.data ? (
+            <section className="admin-confirm-overlay">
+              <article className="admin-card admin-confirm-card">
+                <h2>Start Season?</h2>
+                <div className="confirm-summary">
+                  <p><strong>{previewQuery.data.player_count}</strong> players | <strong>{previewQuery.data.game_variant}</strong> | First to <strong>{previewQuery.data.legs_to_win}</strong> legs</p>
+                  <p><strong>{previewQuery.data.games_per_week}</strong> game{previewQuery.data.games_per_week !== 1 ? 's' : ''} per player per week</p>
+                  <p className="fixture-meta">{previewQuery.data.week_count} weeks, {previewQuery.data.total_fixtures} total fixtures</p>
+                </div>
+                <p className="fixture-meta">This cannot be undone.</p>
+                <div className="toolbar-actions">
+                  <button className="secondary-button" type="button" onClick={() => setShowStartConfirm(false)}>Cancel</button>
+                  <button type="button" onClick={() => { seasonStartMutation.mutate(); setShowStartConfirm(false) }} disabled={seasonStartMutation.isPending}>{seasonStartMutation.isPending ? 'Starting...' : 'Start Season'}</button>
+                </div>
+              </article>
+            </section>
+          ) : null}
           {seasonStartMutation.error ? <StateNotice tone="error" message={readError(seasonStartMutation.error)} compact /> : null}
           {seasonQuery.data && !seasonQuery.data.registration_open ? <StateNotice message="Registration is locked and player deletion is now disabled for this season." compact /> : null}
 
           <section className="admin-grid admin-grid-wide">
             <article className="admin-card">
               <h2>League settings</h2>
-              <p>Name the active league before the season starts. The saved name appears anywhere the current season label is shown.</p>
+              <p>Configure the league before the season starts. All settings are locked once fixtures are generated.</p>
               <form
                 className="admin-login"
                 onSubmit={(event) => {
@@ -433,7 +475,64 @@ function AdminPage() {
                 </button>
               </form>
               {updateSeasonMutation.error ? <StateNotice tone="error" message={readError(updateSeasonMutation.error)} compact /> : null}
-              {seasonQuery.data && !seasonQuery.data.registration_open ? <StateNotice message="League name is locked once the season has started." compact /> : null}
+
+              <form
+                className="admin-login"
+                onSubmit={(event) => {
+                  event.preventDefault()
+                  updateConfigMutation.mutate({ game_variant: gameVariant, legs_to_win: Number(legsToWin), games_per_week: Number(gamesPerWeek) })
+                }}
+              >
+                <div className="field">
+                  <label htmlFor="game-variant">Game variant</label>
+                  <select
+                    id="game-variant"
+                    value={gameVariant}
+                    onChange={(event) => setGameVariant(event.target.value)}
+                    disabled={!seasonQuery.data?.registration_open || updateConfigMutation.isPending}
+                  >
+                    <option value="501">501</option>
+                    <option value="301">301</option>
+                  </select>
+                </div>
+                <div className="field">
+                  <label htmlFor="legs-to-win">First to (legs)</label>
+                  <input
+                    id="legs-to-win"
+                    name="legs-to-win"
+                    type="number"
+                    min="1"
+                    value={legsToWin}
+                    onChange={(event) => setLegsToWin(event.target.value)}
+                    disabled={!seasonQuery.data?.registration_open || updateConfigMutation.isPending}
+                  />
+                </div>
+                <div className="field">
+                  <label htmlFor="games-per-week">Games per player per week</label>
+                  <select
+                    id="games-per-week"
+                    value={gamesPerWeek}
+                    onChange={(event) => setGamesPerWeek(event.target.value)}
+                    disabled={!seasonQuery.data?.registration_open || updateConfigMutation.isPending || !presetsQuery.data}
+                  >
+                    {presetsQuery.data?.map((preset) => (
+                      <option key={preset.games_per_week} value={String(preset.games_per_week)}>
+                        {preset.games_per_week} game{preset.games_per_week !== 1 ? 's' : ''}/week ({preset.week_count} week{preset.week_count !== 1 ? 's' : ''})
+                      </option>
+                    ))}
+                    {(!presetsQuery.data || presetsQuery.data.length === 0) ? <option value={gamesPerWeek}>{gamesPerWeek} game{Number(gamesPerWeek) !== 1 ? 's' : ''}/week</option> : null}
+                  </select>
+                </div>
+                <button type="submit" disabled={
+                  !seasonQuery.data?.registration_open ||
+                  updateConfigMutation.isPending ||
+                  (gameVariant === (seasonQuery.data?.game_variant ?? '501') && Number(legsToWin) === (seasonQuery.data?.legs_to_win ?? 3) && Number(gamesPerWeek) === (seasonQuery.data?.games_per_week ?? 1))
+                }>
+                  {updateConfigMutation.isPending ? 'Saving...' : 'Save match config'}
+                </button>
+              </form>
+              {updateConfigMutation.error ? <StateNotice tone="error" message={readError(updateConfigMutation.error)} compact /> : null}
+              {seasonQuery.data && !seasonQuery.data.registration_open ? <StateNotice message="All settings are locked once the season has started." compact /> : null}
             </article>
 
             <article className="admin-card">
@@ -496,19 +595,33 @@ function PlayerRoster({ players, registrationOpen, onDelete, isDeleting }: { pla
 }
 
 function AdminFixtureCard({ fixture, onSave, onUndo, isSaving, isUndoing }: { fixture: AdminFixture; onSave: (payload: { fixtureId: number; playerOneLegs: number; playerTwoLegs: number; playerOneAverage?: number; playerTwoAverage?: number }) => Promise<unknown>; onUndo: (fixtureId: number) => Promise<unknown>; isSaving: boolean; isUndoing: boolean }) {
-  const [playerOneLegs, setPlayerOneLegs] = useState(String(fixture.result?.player_one_legs ?? 3))
+  const [playerOneLegs, setPlayerOneLegs] = useState(String(fixture.result?.player_one_legs ?? fixture.legs_to_win))
   const [playerTwoLegs, setPlayerTwoLegs] = useState(String(fixture.result?.player_two_legs ?? 0))
   const [playerOneAverage, setPlayerOneAverage] = useState(formatAverage(fixture.result?.player_one_average))
   const [playerTwoAverage, setPlayerTwoAverage] = useState(formatAverage(fixture.result?.player_two_average))
   const [statusMessage, setStatusMessage] = useState('')
 
+  const playerOneLegsValue = Number(playerOneLegs)
+  const playerTwoLegsValue = Number(playerTwoLegs)
+  const legsToWin = fixture.legs_to_win
+  const bestOfLegs = (legsToWin * 2) - 1
+  const isValidScoreline = Number.isInteger(playerOneLegsValue) && Number.isInteger(playerTwoLegsValue) && (
+    (playerOneLegsValue === legsToWin && playerTwoLegsValue >= 0 && playerTwoLegsValue < legsToWin) ||
+    (playerTwoLegsValue === legsToWin && playerOneLegsValue >= 0 && playerOneLegsValue < legsToWin)
+  )
+  const scorelineHint = `Valid scores: ${legsToWin}-0 to ${legsToWin}-${Math.max(0, legsToWin - 1)} (or reversed).`
+
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     setStatusMessage('')
+    if (!isValidScoreline) {
+      setStatusMessage(`Enter a valid first-to-${legsToWin} score. ${scorelineHint}`)
+      return
+    }
     await onSave({
       fixtureId: fixture.id,
-      playerOneLegs: Number(playerOneLegs),
-      playerTwoLegs: Number(playerTwoLegs),
+      playerOneLegs: playerOneLegsValue,
+      playerTwoLegs: playerTwoLegsValue,
       playerOneAverage: playerOneAverage === '' ? undefined : Number(playerOneAverage),
       playerTwoAverage: playerTwoAverage === '' ? undefined : Number(playerTwoAverage),
     })
@@ -526,18 +639,19 @@ function AdminFixtureCard({ fixture, onSave, onUndo, isSaving, isUndoing }: { fi
       <div className="admin-week-header">
         <div>
           <strong>{fixture.player_one} vs {fixture.player_two}</strong>
-                  <div className="fixture-meta">{fixture.game_variant} first to {fixture.legs_to_win} - players arrange within the week</div>
-                </div>
+          <div className="fixture-meta">{fixture.game_variant} first to {fixture.legs_to_win} - players arrange within the week</div>
+        </div>
         <span className={`status-pill ${fixture.result ? 'live' : 'locked'}`}>{fixture.result ? `Recorded ${fixture.result.player_one_legs}-${fixture.result.player_two_legs}` : 'No result yet'}</span>
       </div>
+      <p className="score-rule-badge">Scoring rule: first to {legsToWin} (best of {bestOfLegs}).</p>
       <form className="score-form" onSubmit={handleSubmit}>
         <div className="score-field">
           <label htmlFor={`p1-${fixture.id}`}>{fixture.player_one} legs</label>
-          <input id={`p1-${fixture.id}`} value={playerOneLegs} onChange={(event) => setPlayerOneLegs(event.target.value)} inputMode="numeric" />
+          <input id={`p1-${fixture.id}`} type="number" min={0} max={legsToWin} step={1} value={playerOneLegs} onChange={(event) => setPlayerOneLegs(event.target.value)} inputMode="numeric" />
         </div>
         <div className="score-field">
           <label htmlFor={`p2-${fixture.id}`}>{fixture.player_two} legs</label>
-          <input id={`p2-${fixture.id}`} value={playerTwoLegs} onChange={(event) => setPlayerTwoLegs(event.target.value)} inputMode="numeric" />
+          <input id={`p2-${fixture.id}`} type="number" min={0} max={legsToWin} step={1} value={playerTwoLegs} onChange={(event) => setPlayerTwoLegs(event.target.value)} inputMode="numeric" />
         </div>
         <div className="score-field">
           <label htmlFor={`a1-${fixture.id}`}>{fixture.player_one} avg</label>
@@ -547,9 +661,10 @@ function AdminFixtureCard({ fixture, onSave, onUndo, isSaving, isUndoing }: { fi
           <label htmlFor={`a2-${fixture.id}`}>{fixture.player_two} avg</label>
           <input id={`a2-${fixture.id}`} value={playerTwoAverage} onChange={(event) => setPlayerTwoAverage(event.target.value)} inputMode="decimal" placeholder="88.2" />
         </div>
-        <button type="submit" disabled={isSaving}>{isSaving ? 'Saving...' : 'Save score'}</button>
+        <button type="submit" disabled={isSaving || !isValidScoreline}>{isSaving ? 'Saving...' : 'Save score'}</button>
         {fixture.result ? <button className="secondary-button" type="button" onClick={handleUndo} disabled={isUndoing}>{isUndoing ? 'Undoing...' : 'Undo result'}</button> : null}
       </form>
+      {!isValidScoreline ? <p className="fixture-meta">{scorelineHint}</p> : null}
       {statusMessage ? <p className="fixture-meta">{statusMessage}</p> : null}
       {fixture.result?.player_one_average !== undefined || fixture.result?.player_two_average !== undefined ? (
         <p className="fixture-meta">Averages: {fixture.player_one} {formatAverage(fixture.result?.player_one_average) || '-'} / {fixture.player_two} {formatAverage(fixture.result?.player_two_average) || '-'}</p>

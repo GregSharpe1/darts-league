@@ -41,8 +41,8 @@ func TestGenerateRoundRobinFixturesCreatesSingleRoundRobin(t *testing.T) {
 	if fixtures[0].WeekNumber != 1 || fixtures[len(fixtures)-1].WeekNumber != 3 {
 		t.Fatalf("expected weeks to span 1..3, got first=%d last=%d", fixtures[0].WeekNumber, fixtures[len(fixtures)-1].WeekNumber)
 	}
-	if fixtures[0].GameVariant != GameVariant501 || fixtures[0].LegsToWin != LegsToWin {
-		t.Fatalf("expected fixed match format, got %s first-to-%d", fixtures[0].GameVariant, fixtures[0].LegsToWin)
+	if fixtures[0].GameVariant != GameVariant501 || fixtures[0].LegsToWin != DefaultLegsToWin {
+		t.Fatalf("expected default match format, got %s first-to-%d", fixtures[0].GameVariant, fixtures[0].LegsToWin)
 	}
 }
 
@@ -143,6 +143,181 @@ func TestNoPairingAppearsInMultipleWeeks(t *testing.T) {
 	expectedWeeks := playerCount - 1
 	if len(weekPlayers) != expectedWeeks {
 		t.Fatalf("expected %d weeks, got %d", expectedWeeks, len(weekPlayers))
+	}
+}
+
+func TestGenerateFixturesUsesSeasonConfig(t *testing.T) {
+	t.Parallel()
+
+	season := NewSeason("Spring 2026")
+	season.ID = 1
+	season.GameVariant = GameVariant301
+	season.LegsToWin = 5
+	season = season.Start(time.Date(2026, time.March, 10, 12, 0, 0, 0, time.UTC))
+	players := []Player{
+		{ID: 1, DisplayName: "Luke Humphries"},
+		{ID: 2, DisplayName: "Michael Smith"},
+	}
+
+	fixtures, err := GenerateRoundRobinFixtures(season, players)
+	if err != nil {
+		t.Fatalf("expected fixtures, got %v", err)
+	}
+
+	if len(fixtures) != 1 {
+		t.Fatalf("expected 1 fixture, got %d", len(fixtures))
+	}
+	if fixtures[0].GameVariant != GameVariant301 {
+		t.Fatalf("expected 301 variant, got %s", fixtures[0].GameVariant)
+	}
+	if fixtures[0].LegsToWin != 5 {
+		t.Fatalf("expected first-to-5, got %d", fixtures[0].LegsToWin)
+	}
+}
+
+func TestGenerateFixturesWithMultipleGamesPerWeek(t *testing.T) {
+	t.Parallel()
+
+	season := NewSeason("Compressed League")
+	season.ID = 1
+	season.GamesPerWeek = 2
+	season = season.Start(time.Date(2026, time.March, 10, 12, 0, 0, 0, time.UTC))
+
+	// 6 players = 5 games per player, 15 total fixtures
+	// 2 games/week = ceil(5/2) = 3 weeks
+	players := make([]Player, 6)
+	for i := range players {
+		players[i] = Player{ID: int64(i + 1), DisplayName: fmt.Sprintf("Player %d", i+1)}
+	}
+
+	fixtures, err := GenerateRoundRobinFixtures(season, players)
+	if err != nil {
+		t.Fatalf("expected fixtures, got %v", err)
+	}
+
+	if len(fixtures) != 15 {
+		t.Fatalf("expected 15 fixtures, got %d", len(fixtures))
+	}
+
+	// Check no player exceeds 2 games in any week.
+	weekPlayerCount := map[int]map[int64]int{}
+	maxWeek := 0
+	for _, f := range fixtures {
+		if weekPlayerCount[f.WeekNumber] == nil {
+			weekPlayerCount[f.WeekNumber] = map[int64]int{}
+		}
+		weekPlayerCount[f.WeekNumber][f.PlayerOneID]++
+		weekPlayerCount[f.WeekNumber][f.PlayerTwoID]++
+		if f.WeekNumber > maxWeek {
+			maxWeek = f.WeekNumber
+		}
+	}
+
+	for week, players := range weekPlayerCount {
+		for playerID, count := range players {
+			if count > 2 {
+				t.Fatalf("player %d has %d games in week %d, expected max 2", playerID, count, week)
+			}
+		}
+	}
+
+	if maxWeek != 3 {
+		t.Fatalf("expected 3 weeks with 2 games/week for 6 players, got %d", maxWeek)
+	}
+}
+
+func TestGenerateFixturesPartialFinalWeek(t *testing.T) {
+	t.Parallel()
+
+	season := NewSeason("Odd Division")
+	season.ID = 1
+	season.GamesPerWeek = 2
+	season = season.Start(time.Date(2026, time.March, 10, 12, 0, 0, 0, time.UTC))
+
+	// 4 players = 3 games per player, 6 total fixtures
+	// 2 games/week = ceil(3/2) = 2 weeks
+	// Week 1: 2 games per player, Week 2: 1 game per player
+	players := make([]Player, 4)
+	for i := range players {
+		players[i] = Player{ID: int64(i + 1), DisplayName: fmt.Sprintf("Player %d", i+1)}
+	}
+
+	fixtures, err := GenerateRoundRobinFixtures(season, players)
+	if err != nil {
+		t.Fatalf("expected fixtures, got %v", err)
+	}
+
+	if len(fixtures) != 6 {
+		t.Fatalf("expected 6 fixtures, got %d", len(fixtures))
+	}
+
+	weekCounts := map[int]int{}
+	for _, f := range fixtures {
+		weekCounts[f.WeekNumber]++
+	}
+
+	// With 4 players and 2 games/week: week 1 has 4 fixtures (2 per player), week 2 has 2 fixtures (1 per player)
+	if weekCounts[1] != 4 {
+		t.Fatalf("expected 4 fixtures in week 1, got %d", weekCounts[1])
+	}
+	if weekCounts[2] != 2 {
+		t.Fatalf("expected 2 fixtures in week 2, got %d", weekCounts[2])
+	}
+}
+
+func TestGenerateFixturesBlitzMode(t *testing.T) {
+	t.Parallel()
+
+	season := NewSeason("Blitz")
+	season.ID = 1
+	season.GamesPerWeek = 3 // all games in 1 week for 4 players
+	season = season.Start(time.Date(2026, time.March, 10, 12, 0, 0, 0, time.UTC))
+
+	players := make([]Player, 4)
+	for i := range players {
+		players[i] = Player{ID: int64(i + 1), DisplayName: fmt.Sprintf("Player %d", i+1)}
+	}
+
+	fixtures, err := GenerateRoundRobinFixtures(season, players)
+	if err != nil {
+		t.Fatalf("expected fixtures, got %v", err)
+	}
+
+	maxWeek := 0
+	for _, f := range fixtures {
+		if f.WeekNumber > maxWeek {
+			maxWeek = f.WeekNumber
+		}
+	}
+
+	if maxWeek != 1 {
+		t.Fatalf("expected all fixtures in 1 week for blitz mode, got %d weeks", maxWeek)
+	}
+}
+
+func TestScheduledAtIsRevealTime(t *testing.T) {
+	t.Parallel()
+
+	season := NewSeason("Spring 2026")
+	season.ID = 1
+	season = season.Start(time.Date(2026, time.March, 10, 12, 0, 0, 0, time.UTC))
+	players := []Player{
+		{ID: 1, DisplayName: "Alice"},
+		{ID: 2, DisplayName: "Bob"},
+		{ID: 3, DisplayName: "Charlie"},
+	}
+
+	fixtures, err := GenerateRoundRobinFixtures(season, players)
+	if err != nil {
+		t.Fatalf("expected fixtures, got %v", err)
+	}
+
+	loc, _ := time.LoadLocation("Europe/London")
+	for _, f := range fixtures {
+		local := f.ScheduledAt.In(loc)
+		if local.Hour() != 9 || local.Minute() != 0 {
+			t.Fatalf("expected scheduled_at to be 09:00 (reveal time), got %s", local)
+		}
 	}
 }
 

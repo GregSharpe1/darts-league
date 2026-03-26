@@ -12,10 +12,8 @@ var (
 	ErrTimezoneRequired     = errors.New("timezone is required")
 )
 
-const (
-	GameVariant501 = "501"
-	LegsToWin      = 3
-)
+// DefaultLegsToWin is the legacy default used when no season config is set.
+const DefaultLegsToWin = 3
 
 type Fixture struct {
 	ID          int64
@@ -61,18 +59,25 @@ func GenerateRoundRobinFixtures(season Season, players []Player) ([]Fixture, err
 		return nil, err
 	}
 
-	weeks := len(rotation) - 1
-	half := len(rotation) / 2
-	fixtures := make([]Fixture, 0, weeks*half)
-	firstReveal, err := FirstWeekRevealAt(*season.StartedAt, loc)
-	if err != nil {
-		return nil, err
+	gameVariant := season.GameVariant
+	if gameVariant == "" {
+		gameVariant = GameVariant501
+	}
+	legsToWin := season.LegsToWin
+	if legsToWin < 1 {
+		legsToWin = DefaultLegsToWin
+	}
+	gamesPerWeek := season.GamesPerWeek
+	if gamesPerWeek < 1 {
+		gamesPerWeek = 1
 	}
 
-	for round := 0; round < weeks; round++ {
-		weekNumber := round + 1
-		scheduledAt := WeekScheduleTime(firstReveal, round)
+	// Generate all round-robin pairings in order.
+	rounds := len(rotation) - 1
+	half := len(rotation) / 2
+	allPairings := make([]Fixture, 0, rounds*half)
 
+	for round := 0; round < rounds; round++ {
 		for i := 0; i < half; i++ {
 			left := rotation[i]
 			right := rotation[len(rotation)-1-i]
@@ -82,12 +87,10 @@ func GenerateRoundRobinFixtures(season Season, players []Player) ([]Fixture, err
 
 			fixture := Fixture{
 				SeasonID:    season.ID,
-				WeekNumber:  weekNumber,
-				ScheduledAt: scheduledAt,
 				PlayerOneID: left.ID,
 				PlayerTwoID: right.ID,
-				GameVariant: GameVariant501,
-				LegsToWin:   LegsToWin,
+				GameVariant: gameVariant,
+				LegsToWin:   legsToWin,
 				Status:      "scheduled",
 			}
 
@@ -96,13 +99,61 @@ func GenerateRoundRobinFixtures(season Season, players []Player) ([]Fixture, err
 				fixture.PlayerTwoID = left.ID
 			}
 
-			fixtures = append(fixtures, fixture)
+			allPairings = append(allPairings, fixture)
 		}
 
 		rotation = rotatePlayers(rotation)
 	}
 
+	// Pack pairings into weeks based on gamesPerWeek.
+	// Each week can hold at most gamesPerWeek games per player.
+	firstReveal, err := FirstWeekRevealAt(*season.StartedAt, loc)
+	if err != nil {
+		return nil, err
+	}
+
+	fixtures := packPairingsIntoWeeks(allPairings, gamesPerWeek, season.ID, firstReveal)
 	return fixtures, nil
+}
+
+// packPairingsIntoWeeks assigns fixtures to weeks such that no player
+// appears more than gamesPerWeek times in a single week.
+func packPairingsIntoWeeks(pairings []Fixture, gamesPerWeek int, seasonID int64, firstReveal time.Time) []Fixture {
+	if len(pairings) == 0 {
+		return nil
+	}
+
+	assigned := make([]bool, len(pairings))
+	result := make([]Fixture, 0, len(pairings))
+	weekNumber := 0
+	totalAssigned := 0
+
+	for totalAssigned < len(pairings) {
+		weekNumber++
+		revealAt := WeekRevealTime(firstReveal, weekNumber-1)
+		playerGamesThisWeek := map[int64]int{}
+
+		for i, pairing := range pairings {
+			if assigned[i] {
+				continue
+			}
+			p1, p2 := pairing.PlayerOneID, pairing.PlayerTwoID
+			if playerGamesThisWeek[p1] >= gamesPerWeek || playerGamesThisWeek[p2] >= gamesPerWeek {
+				continue
+			}
+
+			fixture := pairing
+			fixture.WeekNumber = weekNumber
+			fixture.ScheduledAt = revealAt
+			result = append(result, fixture)
+			assigned[i] = true
+			totalAssigned++
+			playerGamesThisWeek[p1]++
+			playerGamesThisWeek[p2]++
+		}
+	}
+
+	return result
 }
 
 func FirstWeekRevealAt(startedAt time.Time, loc *time.Location) (time.Time, error) {
@@ -120,9 +171,16 @@ func FirstWeekRevealAt(startedAt time.Time, loc *time.Location) (time.Time, erro
 	return reveal, nil
 }
 
+// WeekScheduleTime returns the match time for a week (legacy: 19:30 local).
+// Kept for backward compatibility with existing fixture display.
 func WeekScheduleTime(firstReveal time.Time, weekOffset int) time.Time {
 	reveal := firstReveal.In(firstReveal.Location()).AddDate(0, 0, 7*weekOffset)
 	return time.Date(reveal.Year(), reveal.Month(), reveal.Day(), 19, 30, 0, 0, firstReveal.Location())
+}
+
+// WeekRevealTime returns the Monday 09:00 reveal time for a given week offset.
+func WeekRevealTime(firstReveal time.Time, weekOffset int) time.Time {
+	return firstReveal.In(firstReveal.Location()).AddDate(0, 0, 7*weekOffset)
 }
 
 func CurrentPublicWeek(fixtures []Fixture, now time.Time, loc *time.Location) int {

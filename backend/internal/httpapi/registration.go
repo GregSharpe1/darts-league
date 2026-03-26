@@ -132,8 +132,18 @@ func writeDomainError(w http.ResponseWriter, err error) {
 		writeError(w, http.StatusConflict, "not_enough_players", "At least two players are required to start the season.")
 	case errors.Is(err, league.ErrFixtureNotFound):
 		writeError(w, http.StatusNotFound, "fixture_not_found", "Fixture was not found.")
+	case errors.Is(err, league.ErrSeasonConfigLocked):
+		writeError(w, http.StatusConflict, "season_started", "Match configuration can only be changed before the season starts.")
+	case errors.Is(err, league.ErrInvalidGameVariant):
+		writeError(w, http.StatusBadRequest, "invalid_game_variant", "Game variant must be 301 or 501.")
+	case errors.Is(err, league.ErrInvalidLegsToWin):
+		writeError(w, http.StatusBadRequest, "invalid_legs_to_win", "Legs to win must be at least 1.")
+	case errors.Is(err, league.ErrInvalidGamesPerWeek):
+		writeError(w, http.StatusBadRequest, "invalid_games_per_week", "Games per week must be at least 1.")
+	case errors.Is(err, league.ErrGamesPerWeekTooHigh):
+		writeError(w, http.StatusBadRequest, "games_per_week_too_high", "Games per week exceeds the number of opponents available.")
 	case errors.Is(err, league.ErrInvalidResult):
-		writeError(w, http.StatusBadRequest, "invalid_result", "Result must be a valid first-to-3 scoreline.")
+		writeError(w, http.StatusBadRequest, "invalid_result", "Result must be a valid scoreline for the configured match format.")
 	case errors.Is(err, league.ErrResultAlreadyExists):
 		writeError(w, http.StatusConflict, "result_exists", "This fixture already has a recorded result.")
 	case errors.Is(err, league.ErrResultNotFound):

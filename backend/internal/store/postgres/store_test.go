@@ -45,7 +45,7 @@ func TestStoreSeasonPlayerAndResultFlow(t *testing.T) {
 
 	fixtures, err := store.CreateFixtures(ctx, []league.Fixture{{
 		SeasonID: season.ID, WeekNumber: 1, ScheduledAt: time.Now().UTC(),
-		PlayerOneID: playerOne.ID, PlayerTwoID: playerTwo.ID, GameVariant: league.GameVariant501, LegsToWin: league.LegsToWin, Status: "scheduled",
+		PlayerOneID: playerOne.ID, PlayerTwoID: playerTwo.ID, GameVariant: league.GameVariant501, LegsToWin: league.DefaultLegsToWin, Status: "scheduled",
 	}})
 	if err != nil {
 		t.Fatalf("expected fixtures insert, got %v", err)
