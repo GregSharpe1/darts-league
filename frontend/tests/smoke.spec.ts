@@ -95,11 +95,12 @@ test('register, start season, enter result, and view standings', async ({ page }
   await page.goto('/admin')
   await captureScreenshot(page, 'admin-pre-start.png')
   await page.getByRole('button', { name: /start season/i }).click()
+  await page.getByRole('button', { name: /^start season$/i }).last().click()
   await expect(page.getByText(/registration is locked and player deletion is now disabled/i)).toBeVisible()
   await expect(page.getByText(/roster locked/i).first()).toBeVisible()
   await expect(page.getByRole('button', { name: /start season/i })).toBeDisabled()
   await expect(page.getByLabel('League name')).toBeDisabled()
-  await expect(page.getByText(/league name is locked once the season has started/i)).toBeVisible()
+  await expect(page.getByText(/all settings are locked once the season has started/i)).toBeVisible()
   await captureScreenshot(page, 'admin-post-start.png')
 
   await expect(page.getByText(/week 1/i)).toBeVisible()
@@ -114,10 +115,66 @@ test('register, start season, enter result, and view standings', async ({ page }
   await page.getByRole('button', { name: /save score/i }).first().click()
   await expect(page.getByText(/score saved/i)).toBeVisible()
 
+  await page.route('**/api/fixtures', async (route) => {
+    await route.fulfill({
+      contentType: 'application/json',
+      body: JSON.stringify({
+        current_week: 2,
+        weeks: [
+          {
+            week_number: 1,
+            status: 'unlocked',
+            reveal_at: '2026-03-23T09:00:00Z',
+            fixtures: [
+              {
+                id: 101,
+                player_one: 'The Freeze',
+                player_two: 'The Ferret',
+                scheduled_at: '2026-03-24T19:30:00Z',
+                game_variant: '501',
+                legs_to_win: 3,
+              },
+            ],
+          },
+          {
+            week_number: 2,
+            status: 'unlocked',
+            reveal_at: '2026-03-30T09:00:00Z',
+            fixtures: [
+              {
+                id: 102,
+                player_one: 'Voltage',
+                player_two: 'Snakebite',
+                scheduled_at: '2026-03-31T19:30:00Z',
+                game_variant: '501',
+                legs_to_win: 3,
+              },
+            ],
+          },
+          {
+            week_number: 3,
+            status: 'locked',
+            reveal_at: '2026-04-06T09:00:00Z',
+            fixtures: [
+              { id: 103, player_one: 'I knew you\'d look', player_two: 'Nothing to see here' },
+            ],
+          },
+        ],
+      }),
+    })
+  })
+
+  await page.goto('/')
+  await expect(page.getByRole('button', { name: /week 2/i })).toBeVisible()
+  await expect(page.getByRole('button', { name: /week 2/i })).toHaveAttribute('aria-expanded', 'true')
+  await expect(page.getByText(/voltage vs snakebite/i)).toBeVisible()
+  await page.getByRole('button', { name: /week 1/i }).click()
+  await expect(page.getByText(/the freeze vs the ferret/i)).toBeVisible()
+  await captureScreenshot(page, 'public-post-start.png')
+
   await page.goto('/standings')
   await expect(page.getByText('The Freeze')).toBeVisible()
   await expect(page.getByText('Luke Humphries')).toBeVisible()
-  await captureScreenshot(page, 'public-post-start.png')
 
   await expect(page.getByRole('link', { name: /^register$/i })).toHaveCount(0)
   await page.goto('/register')

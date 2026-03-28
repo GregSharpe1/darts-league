@@ -70,17 +70,37 @@ function HomePage() {
 
   const currentWeek = fixturesQuery.data?.weeks.find((week) => week.week_number === fixturesQuery.data.current_week)
   const futureWeeks = fixturesQuery.data?.weeks.filter((week) => week.status === 'locked') ?? []
-  const gamesLeftToPlay =
-    fixturesQuery.data?.weeks
-      .filter((week) => week.status === 'unlocked')
-      .flatMap((week) =>
-        week.fixtures
-          .filter((fixture) => !fixture.result)
-          .map((fixture) => ({
-            ...fixture,
-            weekNumber: week.week_number,
-          })),
-      ) ?? []
+  const unplayedUnlockedWeeks = useMemo(
+    () =>
+      fixturesQuery.data?.weeks
+        .filter((week) => week.status === 'unlocked')
+        .map((week) => ({
+          ...week,
+          unplayedFixtures: week.fixtures.filter((fixture) => !fixture.result),
+        }))
+        .filter((week) => week.unplayedFixtures.length > 0) ?? [],
+    [fixturesQuery.data?.weeks],
+  )
+  const gamesLeftToPlay = unplayedUnlockedWeeks.reduce((total, week) => total + week.unplayedFixtures.length, 0)
+  const defaultOpenWeek =
+    unplayedUnlockedWeeks.find((week) => week.week_number === fixturesQuery.data?.current_week)?.week_number ??
+    unplayedUnlockedWeeks[0]?.week_number ??
+    null
+  const [openWeekNumber, setOpenWeekNumber] = useState<number | null>(null)
+
+  useEffect(() => {
+    setOpenWeekNumber((previousOpenWeek) => {
+      if (unplayedUnlockedWeeks.length === 0) {
+        return null
+      }
+
+      if (previousOpenWeek !== null && unplayedUnlockedWeeks.some((week) => week.week_number === previousOpenWeek)) {
+        return previousOpenWeek
+      }
+
+      return defaultOpenWeek
+    })
+  }, [defaultOpenWeek, unplayedUnlockedWeeks])
 
   return (
     <>
@@ -129,28 +149,61 @@ function HomePage() {
             <span className="section-eyebrow">This week</span>
             <h2>Games left to play</h2>
           </div>
-          <span className="status-pill live">{gamesLeftToPlay.length > 0 ? `${gamesLeftToPlay.length} live` : currentWeek ? 'Unlocked' : 'Waiting'}</span>
+          <span className="status-pill live">{gamesLeftToPlay > 0 ? `${gamesLeftToPlay} live` : currentWeek ? 'Unlocked' : 'Waiting'}</span>
         </div>
         {fixturesQuery.isLoading ? <StateNotice message="Loading the season board..." /> : null}
         {fixturesQuery.error ? <StateNotice tone="error" message={readError(fixturesQuery.error)} /> : null}
         {!fixturesQuery.isLoading && !fixturesQuery.error && !currentWeek ? (
           <StateNotice message="No public week is unlocked yet. Start the season in admin to generate fixtures." />
         ) : null}
-        {!fixturesQuery.isLoading && !fixturesQuery.error && currentWeek && gamesLeftToPlay.length === 0 ? (
+        {!fixturesQuery.isLoading && !fixturesQuery.error && currentWeek && gamesLeftToPlay === 0 ? (
           <StateNotice message="Every unlocked fixture has been played so far. Check locked weeks for what is coming next." />
         ) : null}
-        {gamesLeftToPlay.length > 0 ? (
-          <ul className="match-list">
-            {gamesLeftToPlay.map((fixture) => (
-              <li key={fixture.id}>
-                <div>
-                  <strong>{fixture.player_one} vs {fixture.player_two}</strong>
-                  <div className="fixture-meta">Week {fixture.weekNumber} - {fixture.game_variant} - First to {fixture.legs_to_win} legs</div>
-                </div>
-                <div className="fixture-meta">Arrange within the week</div>
-              </li>
-            ))}
-          </ul>
+        {unplayedUnlockedWeeks.length > 0 ? (
+          <div className="week-switcher" aria-label="Weeks with matches left to play">
+            {unplayedUnlockedWeeks.map((week) => {
+              const isOpen = week.week_number === openWeekNumber
+              const fixtureCountLabel = `${week.unplayedFixtures.length} match${week.unplayedFixtures.length !== 1 ? 'es' : ''} left`
+
+              return (
+                <section className={`week-switcher-item${isOpen ? ' open' : ''}`} key={week.week_number}>
+                  <button
+                    type="button"
+                    className="week-switcher-trigger"
+                    aria-expanded={isOpen}
+                    onClick={() => setOpenWeekNumber(week.week_number)}
+                  >
+                    <div className="week-switcher-copy">
+                      <span className="section-eyebrow">Unplayed fixtures</span>
+                      <strong>Week {week.week_number}</strong>
+                      <span className="fixture-meta">
+                        {week.week_number === fixturesQuery.data?.current_week ? 'Current week unlocked' : 'Previous week still outstanding'}
+                      </span>
+                    </div>
+                    <div className="week-switcher-meta">
+                      <span className={`status-pill ${week.week_number === fixturesQuery.data?.current_week ? 'live' : 'locked'}`}>{fixtureCountLabel}</span>
+                      <span className="week-switcher-icon" aria-hidden="true">{isOpen ? '−' : '+'}</span>
+                    </div>
+                  </button>
+                  {isOpen ? (
+                    <div className="week-switcher-panel">
+                      <ul className="match-list">
+                        {week.unplayedFixtures.map((fixture) => (
+                          <li key={fixture.id}>
+                            <div>
+                              <strong>{fixture.player_one} vs {fixture.player_two}</strong>
+                              <div className="fixture-meta">Week {week.week_number} - {fixture.game_variant} - First to {fixture.legs_to_win} legs</div>
+                            </div>
+                            <div className="fixture-meta">Arrange within the week</div>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ) : null}
+                </section>
+              )
+            })}
+          </div>
         ) : null}
       </section>
 
