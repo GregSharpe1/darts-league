@@ -22,6 +22,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       short_sha: ${{ steps.vars.outputs.short_sha }}
+      image_version: ${{ steps.vars.outputs.image_version }}
       image_namespace: ${{ steps.vars.outputs.image_namespace }}
       publish_pr: ${{ steps.vars.outputs.publish_pr }}
       publish_backend_pr: ${{ steps.vars.outputs.publish_backend_pr }}
@@ -51,6 +52,7 @@ jobs:
 
           if [ "$EVENT_NAME" = "pull_request" ] && [ "$PR_HEAD_REPO" = "$REPOSITORY_NAME" ]; then
             echo "publish_pr=true" >> "$GITHUB_OUTPUT"
+            echo "image_version=pr-${{ github.event.pull_request.number }}-${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
 
             changed_files=$(git diff --name-only "$BASE_SHA" "$GITHUB_SHA")
 
@@ -69,6 +71,12 @@ jobs:
             echo "publish_pr=false" >> "$GITHUB_OUTPUT"
             echo "publish_backend_pr=false" >> "$GITHUB_OUTPUT"
             echo "publish_frontend_pr=false" >> "$GITHUB_OUTPUT"
+
+            if [ "$EVENT_NAME" = "release" ] && [ -n "$RELEASE_TAG" ]; then
+              echo "image_version=$RELEASE_TAG" >> "$GITHUB_OUTPUT"
+            else
+              echo "image_version=dev" >> "$GITHUB_OUTPUT"
+            fi
           fi
 
           echo "release_tag=$RELEASE_TAG" >> "$GITHUB_OUTPUT"
@@ -150,6 +158,8 @@ jobs:
           context: backend
           file: backend/Dockerfile
           push: true
+          build-args: |
+            APP_VERSION=${{ needs.prepare.outputs.image_version }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha,scope=backend
@@ -190,6 +200,8 @@ jobs:
           context: frontend
           file: frontend/Dockerfile
           push: true
+          build-args: |
+            APP_VERSION=${{ needs.prepare.outputs.image_version }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha,scope=frontend
@@ -230,6 +242,8 @@ jobs:
           context: backend
           file: backend/Dockerfile
           push: true
+          build-args: |
+            APP_VERSION=${{ needs.prepare.outputs.image_version }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha,scope=backend
@@ -270,6 +284,8 @@ jobs:
           context: frontend
           file: frontend/Dockerfile
           push: true
+          build-args: |
+            APP_VERSION=${{ needs.prepare.outputs.image_version }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha,scope=frontend

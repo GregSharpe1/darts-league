@@ -23,11 +23,14 @@ import {
   useSeasonStart,
   useSeasonSummary,
   useStandings,
+  useBackendVersion,
 } from './lib/api'
 import type { AdminFixture, AuditEntry, Player } from './lib/api'
+import { frontendVersion } from './version'
 
 function App() {
   const seasonQuery = useSeasonSummary()
+  const backendVersionQuery = useBackendVersion()
   const instanceName = seasonQuery.data?.instance_name ?? 'Darts League'
 
   useEffect(() => {
@@ -58,7 +61,10 @@ function App() {
           <Route path="/register" element={<RegisterPage />} />
           <Route path="/admin" element={<AdminPage />} />
         </Routes>
-        <p className="footer-note">Built for a single active season, weekly reveals, and admin-controlled score entry.</p>
+        <footer className="footer-note" aria-label="Application build details">
+          <p>Built for a single active season, weekly reveals, and admin-controlled score entry.</p>
+          <p className="footer-version">Frontend {frontendVersion} | Backend {backendVersionQuery.data?.version ?? 'unavailable'}</p>
+        </footer>
       </main>
     </div>
   )

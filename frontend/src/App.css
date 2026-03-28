@@ -694,9 +694,17 @@
 }
 
 .footer-note {
+  display: grid;
+  gap: 0.35rem;
   padding: 1rem 0 0;
   color: var(--color-muted);
   text-align: center;
+}
+
+.footer-version {
+  font-size: 0.82rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
 @media (max-width: 960px) {

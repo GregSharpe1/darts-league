@@ -62,6 +62,10 @@ describe('App', () => {
         return response({ standings: [] })
       }
 
+      if (path === '/api/version') {
+        return response({ version: 'v0.0.6' })
+      }
+
       if (path === '/api/admin/login' && method === 'POST') {
         state.authenticated = true
         return response({ authenticated: true, actor: 'admin' })
@@ -180,6 +184,8 @@ describe('App', () => {
     expect(screen.getByText(/i knew you'd look vs nothing to see here/i)).toBeInTheDocument()
     expect(screen.getByText(/players registered before the season start action/i)).toBeInTheDocument()
     expect(screen.getByText(/cardiff office - darts league/i)).toBeInTheDocument()
+    expect(await screen.findByText(/backend v0.0.6/i)).toBeInTheDocument()
+    expect(screen.getByText(/frontend dev/i)).toBeInTheDocument()
     await waitFor(() => {
       expect(document.title).toBe('Cardiff Office - Darts League')
     })

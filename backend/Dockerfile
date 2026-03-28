@@ -1,5 +1,7 @@
 FROM golang:1.24-alpine AS builder
 
+ARG APP_VERSION=dev
+
 WORKDIR /app
 
 COPY go.mod go.sum ./
@@ -11,9 +13,13 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o /out/darts-league-api ./cm
 
 FROM alpine:3.21
 
+ARG APP_VERSION=dev
+
 RUN apk add --no-cache tzdata && adduser -D -H -u 10001 appuser
 
 WORKDIR /app
+
+ENV APP_VERSION=${APP_VERSION}
 
 COPY --from=builder /out/darts-league-api /usr/local/bin/darts-league-api
 

@@ -152,6 +152,10 @@ export type SchedulePreview = {
   total_fixtures: number
 }
 
+export type VersionResponse = {
+  version: string
+}
+
 type RegisterRequest = {
   display_name: string
   nickname?: string
@@ -193,6 +197,10 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 
 export function useSeasonSummary() {
   return useQuery({ queryKey: ['season'], queryFn: () => request<SeasonSummary>('/api/season') })
+}
+
+export function useBackendVersion() {
+  return useQuery({ queryKey: ['version'], queryFn: () => request<VersionResponse>('/api/version') })
 }
 
 export function usePublicFixtures() {
