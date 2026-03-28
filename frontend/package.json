@@ -10,8 +10,8 @@
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:e2e": "playwright test",
-    "test:e2e:ui": "CAPTURE_UI_SCREENSHOTS=1 playwright test"
+    "test:e2e": "playwright test tests/smoke.spec.ts && playwright test tests/no-duplicate-weeks.spec.ts",
+    "test:e2e:ui": "CAPTURE_UI_SCREENSHOTS=1 playwright test tests/smoke.spec.ts && CAPTURE_UI_SCREENSHOTS=1 playwright test tests/no-duplicate-weeks.spec.ts"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.91.2",

@@ -3,7 +3,7 @@ FRONTEND_DIR := frontend
 COMPOSE_FILE := docker-compose.yml
 DATABASE_URL := postgres://postgres:postgres@localhost:5432/darts_league?sslmode=disable
 
-.PHONY: test test-backend test-frontend test-e2e build-frontend dev-backend dev-backend-db dev-frontend db-up db-down db-logs
+.PHONY: test test-backend test-frontend test-e2e test-e2e-ui build-frontend dev-backend dev-backend-db dev-frontend db-up db-down db-logs
 .PHONY: up down logs logs-backend logs-frontend logs-db rebuild
 
 test: test-backend test-frontend
@@ -16,6 +16,9 @@ test-frontend:
 
 test-e2e:
 	cd $(FRONTEND_DIR) && npm run test:e2e
+
+test-e2e-ui:
+	cd $(FRONTEND_DIR) && npm run test:e2e:ui
 
 build-frontend:
 	cd $(FRONTEND_DIR) && npm run build

@@ -59,6 +59,7 @@ test('32 players: no match pairing appears in more than one week', async ({ page
 
   // Start the season.
   await page.getByRole('button', { name: /start season/i }).click()
+  await page.getByRole('button', { name: /^start season$/i }).last().click()
   await expect(page.getByText(/registration is locked/i)).toBeVisible()
 
   // Wait for admin fixtures to render (week 1 should appear).

@@ -37,7 +37,10 @@ describe('App', () => {
               week_number: 1,
               status: 'unlocked',
               reveal_at: 'Mon, 23 Mar 2026 09:00:00 GMT',
-              fixtures: [{ id: 1, player_one: 'The Freeze', player_two: 'Bully Boy', scheduled_at: 'Mon, 23 Mar 2026 19:30:00 GMT', game_variant: '501', legs_to_win: 3, result: { player_one_legs: 3, player_two_legs: 1, player_one_average: 96.4, player_two_average: 89.3, winner_id: 1 } }],
+              fixtures: [
+                { id: 1, player_one: 'The Freeze', player_two: 'Bully Boy', scheduled_at: 'Mon, 23 Mar 2026 19:30:00 GMT', game_variant: '501', legs_to_win: 3, result: { player_one_legs: 3, player_two_legs: 1, player_one_average: 96.4, player_two_average: 89.3, winner_id: 1 } },
+                { id: 4, player_one: 'The Asp', player_two: 'The Ferret', scheduled_at: 'Tue, 24 Mar 2026 19:30:00 GMT', game_variant: '501', legs_to_win: 3 },
+              ],
             },
             {
               week_number: 2,
@@ -167,11 +170,12 @@ describe('App', () => {
     expect(screen.queryByRole('link', { name: /^admin$/i })).not.toBeInTheDocument()
 
     await waitFor(() => {
-      expect(screen.getByText(/voltage vs snakebite/i)).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: /week 1/i })).toBeInTheDocument()
     })
 
-    expect(screen.getByText(/voltage vs snakebite/i)).toBeInTheDocument()
-    expect(screen.getByText(/week 2 - 501 - first to 3 legs/i)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /week 1/i })).toHaveAttribute('aria-expanded', 'true')
+    expect(screen.getByText(/the asp vs the ferret/i)).toBeInTheDocument()
+    expect(screen.getByText(/week 1 - 501 - first to 3 legs/i)).toBeInTheDocument()
     expect(screen.getByText(/arrange within the week/i)).toBeInTheDocument()
     expect(screen.getByText(/i knew you'd look vs nothing to see here/i)).toBeInTheDocument()
     expect(screen.getByText(/players registered before the season start action/i)).toBeInTheDocument()
@@ -179,6 +183,25 @@ describe('App', () => {
     await waitFor(() => {
       expect(document.title).toBe('Cardiff Office - Darts League')
     })
+  })
+
+  it('groups unfinished unlocked fixtures by week and lets the user switch between weeks', async () => {
+    renderApp('/')
+
+    const weekOneButton = await screen.findByRole('button', { name: /week 1/i })
+    const weekTwoButton = await screen.findByRole('button', { name: /week 2/i })
+
+    expect(weekOneButton).toHaveAttribute('aria-expanded', 'true')
+    expect(weekTwoButton).toHaveAttribute('aria-expanded', 'false')
+    expect(screen.getByText(/the asp vs the ferret/i)).toBeInTheDocument()
+    expect(screen.queryByText(/voltage vs snakebite/i)).not.toBeInTheDocument()
+
+    fireEvent.click(weekTwoButton)
+
+    expect(weekOneButton).toHaveAttribute('aria-expanded', 'false')
+    expect(weekTwoButton).toHaveAttribute('aria-expanded', 'true')
+    expect(screen.getByText(/voltage vs snakebite/i)).toBeInTheDocument()
+    expect(screen.queryByText(/the asp vs the ferret/i)).not.toBeInTheDocument()
   })
 
   it('gates admin tools behind login and reveals live admin data after authentication', async () => {
