@@ -20,14 +20,17 @@ services:
   backend:
     build:
       context: ./backend
+      args:
+        APP_VERSION: local
     container_name: darts-league-backend
     restart: unless-stopped
     environment:
       HTTP_ADDRESS: ":8080"
+      APP_VERSION: local
       DATABASE_URL: postgres://postgres:postgres@postgres:5432/darts_league?sslmode=disable
       INSTANCE_NAME: "Cardiff Office - Darts League"
       APP_TIMEZONE: Europe/London
-      # APP_NOW: "2026-03-24T10:00:00Z"
+      APP_NOW: "2026-04-30T10:00:00Z"
       ADMIN_USERNAME: admin
       ADMIN_PASSWORD: change-me
       ADMIN_SESSION_SECRET: dev-admin-session-secret
@@ -43,6 +46,8 @@ services:
   frontend:
     build:
       context: ./frontend
+      args:
+        APP_VERSION: local
     container_name: darts-league-frontend
     restart: unless-stopped
     depends_on:

@@ -6,7 +6,7 @@
 frontend:
   image:
     repository: "ghcr.io/gregsharpe1/darts-league-frontend"
-    tag: "v0.0.4"
+    tag: "v0.0.6"
   resources:
     requests:
       cpu: 50m
@@ -18,14 +18,14 @@ frontend:
 backend:
   image:
     repository: "ghcr.io/gregsharpe1/darts-league-backend"
-    tag: "v0.0.4"
+    tag: "v0.0.6"
   auth:
     username: admin
     password: change-me
     sessionSecret: dev-admin-session-secret
   env:
     instanceName: "Home - Darts League"
-    appNow: "2026-04-14T10:00:00Z"
+    appNow: "2026-04-30T10:00:00Z"
     slackPublicChannelId: "C0AN49NF666"
     slackAdminChannelId: "C0AMNRUQYLF"
   resources:

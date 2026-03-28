@@ -38,10 +38,12 @@ func main() {
 	registrationHandler := httpapi.NewRegistrationHandler(league.NewRegistrationServiceWithNowAndNotifier(store, now, registrationNotifier))
 	seasonHandler := httpapi.NewSeasonHandler(league.NewSeasonServiceWithNow(store, now), league.NewFixtureServiceWithNow(store, now), cfg.InstanceName)
 	resultHandler := httpapi.NewResultHandler(league.NewResultServiceWithNow(store, now))
+	versionHandler := httpapi.NewVersionHandler(cfg.Version)
 	authHandler.RegisterRoutes(mux)
 	registrationHandler.RegisterRoutes(mux, authHandler.RequireAdmin)
 	seasonHandler.RegisterRoutes(mux, authHandler.RequireAdmin)
 	resultHandler.RegisterRoutes(mux, authHandler.RequireAdmin)
+	versionHandler.RegisterRoutes(mux)
 	mux.HandleFunc("/healthz", func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write([]byte("ok"))

@@ -22,6 +22,7 @@
 - Admin player deletion before season start
 - Admin result entry, editing, undo, and audit history
 - Fixed match format: `501`, first to `3` legs
+- Frontend and backend version reporting sourced from container image builds
 - Slack app notifications for admin signups and weekly league updates
 
 ## Repository Layout
@@ -74,6 +75,7 @@ Notes:
 - Postgres is exposed on `localhost:5432`
 - Set `INSTANCE_NAME` to label the deployment in the UI, for example `Cardiff Office - Darts League`
 - `docker-compose.yml` currently sets `APP_NOW` so the app simulates a later unlocked week for demo purposes
+- The footer shows `Frontend local | Backend local` when you run the full Docker stack
 
 ### Option 2: Mixed host development
 
@@ -111,6 +113,8 @@ make dev-backend
 
 That path falls back to the in-memory store if Postgres is unavailable.
 
+In mixed host development, both services default their version label to `dev` unless you override `APP_VERSION` before starting them.
+
 ## Admin Access
 
 There is no visible admin navigation in the public UI.
@@ -132,6 +136,22 @@ Use `INSTANCE_NAME` to label a deployment in the UI and browser title.
 
 - Example: `Cardiff Office - Darts League`
 - If unset, the app falls back to `Darts League`
+
+## Version Reporting
+
+The public footer shows both the frontend and backend versions.
+
+- The frontend version is baked into the frontend container image at build time
+- The backend version is baked into the backend container image at build time
+- The backend also exposes its version at `GET /api/version`
+
+Example response:
+
+```json
+{"version":"v0.0.6"}
+```
+
+Both services use `APP_VERSION` during image builds. Local Docker Compose sets this to `local`, while mixed host development falls back to `dev` unless you override it.
 
 ## Slack Integration
 
@@ -198,6 +218,7 @@ GitHub Actions publishes Docker images for the backend and frontend to GitHub Co
 - Pull requests opened from branches in this repository publish preview images tagged as `pr-<number>-<shortsha>` and `pr-<number>` only for components changed under `backend/` or `frontend/`
 - Published GitHub releases publish clean versioned images tagged with the release tag
 - Stable releases also publish a `latest` tag; prereleases do not
+- The precise image version shown in the UI and returned by `GET /api/version` is baked in during the image build and matches the release tag or `pr-<number>-<shortsha>` preview tag
 
 Image names:
 
