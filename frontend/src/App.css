@@ -220,6 +220,35 @@
   margin-top: 1.5rem;
 }
 
+.score-submit-card {
+  display: grid;
+  gap: 0.9rem;
+  margin-top: 1rem;
+  border: 1px solid rgba(255, 91, 91, 0.16);
+  background:
+    linear-gradient(180deg, rgba(255, 91, 91, 0.08) 0%, rgba(17, 16, 20, 0.96) 100%),
+    rgba(17, 16, 20, 0.92);
+}
+
+.score-submit-card code {
+  font-family: var(--font-mono);
+}
+
+.score-submit-example {
+  margin: 0;
+  padding: 1rem 1.1rem;
+  overflow-x: auto;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 1rem;
+  background: rgba(11, 10, 14, 0.88);
+  color: var(--color-text);
+}
+
+.score-submit-note {
+  margin: 0;
+  color: var(--color-muted);
+}
+
 .week-switcher {
   display: grid;
   gap: 0.9rem;

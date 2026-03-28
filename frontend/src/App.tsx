@@ -165,6 +165,20 @@ function HomePage() {
         {!fixturesQuery.isLoading && !fixturesQuery.error && currentWeek && gamesLeftToPlay === 0 ? (
           <StateNotice message="Every unlocked fixture has been played so far. Check locked weeks for what is coming next." />
         ) : null}
+        <article className="info-card score-submit-card">
+          <div className="card-copy">
+            <span className="section-eyebrow">Match reporting</span>
+            <h2>How to submit a score</h2>
+            <p>
+              Post your result in <code>#cardiff-darts</code> using a message like this, then tag <code>@cardiff-darts-league-admins</code> so an admin can enter it when available.
+            </p>
+          </div>
+          <pre className="score-submit-example" aria-label="Example score submission message">
+            <code>{`Greg 2 - 1 Johnny
+Avg: 54.4 - Avg: 32.2`}</code>
+          </pre>
+          <p className="score-submit-note">After it is entered, check Fixtures and Standings to confirm the update.</p>
+        </article>
         {unplayedUnlockedWeeks.length > 0 ? (
           <div className="week-switcher" aria-label="Weeks with matches left to play">
             {unplayedUnlockedWeeks.map((week) => {

@@ -87,6 +87,9 @@ test('register, start season, enter result, and view standings', async ({ page }
 
   await page.goto('/')
   await expect(page.getByText(leagueName)).toBeVisible()
+  await expect(page.getByRole('heading', { name: /how to submit a score/i })).toBeVisible()
+  await expect(page.getByText(/#cardiff-darts/i)).toBeVisible()
+  await expect(page.getByText(/greg 2 - 1 johnny/i)).toBeVisible()
 
   await page.goto('/register')
   await expect(page.getByText(leagueName)).toBeVisible()
@@ -168,6 +171,8 @@ test('register, start season, enter result, and view standings', async ({ page }
   await expect(page.getByRole('button', { name: /week 2/i })).toBeVisible()
   await expect(page.getByRole('button', { name: /week 2/i })).toHaveAttribute('aria-expanded', 'true')
   await expect(page.getByText(/voltage vs snakebite/i)).toBeVisible()
+  await expect(page.getByRole('heading', { name: /how to submit a score/i })).toBeVisible()
+  await expect(page.getByText(/@cardiff-darts-league-admins/i)).toBeVisible()
   await page.getByRole('button', { name: /week 1/i }).click()
   await expect(page.getByText(/the freeze vs the ferret/i)).toBeVisible()
   await captureScreenshot(page, 'public-post-start.png')
