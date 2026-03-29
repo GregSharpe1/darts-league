@@ -77,7 +77,7 @@ export function AdminFixtureCard({ fixture, onSave, onUndo, isSaving, isUndoing,
           </div>
         </div>
         <div className="score-actions">
-          <button type="submit" disabled={isSaving || !isValidScoreline}>{isSaving ? 'Saving...' : 'Save score'}</button>
+          <button type="submit" disabled={isSaving}>{isSaving ? 'Saving...' : 'Save score'}</button>
           {fixture.result ? <button className="secondary-button" type="button" onClick={handleUndo} disabled={isUndoing}>{isUndoing ? 'Undoing...' : 'Undo result'}</button> : null}
         </div>
       </form>
