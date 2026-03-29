@@ -56,28 +56,28 @@ export function AdminFixtureCard({ fixture, onSave, onUndo, isSaving, isUndoing,
           <div className="score-player-col">
             <span className="score-player-name">{fixture.player_one}</span>
             <div className="score-field">
-              <label htmlFor={`p1-${fixture.id}`}>Legs</label>
-              <input id={`p1-${fixture.id}`} type="number" min={0} max={legsToWin} step={1} value={playerOneLegs} onChange={(event) => setPlayerOneLegs(event.target.value)} inputMode="numeric" aria-label={`${fixture.player_one} legs`} />
+              <label htmlFor={`p1-${fixture.id}`}>Legs ({fixture.player_one})</label>
+              <input id={`p1-${fixture.id}`} type="number" min={0} max={legsToWin} step={1} value={playerOneLegs} onChange={(event) => setPlayerOneLegs(event.target.value)} inputMode="numeric" />
             </div>
             <div className="score-field">
-              <label htmlFor={`a1-${fixture.id}`}>Average</label>
-              <input id={`a1-${fixture.id}`} value={playerOneAverage} onChange={(event) => setPlayerOneAverage(event.target.value)} inputMode="decimal" aria-label={`${fixture.player_one} average`} />
+              <label htmlFor={`a1-${fixture.id}`}>Average ({fixture.player_one})</label>
+              <input id={`a1-${fixture.id}`} value={playerOneAverage} onChange={(event) => setPlayerOneAverage(event.target.value)} inputMode="decimal" />
             </div>
           </div>
           <div className="score-player-col">
             <span className="score-player-name">{fixture.player_two}</span>
             <div className="score-field">
-              <label htmlFor={`p2-${fixture.id}`}>Legs</label>
-              <input id={`p2-${fixture.id}`} type="number" min={0} max={legsToWin} step={1} value={playerTwoLegs} onChange={(event) => setPlayerTwoLegs(event.target.value)} inputMode="numeric" aria-label={`${fixture.player_two} legs`} />
+              <label htmlFor={`p2-${fixture.id}`}>Legs ({fixture.player_two})</label>
+              <input id={`p2-${fixture.id}`} type="number" min={0} max={legsToWin} step={1} value={playerTwoLegs} onChange={(event) => setPlayerTwoLegs(event.target.value)} inputMode="numeric" />
             </div>
             <div className="score-field">
-              <label htmlFor={`a2-${fixture.id}`}>Average</label>
+              <label htmlFor={`a2-${fixture.id}`}>Average ({fixture.player_two})</label>
               <input id={`a2-${fixture.id}`} value={playerTwoAverage} onChange={(event) => setPlayerTwoAverage(event.target.value)} inputMode="decimal" aria-label={`${fixture.player_two} average`} />
             </div>
           </div>
         </div>
         <div className="score-actions">
-          <button type="submit" disabled={isSaving}>{isSaving ? 'Saving...' : 'Save score'}</button>
+          <button type="submit" disabled={isSaving || !isValidScoreline}>{isSaving ? 'Saving...' : 'Save score'}</button>
           {fixture.result ? <button className="secondary-button" type="button" onClick={handleUndo} disabled={isUndoing}>{isUndoing ? 'Undoing...' : 'Undo result'}</button> : null}
         </div>
       </form>
