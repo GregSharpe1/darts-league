@@ -68,7 +68,6 @@ export function RegisterPage() {
             </form>
             {registerMutation.error ? <StateNotice tone="error" message={readError(registerMutation.error)} compact /> : null}
             {successMessage ? <StateNotice message={successMessage} compact /> : null}
-            {seasonQuery.data && !seasonQuery.data.registration_open ? <StateNotice message="Registration is now closed for the active season." compact /> : null}
           </article>
 
           <article className="register-card">

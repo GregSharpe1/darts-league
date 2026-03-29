@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
 import type { AdminFixture } from '../../lib/api'
 import { formatAverage } from '../../lib/api'
@@ -16,6 +16,13 @@ export function AdminFixtureCard({ fixture, onSave, onUndo, isSaving, isUndoing,
   const [playerOneAverage, setPlayerOneAverage] = useState(formatAverage(fixture.result?.player_one_average))
   const [playerTwoAverage, setPlayerTwoAverage] = useState(formatAverage(fixture.result?.player_two_average))
   const [statusMessage, setStatusMessage] = useState('')
+
+  useEffect(() => {
+    setPlayerOneLegs(String(fixture.result?.player_one_legs ?? ''))
+    setPlayerTwoLegs(String(fixture.result?.player_two_legs ?? ''))
+    setPlayerOneAverage(formatAverage(fixture.result?.player_one_average))
+    setPlayerTwoAverage(formatAverage(fixture.result?.player_two_average))
+  }, [fixture.id, fixture.result])
 
   const playerOneLegsValue = Number(playerOneLegs)
   const playerTwoLegsValue = Number(playerTwoLegs)
