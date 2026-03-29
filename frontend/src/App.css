@@ -374,6 +374,11 @@
   padding-top: 0;
 }
 
+.score-feedback {
+  min-height: 1.5rem;
+  margin-top: 0.5rem;
+}
+
 .fixture-meta,
 .table-meta {
   color: var(--color-muted);
@@ -631,10 +636,38 @@
   gap: 1rem;
 }
 
+.admin-week-title {
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.season-format-summary {
+  margin-top: 0.35rem;
+  margin-bottom: 0.5rem;
+}
+
 .admin-fixtures {
   display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 0.9rem;
   margin-top: 1rem;
+}
+
+.admin-fixture-card.recorded {
+  border-color: rgba(91, 255, 140, 0.5);
+  background: rgba(91, 255, 140, 0.1);
+}
+
+.admin-fixture-card.locked-week {
+  opacity: 0.5;
+  filter: saturate(0.4);
+}
+
+.admin-fixture-card.locked-week .score-actions button {
+  background: linear-gradient(180deg, #5a5a5a 0%, #3a3a3a 100%);
+  box-shadow: none;
 }
 
 .admin-fixture-card,
@@ -646,11 +679,40 @@
 }
 
 .score-form {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, auto));
-  align-items: end;
-  gap: 0.75rem;
   margin-top: 0.9rem;
+}
+
+.score-columns {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.score-player-col {
+  display: grid;
+  gap: 0.75rem;
+  align-content: start;
+}
+
+.score-player-name {
+  display: block;
+  font-family: var(--font-display);
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.score-actions {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.score-actions button {
+  flex: 1;
 }
 
 .score-rule-badge {
@@ -714,7 +776,8 @@
   .register-grid,
   .admin-grid,
   .admin-login,
-  .score-form {
+  .admin-fixtures,
+  .score-columns {
     grid-template-columns: 1fr;
   }
 
