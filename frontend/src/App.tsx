@@ -281,8 +281,8 @@ function StandingsPage() {
               <th>P</th>
               <th>W</th>
               <th>L</th>
-              <th>LF</th>
-              <th>LA</th>
+              <th>LW</th>
+              <th>LL</th>
               <th>LD</th>
               <th>Pts</th>
             </tr>
