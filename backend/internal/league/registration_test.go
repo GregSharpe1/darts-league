@@ -39,6 +39,20 @@ func TestPlayerAdminLabel(t *testing.T) {
 	}
 }
 
+func TestPlayerFixtureLabel(t *testing.T) {
+	t.Parallel()
+
+	nicknamed := Player{DisplayName: "Luke Humphries", Nickname: "The Freeze"}
+	if nicknamed.FixtureLabel() != "The Freeze (Luke Humphries)" {
+		t.Fatalf("unexpected fixture label %q", nicknamed.FixtureLabel())
+	}
+
+	unnamed := Player{DisplayName: "Michael Smith"}
+	if unnamed.FixtureLabel() != "Michael Smith" {
+		t.Fatalf("unexpected fixture label fallback %q", unnamed.FixtureLabel())
+	}
+}
+
 func TestRegistrationBookRejectsDuplicateDisplayNamesCaseInsensitive(t *testing.T) {
 	t.Parallel()
 

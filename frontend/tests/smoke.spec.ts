@@ -128,8 +128,8 @@ test('register, start season, enter result, and view standings', async ({ page }
             fixtures: [
               {
                 id: 101,
-                player_one: 'The Freeze',
-                player_two: 'The Ferret',
+                player_one: 'The Freeze (Luke Humphries)',
+                player_two: 'The Ferret (Jonny Clayton)',
                 scheduled_at: '2026-03-24T19:30:00Z',
                 game_variant: '501',
                 legs_to_win: 3,
@@ -143,8 +143,8 @@ test('register, start season, enter result, and view standings', async ({ page }
             fixtures: [
               {
                 id: 102,
-                player_one: 'Voltage',
-                player_two: 'Snakebite',
+                player_one: 'Voltage (Rob Cross)',
+                player_two: 'Snakebite (Peter Wright)',
                 scheduled_at: '2026-03-31T19:30:00Z',
                 game_variant: '501',
                 legs_to_win: 3,
@@ -167,9 +167,9 @@ test('register, start season, enter result, and view standings', async ({ page }
   await page.goto('/')
   await expect(page.getByRole('button', { name: /week 2/i })).toBeVisible()
   await expect(page.getByRole('button', { name: /week 2/i })).toHaveAttribute('aria-expanded', 'true')
-  await expect(page.getByText(/voltage vs snakebite/i)).toBeVisible()
+  await expect(page.getByText(/voltage \(rob cross\) vs snakebite \(peter wright\)/i)).toBeVisible()
   await page.getByRole('button', { name: /week 1/i }).click()
-  await expect(page.getByText(/the freeze vs the ferret/i)).toBeVisible()
+  await expect(page.getByText(/the freeze \(luke humphries\) vs the ferret \(jonny clayton\)/i)).toBeVisible()
   await captureScreenshot(page, 'public-post-start.png')
 
   await page.goto('/standings')

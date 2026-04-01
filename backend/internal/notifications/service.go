@@ -112,8 +112,8 @@ func (s WeeklyService) ComposeWeeklyFixturesMessage(ctx context.Context) (string
 	builder.WriteString("\n")
 	for _, fixture := range data.week.Fixtures {
 		builder.WriteString(fmt.Sprintf("🏆 %s vs %s\n",
-			data.playersByID[fixture.PlayerOneID].PreferredName(),
-			data.playersByID[fixture.PlayerTwoID].PreferredName(),
+			data.playersByID[fixture.PlayerOneID].FixtureLabel(),
+			data.playersByID[fixture.PlayerTwoID].FixtureLabel(),
 		))
 	}
 
@@ -134,8 +134,8 @@ func (s WeeklyService) ComposeWeeklySummaryMessage(ctx context.Context) (string,
 	resultsPosted := 0
 	pendingResults := make([]string, 0)
 	for _, fixture := range data.week.Fixtures {
-		playerOne := data.playersByID[fixture.PlayerOneID].PreferredName()
-		playerTwo := data.playersByID[fixture.PlayerTwoID].PreferredName()
+		playerOne := data.playersByID[fixture.PlayerOneID].FixtureLabel()
+		playerTwo := data.playersByID[fixture.PlayerTwoID].FixtureLabel()
 		result, ok := data.resultsByFixtureID[fixture.ID]
 		if !ok {
 			pendingResults = append(pendingResults, fmt.Sprintf("- %s vs %s", playerOne, playerTwo))

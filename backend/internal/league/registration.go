@@ -88,6 +88,10 @@ func (p Player) PreferredName() string {
 }
 
 func (p Player) AdminLabel() string {
+	return p.FixtureLabel()
+}
+
+func (p Player) FixtureLabel() string {
 	preferred := p.PreferredName()
 	displayName := strings.TrimSpace(p.DisplayName)
 	if strings.TrimSpace(p.Nickname) == "" || preferred == displayName {

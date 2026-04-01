@@ -38,15 +38,15 @@ describe('App', () => {
               status: 'unlocked',
               reveal_at: 'Mon, 23 Mar 2026 09:00:00 GMT',
               fixtures: [
-                { id: 1, player_one: 'The Freeze', player_two: 'Bully Boy', scheduled_at: 'Mon, 23 Mar 2026 19:30:00 GMT', game_variant: '501', legs_to_win: 3, result: { player_one_legs: 3, player_two_legs: 1, player_one_average: 96.4, player_two_average: 89.3, winner_id: 1 } },
-                { id: 4, player_one: 'The Asp', player_two: 'The Ferret', scheduled_at: 'Tue, 24 Mar 2026 19:30:00 GMT', game_variant: '501', legs_to_win: 3 },
+                { id: 1, player_one: 'The Freeze (Luke Humphries)', player_two: 'Bully Boy (Michael Smith)', scheduled_at: 'Mon, 23 Mar 2026 19:30:00 GMT', game_variant: '501', legs_to_win: 3, result: { player_one_legs: 3, player_two_legs: 1, player_one_average: 96.4, player_two_average: 89.3, winner_id: 1 } },
+                { id: 4, player_one: 'The Asp (Nathan Aspinall)', player_two: 'The Ferret (Jonny Clayton)', scheduled_at: 'Tue, 24 Mar 2026 19:30:00 GMT', game_variant: '501', legs_to_win: 3 },
               ],
             },
             {
               week_number: 2,
               status: 'unlocked',
               reveal_at: 'Mon, 30 Mar 2026 09:00:00 GMT',
-              fixtures: [{ id: 3, player_one: 'Voltage', player_two: 'Snakebite', scheduled_at: 'Mon, 30 Mar 2026 19:30:00 GMT', game_variant: '501', legs_to_win: 3 }],
+              fixtures: [{ id: 3, player_one: 'Voltage (Rob Cross)', player_two: 'Snakebite (Peter Wright)', scheduled_at: 'Mon, 30 Mar 2026 19:30:00 GMT', game_variant: '501', legs_to_win: 3 }],
             },
             {
               week_number: 3,
@@ -178,7 +178,7 @@ describe('App', () => {
     })
 
     expect(screen.getByRole('button', { name: /week 1/i })).toHaveAttribute('aria-expanded', 'true')
-    expect(screen.getByText(/the asp vs the ferret/i)).toBeInTheDocument()
+    expect(screen.getByText(/the asp \(nathan aspinall\) vs the ferret \(jonny clayton\)/i)).toBeInTheDocument()
     expect(screen.getByText(/week 1 - 501 - first to 3 legs/i)).toBeInTheDocument()
     expect(screen.getByText(/arrange within the week/i)).toBeInTheDocument()
     expect(screen.getByText(/i knew you'd look vs nothing to see here/i)).toBeInTheDocument()
@@ -199,15 +199,15 @@ describe('App', () => {
 
     expect(weekOneButton).toHaveAttribute('aria-expanded', 'true')
     expect(weekTwoButton).toHaveAttribute('aria-expanded', 'false')
-    expect(screen.getByText(/the asp vs the ferret/i)).toBeInTheDocument()
-    expect(screen.queryByText(/voltage vs snakebite/i)).not.toBeInTheDocument()
+    expect(screen.getByText(/the asp \(nathan aspinall\) vs the ferret \(jonny clayton\)/i)).toBeInTheDocument()
+    expect(screen.queryByText(/voltage \(rob cross\) vs snakebite \(peter wright\)/i)).not.toBeInTheDocument()
 
     fireEvent.click(weekTwoButton)
 
     expect(weekOneButton).toHaveAttribute('aria-expanded', 'false')
     expect(weekTwoButton).toHaveAttribute('aria-expanded', 'true')
-    expect(screen.getByText(/voltage vs snakebite/i)).toBeInTheDocument()
-    expect(screen.queryByText(/the asp vs the ferret/i)).not.toBeInTheDocument()
+    expect(screen.getByText(/voltage \(rob cross\) vs snakebite \(peter wright\)/i)).toBeInTheDocument()
+    expect(screen.queryByText(/the asp \(nathan aspinall\) vs the ferret \(jonny clayton\)/i)).not.toBeInTheDocument()
   })
 
   it('gates admin tools behind login and reveals live admin data after authentication', async () => {
