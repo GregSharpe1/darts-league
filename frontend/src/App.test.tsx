@@ -59,7 +59,21 @@ describe('App', () => {
       }
 
       if (path === '/api/standings') {
-        return response({ standings: [] })
+        return response({
+          standings: [
+            {
+              player: 'The Freeze',
+              display_name: 'Luke Humphries',
+              played: 1,
+              won: 1,
+              lost: 0,
+              legs_for: 3,
+              legs_against: 1,
+              leg_difference: 2,
+              points: 2,
+            },
+          ],
+        })
       }
 
       if (path === '/api/version') {
@@ -208,6 +222,18 @@ describe('App', () => {
     expect(weekTwoButton).toHaveAttribute('aria-expanded', 'true')
     expect(screen.getByText(/voltage \(rob cross\) vs snakebite \(peter wright\)/i)).toBeInTheDocument()
     expect(screen.queryByText(/the asp \(nathan aspinall\) vs the ferret \(jonny clayton\)/i)).not.toBeInTheDocument()
+  })
+
+  it('renders standings with LW and LL column labels', async () => {
+    renderApp('/standings')
+
+    expect(await screen.findByRole('heading', { name: /^standings$/i })).toBeInTheDocument()
+    expect(await screen.findByRole('columnheader', { name: 'LW' })).toBeInTheDocument()
+    expect(screen.getByRole('columnheader', { name: 'LL' })).toBeInTheDocument()
+    expect(screen.queryByRole('columnheader', { name: 'LF' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('columnheader', { name: 'LA' })).not.toBeInTheDocument()
+    expect(screen.getByText('The Freeze')).toBeInTheDocument()
+    expect(screen.getByText('Luke Humphries')).toBeInTheDocument()
   })
 
   it('gates admin tools behind login and reveals live admin data after authentication', async () => {

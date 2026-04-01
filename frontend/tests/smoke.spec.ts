@@ -175,6 +175,9 @@ test('register, start season, enter result, and view standings', async ({ page }
   await page.goto('/standings')
   await expect(page.getByText('The Freeze')).toBeVisible()
   await expect(page.getByText('Luke Humphries')).toBeVisible()
+  await expect(page.getByRole('columnheader', { name: 'LW' })).toBeVisible()
+  await expect(page.getByRole('columnheader', { name: 'LL' })).toBeVisible()
+  await captureScreenshot(page, 'standings-post-start.png')
 
   await expect(page.getByRole('link', { name: /^register$/i })).toHaveCount(0)
   await page.goto('/register')
