@@ -410,8 +410,8 @@ func (s FixtureService) PublicSchedule(ctx context.Context) ([]PublicFixtureWeek
 		for index, fixture := range week.Fixtures {
 			item := PublicFixture{
 				ID:        fixture.ID,
-				PlayerOne: playersByID[fixture.PlayerOneID].PreferredName(),
-				PlayerTwo: playersByID[fixture.PlayerTwoID].PreferredName(),
+				PlayerOne: playersByID[fixture.PlayerOneID].FixtureLabel(),
+				PlayerTwo: playersByID[fixture.PlayerTwoID].FixtureLabel(),
 			}
 			if status == "unlocked" {
 				scheduled := fixture.ScheduledAt
@@ -494,8 +494,8 @@ func (s FixtureService) AdminSchedule(ctx context.Context) ([]AdminFixtureWeek, 
 		for _, fixture := range week.Fixtures {
 			adminFixtures = append(adminFixtures, AdminFixture{
 				ID:          fixture.ID,
-				PlayerOne:   playersByID[fixture.PlayerOneID].AdminLabel(),
-				PlayerTwo:   playersByID[fixture.PlayerTwoID].AdminLabel(),
+				PlayerOne:   playersByID[fixture.PlayerOneID].FixtureLabel(),
+				PlayerTwo:   playersByID[fixture.PlayerTwoID].FixtureLabel(),
 				ScheduledAt: fixture.ScheduledAt,
 				GameVariant: fixture.GameVariant,
 				LegsToWin:   fixture.LegsToWin,

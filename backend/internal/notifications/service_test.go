@@ -58,13 +58,13 @@ func TestComposeWeeklyFixturesMessageUsesCurrentPublicWeek(t *testing.T) {
 	if !strings.Contains(message, "📅") {
 		t.Fatalf("expected date line, got %q", message)
 	}
-	if !strings.Contains(message, "Bully Boy vs The Iceman") {
+	if !strings.Contains(message, "Bully Boy (Michael Smith) vs The Iceman (Gerwyn Price)") {
 		t.Fatalf("expected week 2 fixture names, got %q", message)
 	}
-	if !strings.Contains(message, "🏆 Bully Boy vs The Iceman") {
+	if !strings.Contains(message, "🏆 Bully Boy (Michael Smith) vs The Iceman (Gerwyn Price)") {
 		t.Fatalf("expected emoji matchup format, got %q", message)
 	}
-	if strings.Contains(message, "The Freeze vs Bully Boy") {
+	if strings.Contains(message, "The Freeze (Luke Humphries) vs Bully Boy (Michael Smith)") {
 		t.Fatalf("expected prior week fixture to be excluded, got %q", message)
 	}
 }
@@ -98,10 +98,10 @@ func TestComposeWeeklySummaryMessageIncludesResultsAndFullStandings(t *testing.T
 	if !strings.Contains(message, "📣 Week 2 Results + Standings") {
 		t.Fatalf("expected summary header, got %q", message)
 	}
-	if !strings.Contains(message, "Bully Boy 3-1 The Iceman") {
+	if !strings.Contains(message, "Bully Boy (Michael Smith) 3-1 The Iceman (Gerwyn Price)") {
 		t.Fatalf("expected recorded result, got %q", message)
 	}
-	if !strings.Contains(message, "Snakebite 3-2 The Freeze") {
+	if !strings.Contains(message, "Snakebite (Peter Wright) 3-2 The Freeze (Luke Humphries)") {
 		t.Fatalf("expected second recorded result, got %q", message)
 	}
 	if !strings.Contains(message, "👑 Leader: Bully Boy on 2 pts") {
