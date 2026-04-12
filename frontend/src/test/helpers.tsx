@@ -80,7 +80,21 @@ export function createMockFetch(state: AppState) {
     }
 
     if (path === '/api/standings') {
-      return response({ standings: [] })
+        return response({
+          standings: [
+            {
+              player: 'The Freeze',
+              display_name: 'Luke Humphries',
+              played: 1,
+              won: 1,
+              lost: 0,
+              legs_for: 3,
+              legs_against: 1,
+              leg_difference: 2,
+              points: 2,
+            },
+          ],
+        })
     }
 
     if (path === '/api/version') {

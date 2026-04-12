@@ -37,7 +37,9 @@ func TestSeasonStartGeneratesFixturesAndClosesRegistration(t *testing.T) {
 	t.Parallel()
 
 	handler := newSeasonHandlerWithNow(time.Date(2026, time.March, 18, 12, 0, 0, 0, time.UTC))
-	registerTestPlayers(t, handler.registration, []string{"Luke Humphries", "Michael Smith", "Peter Wright", "Gerwyn Price"})
+	hitEndpoint(t, handler.registration.handleRegisterPlayer, httptest.NewRequest(http.MethodPost, "/api/players/register", bytes.NewBufferString(`{"display_name":"Luke Humphries","nickname":"The Freeze"}`)), http.StatusCreated)
+	hitEndpoint(t, handler.registration.handleRegisterPlayer, httptest.NewRequest(http.MethodPost, "/api/players/register", bytes.NewBufferString(`{"display_name":"Michael Smith","nickname":"Bully Boy"}`)), http.StatusCreated)
+	registerTestPlayers(t, handler.registration, []string{"Peter Wright", "Gerwyn Price"})
 
 	recorder := hitEndpoint(t, handler.season.handleSeasonStart, httptest.NewRequest(http.MethodPost, "/api/admin/season/start", nil), http.StatusCreated)
 
@@ -109,7 +111,9 @@ func TestPublicFixturesHideFutureWeekDetailsUntilUnlock(t *testing.T) {
 	startTime := time.Date(2026, time.March, 18, 12, 0, 0, 0, time.UTC)
 	handler := newSeasonHandlerWithNow(startTime)
 	resultService := league.NewResultServiceWithNow(handler.store, handler.clock.Now)
-	registerTestPlayers(t, handler.registration, []string{"Luke Humphries", "Michael Smith", "Peter Wright", "Gerwyn Price"})
+	hitEndpoint(t, handler.registration.handleRegisterPlayer, httptest.NewRequest(http.MethodPost, "/api/players/register", bytes.NewBufferString(`{"display_name":"Luke Humphries","nickname":"The Freeze"}`)), http.StatusCreated)
+	hitEndpoint(t, handler.registration.handleRegisterPlayer, httptest.NewRequest(http.MethodPost, "/api/players/register", bytes.NewBufferString(`{"display_name":"Michael Smith","nickname":"Bully Boy"}`)), http.StatusCreated)
+	registerTestPlayers(t, handler.registration, []string{"Peter Wright", "Gerwyn Price"})
 	hitEndpoint(t, handler.season.handleSeasonStart, httptest.NewRequest(http.MethodPost, "/api/admin/season/start", nil), http.StatusCreated)
 	fixtures, err := handler.store.ListFixturesBySeason(httptest.NewRequest(http.MethodGet, "/", nil).Context(), 1)
 	if err != nil {
@@ -148,6 +152,16 @@ func TestPublicFixturesHideFutureWeekDetailsUntilUnlock(t *testing.T) {
 	}
 	if response.Weeks[0].Fixtures[0].ScheduledAt == "" {
 		t.Fatal("expected unlocked week to include schedule details")
+	}
+	foundFixtureLabel := false
+	for _, fixture := range response.Weeks[0].Fixtures {
+		if fixture.PlayerOne == "The Freeze (Luke Humphries)" || fixture.PlayerTwo == "The Freeze (Luke Humphries)" {
+			foundFixtureLabel = true
+			break
+		}
+	}
+	if !foundFixtureLabel {
+		t.Fatalf("expected unlocked week to show full fixture label, got %+v", response.Weeks[0].Fixtures)
 	}
 	foundPlayedResult := false
 	for _, fixture := range response.Weeks[0].Fixtures {
