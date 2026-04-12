@@ -331,6 +331,35 @@
   font-size: 1.55rem;
 }
 
+.admin-card-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  width: calc(100% + 3rem);
+  margin: -1.5rem -1.5rem 0;
+  padding: 1.5rem;
+  background: none;
+  border: none;
+  box-shadow: none;
+  border-radius: inherit;
+  cursor: pointer;
+  color: inherit;
+  text-align: left;
+  outline: none;
+}
+
+.admin-card-toggle:hover {
+  background: rgba(255, 255, 255, 0.04);
+  box-shadow: none;
+}
+
+.admin-card-toggle:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.3);
+  outline-offset: -2px;
+  box-shadow: none;
+}
+
 .status-pill {
   padding: 0.4rem 0.75rem;
   border-radius: 999px;
@@ -372,6 +401,11 @@
 .check-list li:first-child {
   border-top: 0;
   padding-top: 0;
+}
+
+.score-feedback {
+  min-height: 1.5rem;
+  margin-top: 0.5rem;
 }
 
 .fixture-meta,
@@ -631,10 +665,120 @@
   gap: 1rem;
 }
 
+.admin-week-toggle {
+  width: 100%;
+  background: none;
+  border: none;
+  box-shadow: none;
+  padding: 0.4rem 0.5rem;
+  margin: -0.4rem -0.5rem;
+  width: calc(100% + 1rem);
+  border-radius: 0.6rem;
+  cursor: pointer;
+  text-align: left;
+  color: inherit;
+  outline: none;
+}
+
+.admin-week-toggle:hover {
+  background: rgba(255, 255, 255, 0.04);
+  box-shadow: none;
+}
+
+.admin-week-toggle:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.3);
+  outline-offset: 2px;
+  box-shadow: none;
+}
+
+.admin-week-header-right {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.admin-week-chevron {
+  font-size: 1rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transform: rotate(0deg);
+  transition: transform 0.2s ease;
+  line-height: 1;
+}
+
+.admin-week-chevron--open {
+  transform: rotate(90deg);
+}
+
+.admin-week-title-group {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.admin-week-title {
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.week-progress-badge {
+  font-family: var(--font-display);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  padding: 0.15em 0.55em;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  vertical-align: middle;
+}
+
+.week-progress-badge--done {
+  background: rgba(91, 255, 140, 0.15);
+  color: rgb(91, 255, 140);
+  border-color: rgba(91, 255, 140, 0.4);
+}
+
+.season-format-summary {
+  margin-top: 0.35rem;
+  margin-bottom: 0.5rem;
+}
+
 .admin-fixtures {
   display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 0.9rem;
   margin-top: 1rem;
+}
+
+.admin-fixture-card.recorded {
+  border-color: rgba(91, 255, 140, 0.5);
+  background: rgba(91, 255, 140, 0.1);
+}
+
+.admin-fixture-card.overdue {
+  border-color: rgba(255, 120, 60, 0.5);
+  background: rgba(255, 120, 60, 0.08);
+}
+
+.week-progress-badge--overdue {
+  background: rgba(255, 120, 60, 0.15);
+  color: rgb(255, 120, 60);
+  border-color: rgba(255, 120, 60, 0.4);
+}
+
+.admin-fixture-card.locked-week {
+  opacity: 0.5;
+  filter: saturate(0.4);
+}
+
+.admin-fixture-card.locked-week .score-actions button {
+  background: linear-gradient(180deg, #5a5a5a 0%, #3a3a3a 100%);
+  box-shadow: none;
 }
 
 .admin-fixture-card,
@@ -646,11 +790,71 @@
 }
 
 .score-form {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, auto));
-  align-items: end;
-  gap: 0.75rem;
   margin-top: 0.9rem;
+}
+
+.score-table {
+  display: grid;
+  grid-template-columns: auto 1fr 1fr;
+  grid-template-rows: auto auto auto;
+  column-gap: 1rem;
+  row-gap: 0.6rem;
+  align-items: center;
+}
+
+.score-col {
+  display: grid;
+  grid-row: 1 / 4;
+  grid-template-rows: subgrid;
+  align-items: center;
+}
+
+.score-player-name {
+  display: block;
+  font-family: var(--font-display);
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding-bottom: 0.4rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  text-align: center;
+}
+
+.score-player-realname {
+  display: block;
+  font-family: inherit;
+  font-size: 0.7rem;
+  font-weight: 400;
+  letter-spacing: 0.04em;
+  text-transform: none;
+  color: var(--color-muted);
+  margin-top: 0.15rem;
+}
+
+.score-row-label {
+  color: var(--color-muted);
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  white-space: nowrap;
+}
+
+.score-col-status {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-bottom: 0.4rem;
+}
+
+.score-actions {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.score-actions button {
+  flex: 1;
 }
 
 .score-rule-badge {
@@ -667,26 +871,15 @@
   text-transform: uppercase;
 }
 
-.score-field {
-  display: grid;
-  gap: 0.35rem;
-}
-
-.score-field label {
-  color: var(--color-muted);
-  font-size: 0.8rem;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-}
-
-.score-field input {
-  width: 5rem;
+.score-table input {
+  width: 100%;
   min-height: 2.9rem;
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 0.9rem;
   background: rgba(255, 255, 255, 0.04);
   color: var(--color-text);
   padding: 0 0.8rem;
+  text-align: center;
 }
 
 .audit-entry + .audit-entry {
@@ -714,7 +907,7 @@
   .register-grid,
   .admin-grid,
   .admin-login,
-  .score-form {
+  .admin-fixtures {
     grid-template-columns: 1fr;
   }
 

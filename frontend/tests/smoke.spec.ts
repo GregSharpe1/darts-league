@@ -112,6 +112,8 @@ test('register, start season, enter result, and view standings', async ({ page }
   await expect(page.getByText(/score saved/i)).toBeVisible()
   await page.getByRole('button', { name: /undo result/i }).first().click()
   await expect(page.getByText(/recorded result removed/i)).toBeVisible()
+  await page.locator('#p1-1').fill('3')
+  await page.locator('#p2-1').fill('1')
   await page.getByRole('button', { name: /save score/i }).first().click()
   await expect(page.getByText(/score saved/i)).toBeVisible()
 
