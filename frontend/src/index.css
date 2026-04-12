@@ -70,8 +70,8 @@ button {
 }
 
 input:focus,
-button:focus,
-a:focus {
+button:focus-visible,
+a:focus-visible {
   outline: 2px solid rgba(255, 91, 91, 0.65);
   outline-offset: 2px;
 }

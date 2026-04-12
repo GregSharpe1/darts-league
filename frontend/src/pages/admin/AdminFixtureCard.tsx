@@ -3,13 +3,14 @@ import type { FormEvent } from 'react'
 import type { AdminFixture } from '../../lib/api'
 import { formatAverage } from '../../lib/api'
 
-export function AdminFixtureCard({ fixture, onSave, onUndo, isSaving, isUndoing, isLocked = false }: {
+export function AdminFixtureCard({ fixture, onSave, onUndo, isSaving, isUndoing, isLocked = false, isPastWeek = false }: {
   fixture: AdminFixture
   onSave: (payload: { fixtureId: number; playerOneLegs: number; playerTwoLegs: number; playerOneAverage?: number; playerTwoAverage?: number }) => Promise<unknown>
   onUndo: (fixtureId: number) => Promise<unknown>
   isSaving: boolean
   isUndoing: boolean
   isLocked?: boolean
+  isPastWeek?: boolean
 }) {
   const [playerOneLegs, setPlayerOneLegs] = useState(String(fixture.result?.player_one_legs ?? ''))
   const [playerTwoLegs, setPlayerTwoLegs] = useState(String(fixture.result?.player_two_legs ?? ''))
@@ -27,6 +28,13 @@ export function AdminFixtureCard({ fixture, onSave, onUndo, isSaving, isUndoing,
   const playerOneLegsValue = Number(playerOneLegs)
   const playerTwoLegsValue = Number(playerTwoLegs)
   const legsToWin = fixture.legs_to_win
+
+  const parseLabel = (label: string) => {
+    const match = label.match(/^(.+?)\s*\((.+)\)$/)  
+    return match ? { nickname: match[1].trim(), realName: match[2].trim() } : { nickname: label, realName: null }
+  }
+  const playerOne = parseLabel(fixture.player_one)
+  const playerTwo = parseLabel(fixture.player_two)
   const isValidScoreline = Number.isInteger(playerOneLegsValue) && Number.isInteger(playerTwoLegsValue) && (
     (playerOneLegsValue === legsToWin && playerTwoLegsValue >= 0 && playerTwoLegsValue < legsToWin) ||
     (playerTwoLegsValue === legsToWin && playerOneLegsValue >= 0 && playerOneLegsValue < legsToWin)
@@ -56,31 +64,34 @@ export function AdminFixtureCard({ fixture, onSave, onUndo, isSaving, isUndoing,
     setStatusMessage('Recorded result removed.')
   }
 
+  const isOverdue = isPastWeek && !fixture.result
+
   return (
-    <article className={`admin-fixture-card${fixture.result ? ' recorded' : ''}${isLocked ? ' locked-week' : ''}`}>
+    <article className={`admin-fixture-card${fixture.result ? ' recorded' : ''}${isLocked ? ' locked-week' : ''}${isOverdue ? ' overdue' : ''}`}>
       <form className="score-form" onSubmit={handleSubmit}>
-        <div className="score-columns">
-          <div className="score-player-col">
-            <span className="score-player-name">{fixture.player_one}</span>
-            <div className="score-field">
-              <label htmlFor={`p1-${fixture.id}`}>Legs ({fixture.player_one})</label>
-              <input id={`p1-${fixture.id}`} type="number" min={0} max={legsToWin} step={1} value={playerOneLegs} onChange={(event) => setPlayerOneLegs(event.target.value)} inputMode="numeric" />
+        <div className="score-table">
+          <div className="score-col score-col-labels">
+            <div className="score-col-status">
+              {fixture.result ? <span className="week-progress-badge week-progress-badge--done">✓</span> : isOverdue ? <span className="week-progress-badge week-progress-badge--overdue">✗</span> : null}
             </div>
-            <div className="score-field">
-              <label htmlFor={`a1-${fixture.id}`}>Average ({fixture.player_one})</label>
-              <input id={`a1-${fixture.id}`} value={playerOneAverage} onChange={(event) => setPlayerOneAverage(event.target.value)} inputMode="decimal" />
-            </div>
+            <span className="score-row-label">Legs</span>
+            <span className="score-row-label">Avg.</span>
           </div>
-          <div className="score-player-col">
-            <span className="score-player-name">{fixture.player_two}</span>
-            <div className="score-field">
-              <label htmlFor={`p2-${fixture.id}`}>Legs ({fixture.player_two})</label>
-              <input id={`p2-${fixture.id}`} type="number" min={0} max={legsToWin} step={1} value={playerTwoLegs} onChange={(event) => setPlayerTwoLegs(event.target.value)} inputMode="numeric" />
-            </div>
-            <div className="score-field">
-              <label htmlFor={`a2-${fixture.id}`}>Average ({fixture.player_two})</label>
-              <input id={`a2-${fixture.id}`} value={playerTwoAverage} onChange={(event) => setPlayerTwoAverage(event.target.value)} inputMode="decimal" aria-label={`${fixture.player_two} average`} />
-            </div>
+          <div className="score-col">
+            <span className="score-player-name">
+              {playerOne.nickname}
+              {playerOne.realName ? <span className="score-player-realname">{playerOne.realName}</span> : null}
+            </span>
+            <input id={`p1-${fixture.id}`} type="number" min={0} max={legsToWin} step={1} value={playerOneLegs} onChange={(event) => setPlayerOneLegs(event.target.value)} inputMode="numeric" aria-label={`${fixture.player_one} legs`} />
+            <input id={`a1-${fixture.id}`} value={playerOneAverage} onChange={(event) => setPlayerOneAverage(event.target.value)} inputMode="decimal" aria-label={`${fixture.player_one} average`} />
+          </div>
+          <div className="score-col">
+            <span className="score-player-name">
+              {playerTwo.nickname}
+              {playerTwo.realName ? <span className="score-player-realname">{playerTwo.realName}</span> : null}
+            </span>
+            <input id={`p2-${fixture.id}`} type="number" min={0} max={legsToWin} step={1} value={playerTwoLegs} onChange={(event) => setPlayerTwoLegs(event.target.value)} inputMode="numeric" aria-label={`${fixture.player_two} legs`} />
+            <input id={`a2-${fixture.id}`} value={playerTwoAverage} onChange={(event) => setPlayerTwoAverage(event.target.value)} inputMode="decimal" aria-label={`${fixture.player_two} average`} />
           </div>
         </div>
         <div className="score-actions">

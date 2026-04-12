@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
 import {
   ApiError,
@@ -49,6 +49,28 @@ export function AdminPage() {
   const [legsToWin, setLegsToWin] = useState('3')
   const [gamesPerWeek, setGamesPerWeek] = useState('1')
   const [showStartConfirm, setShowStartConfirm] = useState(false)
+  const [settingsOpen, setSettingsOpen] = useState(true)
+  const [playersOpen, setPlayersOpen] = useState(true)
+  const [auditOpen, setAuditOpen] = useState(false)
+  const cardSectionsInitialised = useRef(false)
+  const [collapsedWeeks, setCollapsedWeeks] = useState<Set<number>>(new Set())
+  const weeksInitialised = useRef(false)
+
+  useEffect(() => {
+    if (weeksInitialised.current) return
+    const weeks = fixturesQuery.data
+    const currentWeek = publicFixturesQuery.data?.current_week
+    if (!weeks || currentWeek === undefined) return
+    const collapsed = new Set<number>()
+    for (const week of weeks) {
+      const isPast = week.week_number < currentWeek
+      const isFuture = week.week_number > currentWeek
+      const allDone = week.fixtures.length > 0 && week.fixtures.every((f) => f.result)
+      if ((isPast && allDone) || isFuture) collapsed.add(week.week_number)
+    }
+    setCollapsedWeeks(collapsed)
+    weeksInitialised.current = true
+  }, [fixturesQuery.data, publicFixturesQuery.data?.current_week])
 
   const unauthenticated = playersQuery.error instanceof ApiError && playersQuery.error.status === 401
   const players = playersQuery.data ?? []
@@ -64,6 +86,14 @@ export function AdminPage() {
       setGamesPerWeek(String(seasonQuery.data.games_per_week || 1))
     }
   }, [seasonQuery.data?.game_variant, seasonQuery.data?.legs_to_win, seasonQuery.data?.games_per_week])
+
+  useEffect(() => {
+    if (cardSectionsInitialised.current || !seasonQuery.data) return
+    const registrationOpen = seasonQuery.data.registration_open
+    setSettingsOpen(registrationOpen)
+    setPlayersOpen(registrationOpen)
+    cardSectionsInitialised.current = true
+  }, [seasonQuery.data])
 
   const handleLogin = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -143,13 +173,20 @@ export function AdminPage() {
 
           <section className="admin-grid admin-grid-wide">
             <article className="admin-card">
-              <h2>League settings</h2>
+              <button type="button" className="admin-card-toggle" onClick={() => setSettingsOpen((o) => !o)} aria-expanded={settingsOpen}>
+                <h2>League settings</h2>
+                <span className={`admin-week-chevron${settingsOpen ? ' admin-week-chevron--open' : ''}`} aria-hidden="true">›</span>
+              </button>
+              {settingsOpen && (<>
               <p>Configure the league before the season starts. All settings are locked once fixtures are generated.</p>
               <form
                 className="admin-login"
                 onSubmit={(event) => {
                   event.preventDefault()
-                  updateSeasonMutation.mutate({ name: seasonName })
+                  const nameChanged = seasonName.trim() !== (seasonQuery.data?.name ?? '').trim()
+                  const configChanged = gameVariant !== (seasonQuery.data?.game_variant ?? '501') || Number(legsToWin) !== (seasonQuery.data?.legs_to_win ?? 3) || Number(gamesPerWeek) !== (seasonQuery.data?.games_per_week ?? 1)
+                  if (nameChanged) updateSeasonMutation.mutate({ name: seasonName })
+                  if (configChanged) updateConfigMutation.mutate({ game_variant: gameVariant, legs_to_win: Number(legsToWin), games_per_week: Number(gamesPerWeek) })
                 }}
               >
                 <div className="field">
@@ -163,19 +200,6 @@ export function AdminPage() {
                     disabled={!seasonQuery.data?.registration_open || updateSeasonMutation.isPending}
                   />
                 </div>
-                <button type="submit" disabled={!seasonQuery.data?.registration_open || updateSeasonMutation.isPending || seasonName.trim() === (seasonQuery.data?.name ?? '').trim()}>
-                  {updateSeasonMutation.isPending ? 'Saving...' : 'Save league name'}
-                </button>
-              </form>
-              {updateSeasonMutation.error ? <StateNotice tone="error" message={readError(updateSeasonMutation.error)} compact /> : null}
-
-              <form
-                className="admin-login"
-                onSubmit={(event) => {
-                  event.preventDefault()
-                  updateConfigMutation.mutate({ game_variant: gameVariant, legs_to_win: Number(legsToWin), games_per_week: Number(gamesPerWeek) })
-                }}
-              >
                 <div className="field">
                   <label htmlFor="game-variant">Game variant</label>
                   <select
@@ -218,22 +242,33 @@ export function AdminPage() {
                 </div>
                 <button type="submit" disabled={
                   !seasonQuery.data?.registration_open ||
+                  updateSeasonMutation.isPending ||
                   updateConfigMutation.isPending ||
-                  (gameVariant === (seasonQuery.data?.game_variant ?? '501') && Number(legsToWin) === (seasonQuery.data?.legs_to_win ?? 3) && Number(gamesPerWeek) === (seasonQuery.data?.games_per_week ?? 1))
+                  (seasonName.trim() === (seasonQuery.data?.name ?? '').trim() &&
+                    gameVariant === (seasonQuery.data?.game_variant ?? '501') &&
+                    Number(legsToWin) === (seasonQuery.data?.legs_to_win ?? 3) &&
+                    Number(gamesPerWeek) === (seasonQuery.data?.games_per_week ?? 1))
                 }>
-                  {updateConfigMutation.isPending ? 'Saving...' : 'Save match config'}
+                  {updateSeasonMutation.isPending || updateConfigMutation.isPending ? 'Saving...' : 'Save config'}
                 </button>
               </form>
+              {updateSeasonMutation.error ? <StateNotice tone="error" message={readError(updateSeasonMutation.error)} compact /> : null}
               {updateConfigMutation.error ? <StateNotice tone="error" message={readError(updateConfigMutation.error)} compact /> : null}
               {seasonQuery.data && !seasonQuery.data.registration_open ? <StateNotice message="All settings are locked once the season has started." compact /> : null}
+              </>)}
             </article>
 
             <article className="admin-card">
-              <h2>Registered players</h2>
+              <button type="button" className="admin-card-toggle" onClick={() => setPlayersOpen((o) => !o)} aria-expanded={playersOpen}>
+                <h2>Registered players</h2>
+                <span className={`admin-week-chevron${playersOpen ? ' admin-week-chevron--open' : ''}`} aria-hidden="true">›</span>
+              </button>
+              {playersOpen && (<>
               {playersQuery.isLoading ? <StateNotice message="Loading admin roster..." compact /> : null}
               {players.length === 0 ? <StateNotice message="No registered players yet." compact /> : null}
               {players.length > 0 ? <PlayerRoster players={players} registrationOpen={Boolean(seasonQuery.data?.registration_open)} onDelete={(playerId) => deletePlayerMutation.mutateAsync(playerId)} isDeleting={deletePlayerMutation.isPending} /> : null}
               {deletePlayerMutation.error ? <StateNotice tone="error" message={readError(deletePlayerMutation.error)} compact /> : null}
+              </>)}
             </article>
 
             <article className="admin-card">
@@ -246,28 +281,63 @@ export function AdminPage() {
               {fixturesQuery.isLoading ? <StateNotice message="Loading full season schedule..." compact /> : null}
               {fixturesQuery.error ? <StateNotice tone="error" message={readError(fixturesQuery.error)} compact /> : null}
               {fixturesQuery.data?.length === 0 ? <StateNotice message="Start the season to generate fixtures." compact /> : null}
-              {fixturesQuery.data?.map((week) => (
-                <div className="admin-week" key={week.week_number}>
-                  <div className="admin-week-header">
-                    <strong className="admin-week-title">Week {week.week_number}</strong>
-                    <span className="fixture-meta">Reveals {formatWhen(week.reveal_at)}</span>
+              {(fixturesQuery.data ?? []).map((week) => {
+                const total = week.fixtures.length
+                const complete = week.fixtures.filter((f) => f.result).length
+                const outstanding = total - complete
+                const allDone = complete === total && total > 0
+                const isPastWeek = week.week_number < (publicFixturesQuery.data?.current_week ?? 0)
+                const isCollapsed = collapsedWeeks.has(week.week_number)
+                const toggleCollapse = () => setCollapsedWeeks((prev) => {
+                  const next = new Set(prev)
+                  if (next.has(week.week_number)) next.delete(week.week_number)
+                  else next.add(week.week_number)
+                  return next
+                })
+                return (
+                  <div className="admin-week" key={week.week_number}>
+                    <button type="button" className="admin-week-header admin-week-toggle" onClick={toggleCollapse} aria-expanded={!isCollapsed}>
+                      <span className="admin-week-title-group">
+                        <span className={`week-progress-badge admin-week-chevron${isCollapsed ? '' : ' admin-week-chevron--open'}`} aria-hidden="true">›</span>
+                        <strong className="admin-week-title">Week {week.week_number}</strong>
+                        <span className={`week-progress-badge${allDone ? ' week-progress-badge--done' : isPastWeek && outstanding > 0 ? ' week-progress-badge--overdue' : ''}`}>
+                          {allDone ? '✓ Completed!' : isPastWeek && outstanding > 0 ? `${outstanding}/${total} Outstanding` : `${complete}/${total} Complete`}
+                        </span>
+                      </span>
+                      <span className="admin-week-header-right">
+                        <span className="fixture-meta">
+                          {week.week_number < (publicFixturesQuery.data?.current_week ?? 0)
+                            ? `Revealed ${formatWhen(week.reveal_at)}`
+                            : week.week_number === (publicFixturesQuery.data?.current_week ?? 0)
+                              ? 'In Progress'
+                              : `Reveals ${formatWhen(week.reveal_at)}`}
+                        </span>
+                      </span>
+                    </button>
+                    {!isCollapsed && (
+                      <div className="admin-fixtures">
+                        {week.fixtures.map((fixture) => (
+                          <AdminFixtureCard key={fixture.id} fixture={fixture} onSave={(payload) => saveResultMutation.mutateAsync(payload)} onUndo={(fixtureId) => undoResultMutation.mutateAsync(fixtureId)} isSaving={saveResultMutation.isPending} isUndoing={undoResultMutation.isPending} isLocked={week.week_number > (publicFixturesQuery.data?.current_week ?? 0)} isPastWeek={isPastWeek} />
+                        ))}
+                      </div>
+                    )}
                   </div>
-                  <div className="admin-fixtures">
-                    {week.fixtures.map((fixture) => (
-                      <AdminFixtureCard key={fixture.id} fixture={fixture} onSave={(payload) => saveResultMutation.mutateAsync(payload)} onUndo={(fixtureId) => undoResultMutation.mutateAsync(fixtureId)} isSaving={saveResultMutation.isPending} isUndoing={undoResultMutation.isPending} isLocked={week.week_number > (publicFixturesQuery.data?.current_week ?? 0)} />
-                    ))}
-                  </div>
-                </div>
-              ))}
+                )
+              })}
               {saveResultMutation.error ? <StateNotice tone="error" message={readError(saveResultMutation.error)} compact /> : null}
               {undoResultMutation.error ? <StateNotice tone="error" message={readError(undoResultMutation.error)} compact /> : null}
             </article>
 
             <article className="admin-card">
-              <h2>Audit trail</h2>
+              <button type="button" className="admin-card-toggle" onClick={() => setAuditOpen((o) => !o)} aria-expanded={auditOpen}>
+                <h2>Audit trail</h2>
+                <span className={`admin-week-chevron${auditOpen ? ' admin-week-chevron--open' : ''}`} aria-hidden="true">›</span>
+              </button>
+              {auditOpen && (<>
               {auditQuery.isLoading ? <StateNotice message="Loading audit trail..." compact /> : null}
               {auditQuery.data?.length === 0 ? <StateNotice message="Result edits will appear here." compact /> : null}
               {auditQuery.data?.map((entry) => <AuditEntryCard entry={entry} key={entry.id} />)}
+              </>)}
             </article>
           </section>
         </>
