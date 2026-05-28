@@ -462,7 +462,22 @@
 }
 
 .player-cell strong {
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+}
+
+.position-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.85rem;
+  min-height: 1.85rem;
+  border-radius: 999px;
+  color: var(--color-accent);
+  background: rgba(227, 48, 48, 0.12);
+  border: 1px solid rgba(227, 48, 48, 0.32);
+  font-size: 0.82rem;
 }
 
 .table-emphasis {

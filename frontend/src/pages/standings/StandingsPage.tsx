@@ -36,10 +36,13 @@ export function StandingsPage() {
             </tr>
           </thead>
           <tbody>
-            {standingsQuery.data.map((row) => (
+            {standingsQuery.data.map((row, index) => (
               <tr key={row.display_name}>
                 <td className="player-cell">
-                  <strong>{row.player}</strong>
+                  <strong>
+                    <span className="position-badge" aria-label={`Position ${index + 1}`}>{index + 1}</span>
+                    {row.player}
+                  </strong>
                   <span>{row.display_name}</span>
                 </td>
                 <td>{row.played}</td>

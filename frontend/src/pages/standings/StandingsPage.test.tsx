@@ -22,6 +22,7 @@ describe('Standings page', () => {
     expect(screen.queryByRole('columnheader', { name: 'LF' })).not.toBeInTheDocument()
     expect(screen.queryByRole('columnheader', { name: 'LA' })).not.toBeInTheDocument()
     expect(screen.getByText('The Freeze')).toBeInTheDocument()
+    expect(screen.getByLabelText('Position 1')).toBeInTheDocument()
     expect(screen.getByText('Luke Humphries')).toBeInTheDocument()
   })
 })
