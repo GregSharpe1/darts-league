@@ -226,6 +226,19 @@
   margin-top: 1rem;
 }
 
+.fixture-search {
+  margin-top: 1.25rem;
+}
+
+.fixture-search-results {
+  margin-top: 1rem;
+}
+
+.compact-header h3 {
+  margin: 0.35rem 0 0;
+  font-size: 1.2rem;
+}
+
 .week-switcher-item {
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 1.2rem;
@@ -249,6 +262,10 @@
   background: transparent;
   color: inherit;
   text-align: left;
+}
+
+.static-trigger {
+  cursor: default;
 }
 
 .week-switcher-copy {

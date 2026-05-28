@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { NavLink } from 'react-router-dom'
 import { useSeasonSummary, usePublicFixtures, formatWhen } from '../../lib/api'
 import { StateNotice } from '../../components/StateNotice'
@@ -7,6 +7,8 @@ import { readError } from '../../lib/utils'
 export function HomePage() {
   const seasonQuery = useSeasonSummary()
   const fixturesQuery = usePublicFixtures()
+  const [fixtureSearch, setFixtureSearch] = useState('')
+  const fixtureSearchTerm = fixtureSearch.trim().toLowerCase()
 
   const currentWeek = fixturesQuery.data?.weeks.find((week) => week.week_number === fixturesQuery.data.current_week)
   const futureWeeks = fixturesQuery.data?.weeks.filter((week) => week.status === 'locked') ?? []
@@ -21,26 +23,36 @@ export function HomePage() {
         .filter((week) => week.unplayedFixtures.length > 0) ?? [],
     [fixturesQuery.data?.weeks],
   )
+  const searchedUnplayedWeeks = useMemo(
+    () =>
+      fixturesQuery.data?.weeks
+        .map((week) => ({
+          ...week,
+          unplayedFixtures: week.fixtures.filter((fixture) => {
+            if (fixture.result) {
+              return false
+            }
+
+            if (!fixtureSearchTerm) {
+              return false
+            }
+
+            return `${fixture.player_one} ${fixture.player_two}`.toLowerCase().includes(fixtureSearchTerm)
+          }),
+        }))
+        .filter((week) => week.unplayedFixtures.length > 0) ?? [],
+    [fixtureSearchTerm, fixturesQuery.data?.weeks],
+  )
   const gamesLeftToPlay = unplayedUnlockedWeeks.reduce((total, week) => total + week.unplayedFixtures.length, 0)
+  const searchedGamesLeft = searchedUnplayedWeeks.reduce((total, week) => total + week.unplayedFixtures.length, 0)
   const defaultOpenWeek =
     unplayedUnlockedWeeks.find((week) => week.week_number === fixturesQuery.data?.current_week)?.week_number ??
     unplayedUnlockedWeeks[0]?.week_number ??
     null
-  const [openWeekNumber, setOpenWeekNumber] = useState<number | null>(null)
-
-  useEffect(() => {
-    setOpenWeekNumber((previousOpenWeek) => {
-      if (unplayedUnlockedWeeks.length === 0) {
-        return null
-      }
-
-      if (previousOpenWeek !== null && unplayedUnlockedWeeks.some((week) => week.week_number === previousOpenWeek)) {
-        return previousOpenWeek
-      }
-
-      return defaultOpenWeek
-    })
-  }, [defaultOpenWeek, unplayedUnlockedWeeks])
+  const [selectedOpenWeekNumber, setSelectedOpenWeekNumber] = useState<number | null>(null)
+  const openWeekNumber = selectedOpenWeekNumber !== null && unplayedUnlockedWeeks.some((week) => week.week_number === selectedOpenWeekNumber)
+    ? selectedOpenWeekNumber
+    : defaultOpenWeek
 
   return (
     <>
@@ -91,15 +103,73 @@ export function HomePage() {
           </div>
           <span className="status-pill live">{gamesLeftToPlay > 0 ? `${gamesLeftToPlay} live` : currentWeek ? 'Unlocked' : 'Waiting'}</span>
         </div>
+        <div className="fixture-search field">
+          <label htmlFor="fixture-player-search">Find your remaining games</label>
+          <input
+            id="fixture-player-search"
+            type="search"
+            value={fixtureSearch}
+            onChange={(event) => setFixtureSearch(event.target.value)}
+            placeholder="Search by your darts name"
+          />
+          <p className="fixture-meta">Search visible unplayed fixtures by either player name. Locked weeks still keep match details gated.</p>
+        </div>
         {fixturesQuery.isLoading ? <StateNotice message="Loading the season board..." /> : null}
         {fixturesQuery.error ? <StateNotice tone="error" message={readError(fixturesQuery.error)} /> : null}
         {!fixturesQuery.isLoading && !fixturesQuery.error && !currentWeek ? (
           <StateNotice message="No public week is unlocked yet. Start the season in admin to generate fixtures." />
         ) : null}
-        {!fixturesQuery.isLoading && !fixturesQuery.error && currentWeek && gamesLeftToPlay === 0 ? (
+        {!fixtureSearchTerm && !fixturesQuery.isLoading && !fixturesQuery.error && currentWeek && gamesLeftToPlay === 0 ? (
           <StateNotice message="Every unlocked fixture has been played so far. Check locked weeks for what is coming next." />
         ) : null}
-        {unplayedUnlockedWeeks.length > 0 ? (
+        {fixtureSearchTerm && !fixturesQuery.isLoading && !fixturesQuery.error ? (
+          <div className="fixture-search-results" aria-live="polite">
+            <div className="card-header compact-header">
+              <div className="card-copy">
+                <span className="section-eyebrow">Search results</span>
+                <h3>{searchedGamesLeft} remaining match{searchedGamesLeft !== 1 ? 'es' : ''}</h3>
+              </div>
+            </div>
+            {searchedUnplayedWeeks.length > 0 ? (
+              <div className="week-switcher search-results-list">
+                {searchedUnplayedWeeks.map((week) => (
+                  <section className="week-switcher-item open" key={week.week_number}>
+                    <div className="week-switcher-trigger static-trigger">
+                      <div className="week-switcher-copy">
+                        <span className="section-eyebrow">{week.status === 'locked' ? 'Locked pairing' : 'Unplayed fixture'}</span>
+                        <strong>Week {week.week_number}</strong>
+                        <span className="fixture-meta">
+                          {week.status === 'locked' ? `Reveals ${formatWhen(week.reveal_at)}` : week.week_number === fixturesQuery.data?.current_week ? 'Current week unlocked' : 'Previous week still outstanding'}
+                        </span>
+                      </div>
+                      <div className="week-switcher-meta">
+                        <span className={`status-pill ${week.status === 'locked' ? 'locked' : 'live'}`}>{week.status}</span>
+                      </div>
+                    </div>
+                    <div className="week-switcher-panel">
+                      <ul className="match-list">
+                        {week.unplayedFixtures.map((fixture) => (
+                          <li key={fixture.id}>
+                            <div>
+                              <strong>{fixture.player_one} vs {fixture.player_two}</strong>
+                              <div className="fixture-meta">
+                                {week.status === 'locked' ? 'Pairing visible. Match details locked.' : `Week ${week.week_number} - ${fixture.game_variant} - First to ${fixture.legs_to_win} legs`}
+                              </div>
+                            </div>
+                            <div className="fixture-meta">{week.status === 'locked' ? 'Unlocks automatically' : 'Arrange within the week'}</div>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </section>
+                ))}
+              </div>
+            ) : (
+              <StateNotice message="No remaining visible fixtures match that player name." />
+            )}
+          </div>
+        ) : null}
+        {!fixtureSearchTerm && unplayedUnlockedWeeks.length > 0 ? (
           <div className="week-switcher" aria-label="Weeks with matches left to play">
             {unplayedUnlockedWeeks.map((week) => {
               const isOpen = week.week_number === openWeekNumber
@@ -111,7 +181,7 @@ export function HomePage() {
                     type="button"
                     className="week-switcher-trigger"
                     aria-expanded={isOpen}
-                    onClick={() => setOpenWeekNumber(week.week_number)}
+                    onClick={() => setSelectedOpenWeekNumber(week.week_number)}
                   >
                     <div className="week-switcher-copy">
                       <span className="section-eyebrow">Unplayed fixtures</span>

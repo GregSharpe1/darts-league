@@ -27,7 +27,7 @@ describe('Home page', () => {
     expect(screen.getByText(/the asp vs the ferret/i)).toBeInTheDocument()
     expect(screen.getByText(/week 1 - 501 - first to 3 legs/i)).toBeInTheDocument()
     expect(screen.getByText(/arrange within the week/i)).toBeInTheDocument()
-    expect(screen.getByText(/i knew you'd look vs nothing to see here/i)).toBeInTheDocument()
+    expect(screen.getAllByText(/i knew you'd look vs nothing to see here/i).length).toBeGreaterThan(0)
     expect(screen.getByText(/players registered before the season start action/i)).toBeInTheDocument()
     expect(screen.getByText(/cardiff office - darts league/i)).toBeInTheDocument()
     expect(await screen.findByText(/backend v0.0.6/i)).toBeInTheDocument()
@@ -54,5 +54,21 @@ describe('Home page', () => {
     expect(weekTwoButton).toHaveAttribute('aria-expanded', 'true')
     expect(screen.getByText(/voltage vs snakebite/i)).toBeInTheDocument()
     expect(screen.queryByText(/the asp vs the ferret/i)).not.toBeInTheDocument()
+  })
+
+  it('lets a player search their remaining unplayed fixtures', async () => {
+    renderApp('/')
+
+    const search = await screen.findByLabelText(/find your remaining games/i)
+    fireEvent.change(search, { target: { value: 'snakebite' } })
+
+    expect(screen.getByRole('heading', { name: /1 remaining match/i })).toBeInTheDocument()
+    expect(screen.getByText(/voltage vs snakebite/i)).toBeInTheDocument()
+    expect(screen.queryByText(/the asp vs the ferret/i)).not.toBeInTheDocument()
+
+    fireEvent.change(search, { target: { value: 'nothing' } })
+
+    expect(screen.getAllByText(/i knew you'd look vs nothing to see here/i).length).toBeGreaterThan(0)
+    expect(screen.getByText(/pairing visible. match details locked./i)).toBeInTheDocument()
   })
 })
