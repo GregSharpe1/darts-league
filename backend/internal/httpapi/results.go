@@ -32,15 +32,16 @@ type resultRequest struct {
 }
 
 type standingRowResponse struct {
-	Player        string `json:"player"`
-	DisplayName   string `json:"display_name"`
-	Played        int    `json:"played"`
-	Won           int    `json:"won"`
-	Lost          int    `json:"lost"`
-	LegsFor       int    `json:"legs_for"`
-	LegsAgainst   int    `json:"legs_against"`
-	LegDifference int    `json:"leg_difference"`
-	Points        int    `json:"points"`
+	Player        string   `json:"player"`
+	DisplayName   string   `json:"display_name"`
+	Played        int      `json:"played"`
+	Won           int      `json:"won"`
+	Lost          int      `json:"lost"`
+	LegsFor       int      `json:"legs_for"`
+	LegsAgainst   int      `json:"legs_against"`
+	LegDifference int      `json:"leg_difference"`
+	Average       *float64 `json:"average"`
+	Points        int      `json:"points"`
 }
 
 func (h ResultHandler) handleStandings(w http.ResponseWriter, r *http.Request) {
@@ -60,6 +61,7 @@ func (h ResultHandler) handleStandings(w http.ResponseWriter, r *http.Request) {
 			LegsFor:       row.LegsFor,
 			LegsAgainst:   row.LegsAgainst,
 			LegDifference: row.LegDifference,
+			Average:       row.Average,
 			Points:        row.Points,
 		})
 	}

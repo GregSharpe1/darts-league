@@ -78,7 +78,7 @@ test('register, start season, enter result, and view standings', async ({ page }
   await expect(page.getByRole('heading', { name: /league settings/i })).toBeVisible()
   await expect(page.getByLabel('League name')).toHaveValue('MVP Season')
   await page.getByLabel('League name').fill(leagueName)
-  await page.getByRole('button', { name: /save league name/i }).click()
+  await page.getByRole('button', { name: /save config/i }).click()
   await expect(page.getByText(leagueName)).toBeVisible()
   await expect(page.getByLabel('League name')).toHaveValue(leagueName)
 
@@ -104,17 +104,18 @@ test('register, start season, enter result, and view standings', async ({ page }
   await captureScreenshot(page, 'admin-post-start.png')
 
   await expect(page.getByText(/week 1/i)).toBeVisible()
+  const editedFixture = page.locator('#p1-1').locator('xpath=ancestor::article[1]')
   await page.locator('#p1-1').fill('3')
   await page.locator('#p2-1').fill('1')
   await page.locator('#a1-1').fill('96.4')
   await page.locator('#a2-1').fill('89.1')
-  await page.getByRole('button', { name: /save score/i }).first().click()
+  await editedFixture.getByRole('button', { name: /save score/i }).click()
   await expect(page.getByText(/score saved/i)).toBeVisible()
-  await page.getByRole('button', { name: /undo result/i }).first().click()
-  await expect(page.getByText(/recorded result removed/i)).toBeVisible()
+  await editedFixture.getByRole('button', { name: /undo result/i }).click()
+  await expect(editedFixture.getByRole('button', { name: /undo result/i })).toHaveCount(0)
   await page.locator('#p1-1').fill('3')
   await page.locator('#p2-1').fill('1')
-  await page.getByRole('button', { name: /save score/i }).first().click()
+  await editedFixture.getByRole('button', { name: /save score/i }).click()
   await expect(page.getByText(/score saved/i)).toBeVisible()
 
   await page.route('**/api/fixtures', async (route) => {

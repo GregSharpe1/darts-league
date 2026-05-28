@@ -2,6 +2,10 @@ import { useSeasonSummary, useStandings } from '../../lib/api'
 import { StateNotice } from '../../components/StateNotice'
 import { readError } from '../../lib/utils'
 
+function formatAverage(average?: number | null) {
+  return average === undefined || average === null ? '-' : average.toFixed(2)
+}
+
 export function StandingsPage() {
   const seasonQuery = useSeasonSummary()
   const standingsQuery = useStandings()
@@ -32,6 +36,7 @@ export function StandingsPage() {
               <th>LW</th>
               <th>LL</th>
               <th>LD</th>
+              <th>Avg</th>
               <th>Pts</th>
             </tr>
           </thead>
@@ -51,6 +56,7 @@ export function StandingsPage() {
                 <td>{row.legs_for}</td>
                 <td>{row.legs_against}</td>
                 <td>{row.leg_difference}</td>
+                <td>{formatAverage(row.average)}</td>
                 <td className="table-emphasis">{row.points}</td>
               </tr>
             ))}
