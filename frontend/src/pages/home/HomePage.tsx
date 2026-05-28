@@ -1,13 +1,15 @@
 import { useMemo, useState } from 'react'
 import { NavLink } from 'react-router-dom'
-import { useSeasonSummary, usePublicFixtures, formatWhen } from '../../lib/api'
+import { useSeasonSummary, usePublicFixtures, useStandings, formatWhen } from '../../lib/api'
 import { StateNotice } from '../../components/StateNotice'
 import { readError } from '../../lib/utils'
 
 export function HomePage() {
   const seasonQuery = useSeasonSummary()
   const fixturesQuery = usePublicFixtures()
+  const standingsQuery = useStandings()
   const [fixtureSearch, setFixtureSearch] = useState('')
+  const [fixtureSearchOpen, setFixtureSearchOpen] = useState(false)
   const fixtureSearchTerm = fixtureSearch.trim().toLowerCase()
 
   const currentWeek = fixturesQuery.data?.weeks.find((week) => week.week_number === fixturesQuery.data.current_week)
@@ -43,6 +45,18 @@ export function HomePage() {
         .filter((week) => week.unplayedFixtures.length > 0) ?? [],
     [fixtureSearchTerm, fixturesQuery.data?.weeks],
   )
+  const fixturePlayerOptions = useMemo(() => {
+    const players = new Map<string, string>()
+
+    for (const row of standingsQuery.data ?? []) {
+      const label = row.player === row.display_name ? row.player : `${row.player} (${row.display_name})`
+      players.set(label.toLowerCase(), label)
+    }
+
+    return [...players.values()].sort((a, b) => a.localeCompare(b))
+  }, [standingsQuery.data])
+  const filteredFixturePlayerOptions = fixturePlayerOptions.filter((player) => player.toLowerCase().includes(fixtureSearchTerm))
+  const showFixturePlayerOptions = fixtureSearchOpen && fixturePlayerOptions.length > 0
   const gamesLeftToPlay = unplayedUnlockedWeeks.reduce((total, week) => total + week.unplayedFixtures.length, 0)
   const searchedGamesLeft = searchedUnplayedWeeks.reduce((total, week) => total + week.unplayedFixtures.length, 0)
   const defaultOpenWeek =
@@ -103,15 +117,44 @@ export function HomePage() {
           </div>
           <span className="status-pill live">{gamesLeftToPlay > 0 ? `${gamesLeftToPlay} live` : currentWeek ? 'Unlocked' : 'Waiting'}</span>
         </div>
-        <div className="fixture-search field">
+        <div
+          className="fixture-search field"
+          onBlur={(event) => {
+            if (!event.currentTarget.contains(event.relatedTarget)) {
+              setFixtureSearchOpen(false)
+            }
+          }}
+        >
           <label htmlFor="fixture-player-search">Find your remaining games</label>
           <input
             id="fixture-player-search"
+            role="combobox"
             type="search"
             value={fixtureSearch}
             onChange={(event) => setFixtureSearch(event.target.value)}
+            onFocus={() => setFixtureSearchOpen(true)}
             placeholder="Search by your darts name"
+            aria-autocomplete="list"
+            aria-controls="fixture-player-options"
+            aria-expanded={showFixturePlayerOptions}
           />
+          {showFixturePlayerOptions ? (
+            <div className="fixture-search-options" id="fixture-player-options" role="listbox" aria-label="Players">
+              {filteredFixturePlayerOptions.length > 0 ? filteredFixturePlayerOptions.map((player) => (
+                <button
+                  type="button"
+                  role="option"
+                  key={player}
+                  onClick={() => {
+                    setFixtureSearch(player.replace(/\s+\(.+\)$/, ''))
+                    setFixtureSearchOpen(false)
+                  }}
+                >
+                  {player}
+                </button>
+              )) : <span className="fixture-meta">No players match that search.</span>}
+            </div>
+          ) : null}
           <p className="fixture-meta">Search visible unplayed fixtures by either player name. Locked weeks still keep match details gated.</p>
         </div>
         {fixturesQuery.isLoading ? <StateNotice message="Loading the season board..." /> : null}

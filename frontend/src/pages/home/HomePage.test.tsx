@@ -60,6 +60,27 @@ describe('Home page', () => {
     renderApp('/')
 
     const search = await screen.findByLabelText(/find your remaining games/i)
+    fireEvent.focus(search)
+
+    await waitFor(() => {
+      expect(screen.getByRole('option', { name: /snakebite \(peter wright\)/i })).toBeInTheDocument()
+    })
+
+    expect(screen.getByRole('option', { name: /voltage \(rob cross\)/i })).toBeInTheDocument()
+
+    fireEvent.change(search, { target: { value: 'sna' } })
+
+    expect(screen.getByRole('option', { name: /snakebite \(peter wright\)/i })).toBeInTheDocument()
+    expect(screen.queryByRole('option', { name: /voltage \(rob cross\)/i })).not.toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('option', { name: /snakebite \(peter wright\)/i }))
+
+    expect(search).toHaveValue('Snakebite')
+    expect(screen.queryByRole('listbox', { name: /players/i })).not.toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: /1 remaining match/i })).toBeInTheDocument()
+    expect(screen.getByText(/voltage vs snakebite/i)).toBeInTheDocument()
+    expect(screen.queryByText(/the asp vs the ferret/i)).not.toBeInTheDocument()
+
     fireEvent.change(search, { target: { value: 'snakebite' } })
 
     expect(screen.getByRole('heading', { name: /1 remaining match/i })).toBeInTheDocument()
