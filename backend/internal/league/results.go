@@ -36,7 +36,13 @@ type StandingRow struct {
 	LegsFor       int
 	LegsAgainst   int
 	LegDifference int
+	Average       *float64
 	Points        int
+}
+
+type standingAverageAccumulator struct {
+	total float64
+	count int
 }
 
 type AuditLogEntry struct {
@@ -92,6 +98,7 @@ func WinnerIDForFixture(fixture Fixture, playerOneLegs, playerTwoLegs int) (int6
 
 func BuildStandings(players []Player, fixtures []Fixture, results []Result) []StandingRow {
 	rowsByID := make(map[int64]*StandingRow, len(players))
+	averagesByID := make(map[int64]*standingAverageAccumulator, len(players))
 	fixtureByID := make(map[int64]Fixture, len(fixtures))
 	for _, player := range players {
 		rowsByID[player.ID] = &StandingRow{
@@ -99,6 +106,7 @@ func BuildStandings(players []Player, fixtures []Fixture, results []Result) []St
 			DisplayName:   player.DisplayName,
 			PreferredName: player.PreferredName(),
 		}
+		averagesByID[player.ID] = &standingAverageAccumulator{}
 	}
 	for _, fixture := range fixtures {
 		fixtureByID[fixture.ID] = fixture
@@ -121,6 +129,16 @@ func BuildStandings(players []Player, fixtures []Fixture, results []Result) []St
 		playerOne.LegsAgainst += result.PlayerTwoLegs
 		playerTwo.LegsFor += result.PlayerTwoLegs
 		playerTwo.LegsAgainst += result.PlayerOneLegs
+		if result.PlayerOneAverage != nil {
+			average := averagesByID[fixture.PlayerOneID]
+			average.total += *result.PlayerOneAverage
+			average.count++
+		}
+		if result.PlayerTwoAverage != nil {
+			average := averagesByID[fixture.PlayerTwoID]
+			average.total += *result.PlayerTwoAverage
+			average.count++
+		}
 
 		if result.WinnerID == fixture.PlayerOneID {
 			playerOne.Won++
@@ -136,6 +154,10 @@ func BuildStandings(players []Player, fixtures []Fixture, results []Result) []St
 	rows := make([]StandingRow, 0, len(rowsByID))
 	for _, row := range rowsByID {
 		row.LegDifference = row.LegsFor - row.LegsAgainst
+		if average := averagesByID[row.PlayerID]; average.count > 0 {
+			value := average.total / float64(average.count)
+			row.Average = &value
+		}
 		rows = append(rows, *row)
 	}
 
