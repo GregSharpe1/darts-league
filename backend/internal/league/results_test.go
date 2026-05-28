@@ -92,6 +92,46 @@ func TestBuildStandingsOrdersByPointsLegDifferenceLegsForThenAlphabetical(t *tes
 	}
 }
 
+func TestBuildStandingsCalculatesPlayerAveragesFromRecordedResults(t *testing.T) {
+	t.Parallel()
+
+	players := []Player{
+		{ID: 1, DisplayName: "Luke Humphries", Nickname: "The Freeze"},
+		{ID: 2, DisplayName: "Michael Smith", Nickname: "Bully Boy"},
+		{ID: 3, DisplayName: "Gerwyn Price", Nickname: "The Iceman"},
+	}
+	fixtures := []Fixture{
+		{ID: 1, PlayerOneID: 1, PlayerTwoID: 2},
+		{ID: 2, PlayerOneID: 2, PlayerTwoID: 1},
+		{ID: 3, PlayerOneID: 3, PlayerTwoID: 1},
+	}
+	playerOneFirstAverage := 95.40
+	playerTwoFirstAverage := 88.20
+	playerOneSecondAverage := 90.80
+	playerTwoSecondAverage := 100.60
+	results := []Result{
+		{FixtureID: 1, PlayerOneLegs: 3, PlayerTwoLegs: 1, PlayerOneAverage: &playerOneFirstAverage, PlayerTwoAverage: &playerTwoFirstAverage, WinnerID: 1},
+		{FixtureID: 2, PlayerOneLegs: 2, PlayerTwoLegs: 3, PlayerOneAverage: &playerOneSecondAverage, PlayerTwoAverage: &playerTwoSecondAverage, WinnerID: 1},
+		{FixtureID: 3, PlayerOneLegs: 0, PlayerTwoLegs: 3, WinnerID: 1},
+	}
+
+	standings := BuildStandings(players, fixtures, results)
+	rowsByPlayer := make(map[int64]StandingRow, len(standings))
+	for _, row := range standings {
+		rowsByPlayer[row.PlayerID] = row
+	}
+
+	if rowsByPlayer[1].Average == nil || *rowsByPlayer[1].Average != 98.0 {
+		t.Fatalf("expected player one average from both fixture positions, got %+v", rowsByPlayer[1])
+	}
+	if rowsByPlayer[2].Average == nil || *rowsByPlayer[2].Average != 89.5 {
+		t.Fatalf("expected player two average from recorded results, got %+v", rowsByPlayer[2])
+	}
+	if rowsByPlayer[3].Average != nil {
+		t.Fatalf("expected missing averages to be ignored, got %+v", rowsByPlayer[3])
+	}
+}
+
 func TestEditResultUpdatesStandingsAndWritesAuditLog(t *testing.T) {
 	t.Parallel()
 
