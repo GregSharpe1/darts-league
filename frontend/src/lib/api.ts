@@ -65,7 +65,6 @@ export type StandingRow = {
   legs_for: number
   legs_against: number
   leg_difference: number
-  average?: number | null
   points: number
 }
 

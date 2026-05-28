@@ -50,9 +50,6 @@ func TestRecordResultAndStandingsFlow(t *testing.T) {
 	if standings.Rows[0].Points != 2 {
 		t.Fatalf("expected top row to have 2 points, got %+v", standings.Rows[0])
 	}
-	if standings.Rows[0].Average == nil || *standings.Rows[0].Average != 95.4 {
-		t.Fatalf("expected standings response to include player average, got %+v", standings.Rows[0])
-	}
 	if fixtureID <= 0 {
 		t.Fatalf("expected positive fixture id, got %d", fixtureID)
 	}

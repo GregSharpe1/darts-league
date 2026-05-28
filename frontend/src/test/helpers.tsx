@@ -91,7 +91,6 @@ export function createMockFetch(state: AppState) {
               legs_for: 3,
               legs_against: 1,
               leg_difference: 2,
-              average: 95.4,
               points: 2,
             },
           ],
