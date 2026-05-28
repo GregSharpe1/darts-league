@@ -115,9 +115,17 @@ jobs:
         working-directory: frontend
         run: npm ci
 
+      - name: Install Playwright browsers
+        working-directory: frontend
+        run: npx playwright install --with-deps chromium
+
       - name: Run frontend tests
         working-directory: frontend
         run: npm test
+
+      - name: Run Playwright smoke tests
+        working-directory: frontend
+        run: npm run test:e2e
 
       - name: Build frontend
         working-directory: frontend
