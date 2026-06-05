@@ -18,6 +18,7 @@ const DefaultLegsToWin = 3
 type Fixture struct {
 	ID          int64
 	SeasonID    int64
+	DivisionID  int64
 	WeekNumber  int
 	ScheduledAt time.Time
 	PlayerOneID int64
@@ -33,7 +34,7 @@ type WeeklyFixtures struct {
 	Fixtures   []Fixture
 }
 
-func GenerateRoundRobinFixtures(season Season, players []Player) ([]Fixture, error) {
+func GenerateRoundRobinFixtures(season Season, division Division, players []Player) ([]Fixture, error) {
 	if season.RegistrationOpen() {
 		return nil, ErrSeasonAlreadyStarted
 	}
@@ -87,6 +88,7 @@ func GenerateRoundRobinFixtures(season Season, players []Player) ([]Fixture, err
 
 			fixture := Fixture{
 				SeasonID:    season.ID,
+				DivisionID:  division.ID,
 				PlayerOneID: left.ID,
 				PlayerTwoID: right.ID,
 				GameVariant: gameVariant,

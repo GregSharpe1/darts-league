@@ -4,9 +4,11 @@ import './App.css'
 import { useSeasonSummary, useBackendVersion } from './lib/api'
 import { frontendVersion } from './version'
 import { HomePage } from './pages/home/HomePage'
+import { DivisionHomePage } from './pages/home/DivisionHomePage'
 import { StandingsPage } from './pages/standings/StandingsPage'
 import { RegisterPage } from './pages/register/RegisterPage'
 import { AdminPage } from './pages/admin/AdminPage'
+import { DivisionAdminPage } from './pages/admin/DivisionAdminPage'
 
 function App() {
   const seasonQuery = useSeasonSummary()
@@ -28,21 +30,23 @@ function App() {
           </div>
         </div>
         <nav className="primary-nav" aria-label="Primary">
-          <NavLink to="/">Fixtures</NavLink>
-          <NavLink to="/standings">Standings</NavLink>
+          <NavLink to="/">Divisions</NavLink>
           {seasonQuery.data?.registration_open ? <NavLink to="/register">Register</NavLink> : null}
+          <NavLink to="/admin">Admin</NavLink>
         </nav>
       </header>
 
       <main className="page-frame">
         <Routes>
           <Route path="/" element={<HomePage />} />
-          <Route path="/standings" element={<StandingsPage />} />
+          <Route path="/divisions/:slug" element={<DivisionHomePage />} />
+          <Route path="/divisions/:slug/standings" element={<StandingsPage />} />
           <Route path="/register" element={<RegisterPage />} />
           <Route path="/admin" element={<AdminPage />} />
+          <Route path="/admin/divisions/:slug" element={<DivisionAdminPage />} />
         </Routes>
         <footer className="footer-note" aria-label="Application build details">
-          <p>Built for a single active season, weekly reveals, and admin-controlled score entry.</p>
+          <p>Built for one active season, admin-managed divisions, weekly reveals, and division-specific score entry.</p>
           <p className="footer-version">Frontend {frontendVersion} | Backend {backendVersionQuery.data?.version ?? 'unavailable'}</p>
         </footer>
       </main>

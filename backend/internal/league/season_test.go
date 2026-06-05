@@ -44,6 +44,7 @@ func TestUpdateConfigLockedAfterStart(t *testing.T) {
 			t.Fatalf("expected registration to succeed, got %v", err)
 		}
 	}
+	assignAllPlayersInSeasonTest(t, ctx, registration, seasonService)
 
 	if _, err := seasonService.StartSeason(ctx); err != nil {
 		t.Fatalf("expected season start to succeed, got %v", err)
@@ -69,6 +70,7 @@ func TestStartSeasonValidatesConfigAtStartTime(t *testing.T) {
 			t.Fatalf("expected registration to succeed, got %v", err)
 		}
 	}
+	assignAllPlayersInSeasonTest(t, ctx, registration, seasonService)
 
 	// Manually set an invalid game variant on the season.
 	season, _ := store.GetActiveSeason(ctx)
@@ -104,6 +106,7 @@ func TestStartSeasonDoesNotPartiallyUpdateWhenFixtureGenerationFails(t *testing.
 			t.Fatalf("expected player registration to succeed, got %v", err)
 		}
 	}
+	assignAllPlayersInSeasonTest(t, ctx, registration, seasonService)
 
 	if _, err := seasonService.StartSeason(ctx); err == nil {
 		t.Fatal("expected season start to fail when timezone cannot be loaded")
@@ -122,5 +125,22 @@ func TestStartSeasonDoesNotPartiallyUpdateWhenFixtureGenerationFails(t *testing.
 	}
 	if len(fixtures) != 0 {
 		t.Fatalf("expected no fixtures after failed start, got %d", len(fixtures))
+	}
+}
+
+func assignAllPlayersInSeasonTest(t *testing.T, ctx context.Context, registration RegistrationService, seasonService SeasonService) {
+	t.Helper()
+	divisions, err := seasonService.ProvisionDivisions(ctx, 1)
+	if err != nil {
+		t.Fatalf("expected division provisioning to succeed, got %v", err)
+	}
+	players, err := registration.ListPlayers(ctx)
+	if err != nil {
+		t.Fatalf("expected players to be listed, got %v", err)
+	}
+	for _, player := range players {
+		if _, err := registration.AssignPlayer(ctx, player.ID, &divisions[0].ID); err != nil {
+			t.Fatalf("expected assignment to succeed, got %v", err)
+		}
 	}
 }

@@ -16,7 +16,7 @@ export function RegisterPage() {
     setSuccessMessage('')
     try {
       const player = await registerMutation.mutateAsync({ display_name: displayName, nickname })
-      setSuccessMessage(`${player.preferred_name} is in for the active season.`)
+      setSuccessMessage(`${player.preferred_name} is registered and waiting for division assignment.`)
       setDisplayName('')
       setNickname('')
     } catch {
@@ -30,7 +30,7 @@ export function RegisterPage() {
         <span className="eyebrow">Public registration</span>
         <h1>Enter the league</h1>
         <p className="fixture-meta">{seasonQuery.data?.name ?? 'Active season'}</p>
-        <p>Registration stays open until the admin starts the season. Display names are unique per season and nicknames stay optional.</p>
+        <p>Registration stays open until the admin starts the season. Display names stay reserved forever and nicknames remain optional.</p>
       </section>
 
       {seasonQuery.data && !seasonQuery.data.registration_open ? (
@@ -54,7 +54,7 @@ export function RegisterPage() {
         <section className="register-grid">
           <article className="register-card">
             <h2>Player sign-up</h2>
-            <p>Keep it fast for MVP: one required name, one optional darts nickname.</p>
+            <p>Register once, then wait for admin placement into a division or onto the waitlist.</p>
             <form className="form-preview" onSubmit={handleSubmit}>
               <div className="field">
                 <label htmlFor="display-name">Display name</label>
@@ -64,7 +64,7 @@ export function RegisterPage() {
                 <label htmlFor="nickname">Nickname</label>
                 <input id="nickname" name="nickname" value={nickname} onChange={(event) => setNickname(event.target.value)} placeholder="The Freeze" disabled={!seasonQuery.data?.registration_open || registerMutation.isPending} />
               </div>
-              <button type="submit" disabled={!seasonQuery.data?.registration_open || registerMutation.isPending}>{registerMutation.isPending ? 'Registering...' : 'Register for this season'}</button>
+              <button type="submit" disabled={!seasonQuery.data?.registration_open || registerMutation.isPending}>{registerMutation.isPending ? 'Registering...' : 'Register for the league'}</button>
             </form>
             {registerMutation.error ? <StateNotice tone="error" message={readError(registerMutation.error)} compact /> : null}
             {successMessage ? <StateNotice message={successMessage} compact /> : null}
@@ -73,10 +73,10 @@ export function RegisterPage() {
           <article className="register-card">
             <h2>What happens next</h2>
             <ul className="check-list">
-              <li><strong>Before start</strong><span className="fixture-meta">Admin can review and trim the roster.</span></li>
-              <li><strong>On start</strong><span className="fixture-meta">Fixtures generate once and registration closes.</span></li>
+              <li><strong>Before start</strong><span className="fixture-meta">Admin reviews the roster and assigns players to divisions manually.</span></li>
+              <li><strong>On start</strong><span className="fixture-meta">Each division generates its own fixtures once and registration closes.</span></li>
               <li><strong>Each week</strong><span className="fixture-meta">Match cards unlock every Monday at 09:00.</span></li>
-              <li><strong>Current roster</strong><span className="fixture-meta">{seasonQuery.data?.player_count ?? 0} players in the active season.</span></li>
+              <li><strong>Current roster</strong><span className="fixture-meta">{seasonQuery.data?.player_count ?? 0} players registered, {seasonQuery.data?.waitlist_count ?? 0} still waitlisted.</span></li>
             </ul>
           </article>
         </section>

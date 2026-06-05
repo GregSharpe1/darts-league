@@ -9,18 +9,32 @@ import (
 )
 
 var (
-	ErrRegistrationClosed  = errors.New("registration is closed")
-	ErrDisplayNameRequired = errors.New("display name is required")
-	ErrDuplicatePlayerName = errors.New("display name already exists in this season")
-	ErrPlayerDeleteLocked  = errors.New("players can only be deleted before the season starts")
-	ErrSeasonNameRequired  = errors.New("season name is required")
-	ErrSeasonNameLength    = errors.New("season name must be between 2 and 60 characters")
-	ErrSeasonRenameLocked  = errors.New("season name can only be changed before the season starts")
-	ErrSeasonConfigLocked  = errors.New("match configuration can only be changed before the season starts")
-	ErrInvalidGameVariant  = errors.New("game variant must be 301 or 501")
-	ErrInvalidLegsToWin    = errors.New("legs to win must be at least 1")
-	ErrInvalidGamesPerWeek = errors.New("games per week must be at least 1")
-	ErrGamesPerWeekTooHigh = errors.New("games per week exceeds available fixtures per player")
+	ErrRegistrationClosed    = errors.New("registration is closed")
+	ErrDisplayNameRequired   = errors.New("display name is required")
+	ErrDuplicatePlayerName   = errors.New("display name already exists")
+	ErrPlayerDeleteLocked    = errors.New("players can only be deleted before the season starts")
+	ErrPlayerAssignLocked    = errors.New("players can only be assigned before the season starts")
+	ErrSeasonNameRequired    = errors.New("season name is required")
+	ErrSeasonNameLength      = errors.New("season name must be between 2 and 60 characters")
+	ErrSeasonRenameLocked    = errors.New("season name can only be changed before the season starts")
+	ErrSeasonConfigLocked    = errors.New("match configuration can only be changed before the season starts")
+	ErrDivisionNotFound      = errors.New("division not found")
+	ErrDivisionSlugLocked    = errors.New("division names and slugs can only be changed before the season starts")
+	ErrInvalidDivisionCount  = errors.New("division count must be at least 1")
+	ErrDivisionNameRequired  = errors.New("division name is required")
+	ErrDivisionSlugRequired  = errors.New("division slug is required")
+	ErrDuplicateDivisionSlug = errors.New("division slug already exists in this season")
+	ErrInvalidGameVariant    = errors.New("game variant must be 301 or 501")
+	ErrInvalidLegsToWin      = errors.New("legs to win must be at least 1")
+	ErrInvalidGamesPerWeek   = errors.New("games per week must be at least 1")
+	ErrGamesPerWeekTooHigh   = errors.New("games per week exceeds available fixtures per player")
+)
+
+type PlayerStatus string
+
+const (
+	PlayerStatusWaitlist PlayerStatus = "waitlist"
+	PlayerStatusAssigned PlayerStatus = "assigned"
 )
 
 type SeasonStatus string
@@ -74,9 +88,20 @@ func (s Season) Start(startedAt time.Time) Season {
 type Player struct {
 	ID           int64
 	SeasonID     int64
+	DivisionID   *int64
 	DisplayName  string
 	Nickname     string
+	Status       PlayerStatus
 	RegisteredAt time.Time
+}
+
+type Division struct {
+	ID                   int64
+	SeasonID             int64
+	Name                 string
+	Slug                 string
+	Position             int
+	SlackPublicChannelID string
 }
 
 func (p Player) PreferredName() string {
@@ -128,6 +153,39 @@ func (b RegistrationBook) ValidateNewPlayer(season Season, player Player) error 
 		}
 	}
 
+	return nil
+}
+
+func ValidateDivisionCount(count int) error {
+	if count < 1 {
+		return ErrInvalidDivisionCount
+	}
+	return nil
+}
+
+func ValidateDivisionName(name string) error {
+	if strings.TrimSpace(name) == "" {
+		return ErrDivisionNameRequired
+	}
+	return nil
+}
+
+func NormalizeDivisionName(name string) string {
+	return strings.Join(strings.Fields(name), " ")
+}
+
+func NormalizeDivisionSlug(slug string) string {
+	slug = strings.ToLower(strings.TrimSpace(slug))
+	fields := strings.FieldsFunc(slug, func(r rune) bool {
+		return !(r >= 'a' && r <= 'z' || r >= '0' && r <= '9')
+	})
+	return strings.Join(fields, "-")
+}
+
+func ValidateDivisionSlug(slug string) error {
+	if NormalizeDivisionSlug(slug) == "" {
+		return ErrDivisionSlugRequired
+	}
 	return nil
 }
 
