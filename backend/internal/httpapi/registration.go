@@ -147,7 +147,7 @@ func writeDomainError(w http.ResponseWriter, err error) {
 	case errors.Is(err, league.ErrRegistrationClosed):
 		writeError(w, http.StatusConflict, "registration_closed", "Registration is closed for the active season.")
 	case errors.Is(err, league.ErrSeasonRenameLocked):
-		writeError(w, http.StatusConflict, "season_started", "League name can only be changed before the season starts.")
+		writeError(w, http.StatusConflict, "season_locked", "League name can only be changed before the first week is released.")
 	case errors.Is(err, league.ErrPlayerDeleteLocked):
 		writeError(w, http.StatusConflict, "season_started", "Players can only be deleted before the season starts.")
 	case errors.Is(err, league.ErrPlayerAssignLocked):
@@ -166,6 +166,8 @@ func writeDomainError(w http.ResponseWriter, err error) {
 		writeError(w, http.StatusConflict, "duplicate_division_slug", "Division slug already exists in this season.")
 	case errors.Is(err, league.ErrDivisionSlugLocked):
 		writeError(w, http.StatusConflict, "season_started", "Division names and slugs can only be changed before the season starts.")
+	case errors.Is(err, league.ErrDivisionChannelLocked):
+		writeError(w, http.StatusConflict, "season_locked", "Division channel can only be changed before the first week is released.")
 	case errors.Is(err, league.ErrSeasonNotFound):
 		writeError(w, http.StatusNotFound, "season_not_found", "No active season is available.")
 	case errors.Is(err, league.ErrSeasonAlreadyStarted):
@@ -175,7 +177,7 @@ func writeDomainError(w http.ResponseWriter, err error) {
 	case errors.Is(err, league.ErrFixtureNotFound):
 		writeError(w, http.StatusNotFound, "fixture_not_found", "Fixture was not found.")
 	case errors.Is(err, league.ErrSeasonConfigLocked):
-		writeError(w, http.StatusConflict, "season_started", "Match configuration can only be changed before the season starts.")
+		writeError(w, http.StatusConflict, "season_locked", "Match configuration can only be changed before the first week is released.")
 	case errors.Is(err, league.ErrInvalidGameVariant):
 		writeError(w, http.StatusBadRequest, "invalid_game_variant", "Game variant must be 301 or 501.")
 	case errors.Is(err, league.ErrInvalidLegsToWin):

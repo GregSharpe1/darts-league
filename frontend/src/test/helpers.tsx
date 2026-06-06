@@ -25,6 +25,7 @@ export function response(body: unknown, status = 200) {
 export type AppState = {
   authenticated: boolean
   seasonStarted: boolean
+  firstWeekReleased?: boolean
   seasonName: string
 }
 
@@ -41,6 +42,13 @@ export function createMockFetch(state: AppState) {
         status: state.seasonStarted ? 'started' : 'registration_open',
         timezone: 'Europe/London',
         registration_open: !state.seasonStarted,
+        season_started: state.seasonStarted,
+        admin_locked: Boolean(state.firstWeekReleased),
+        can_start_season: !state.seasonStarted,
+        can_edit_settings: !state.firstWeekReleased,
+        can_edit_division_channel: !state.firstWeekReleased,
+        can_edit_divisions: !state.firstWeekReleased,
+        can_assign_players: !state.firstWeekReleased,
         player_count: 4,
         week_count: state.seasonStarted ? 3 : 0,
         game_variant: '501',
@@ -142,17 +150,18 @@ export function createMockFetch(state: AppState) {
 
     if (path === '/api/admin/season/start' && method === 'POST') {
       state.seasonStarted = true
-      return response({ id: 1, instance_name: 'Cardiff Office - Darts League', name: state.seasonName, status: 'started', timezone: 'Europe/London', registration_open: false, player_count: 4, week_count: 3, game_variant: '501', legs_to_win: 3, games_per_week: 1, total_fixtures: 6, division_count: 2, assigned_count: 4, waitlist_count: 0 })
+      state.firstWeekReleased = false
+      return response({ id: 1, instance_name: 'Cardiff Office - Darts League', name: state.seasonName, status: 'started', timezone: 'Europe/London', registration_open: false, season_started: true, admin_locked: false, can_start_season: false, can_edit_settings: true, can_edit_division_channel: true, can_edit_divisions: true, can_assign_players: true, player_count: 4, week_count: 3, game_variant: '501', legs_to_win: 3, games_per_week: 1, total_fixtures: 6, division_count: 2, assigned_count: 4, waitlist_count: 0 })
     }
 
     if (path === '/api/admin/season' && method === 'PUT') {
       const body = JSON.parse(String(init?.body ?? '{}'))
       state.seasonName = body.name
-      return response({ id: 1, instance_name: 'Cardiff Office - Darts League', name: state.seasonName, status: state.seasonStarted ? 'started' : 'registration_open', timezone: 'Europe/London', registration_open: !state.seasonStarted, player_count: 4, week_count: state.seasonStarted ? 3 : 0, game_variant: '501', legs_to_win: 3, games_per_week: 1, total_fixtures: state.seasonStarted ? 6 : 0, division_count: 2, assigned_count: state.seasonStarted ? 4 : 2, waitlist_count: state.seasonStarted ? 0 : 2 })
+      return response({ id: 1, instance_name: 'Cardiff Office - Darts League', name: state.seasonName, status: state.seasonStarted ? 'started' : 'registration_open', timezone: 'Europe/London', registration_open: !state.seasonStarted, season_started: state.seasonStarted, admin_locked: Boolean(state.firstWeekReleased), can_start_season: !state.seasonStarted, can_edit_settings: !state.firstWeekReleased, can_edit_division_channel: !state.firstWeekReleased, can_edit_divisions: !state.firstWeekReleased, can_assign_players: !state.firstWeekReleased, player_count: 4, week_count: state.seasonStarted ? 3 : 0, game_variant: '501', legs_to_win: 3, games_per_week: 1, total_fixtures: state.seasonStarted ? 6 : 0, division_count: 2, assigned_count: state.seasonStarted ? 4 : 2, waitlist_count: state.seasonStarted ? 0 : 2 })
     }
 
     if (path === '/api/admin/season/config' && method === 'PUT') {
-      return response({ id: 1, instance_name: 'Cardiff Office - Darts League', name: state.seasonName, status: 'registration_open', timezone: 'Europe/London', registration_open: true, player_count: 4, week_count: 0, game_variant: '501', legs_to_win: 3, games_per_week: 1, total_fixtures: 0, division_count: 2, assigned_count: 2, waitlist_count: 2 })
+      return response({ id: 1, instance_name: 'Cardiff Office - Darts League', name: state.seasonName, status: state.seasonStarted ? 'started' : 'registration_open', timezone: 'Europe/London', registration_open: !state.seasonStarted, season_started: state.seasonStarted, admin_locked: Boolean(state.firstWeekReleased), can_start_season: !state.seasonStarted, can_edit_settings: !state.firstWeekReleased, can_edit_division_channel: !state.firstWeekReleased, can_edit_divisions: !state.firstWeekReleased, can_assign_players: !state.firstWeekReleased, player_count: 4, week_count: state.seasonStarted ? 3 : 0, game_variant: '501', legs_to_win: 3, games_per_week: 1, total_fixtures: state.seasonStarted ? 6 : 0, division_count: 2, assigned_count: state.seasonStarted ? 4 : 2, waitlist_count: state.seasonStarted ? 0 : 2 })
     }
 
     if (path === '/api/admin/season/presets') {

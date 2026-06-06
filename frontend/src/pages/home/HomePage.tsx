@@ -20,7 +20,6 @@ export function HomePage() {
           </p>
           <div className="hero-actions">
             {seasonQuery.data?.registration_open ? <NavLink to="/register">Join the waitlist</NavLink> : null}
-            <NavLink to="/admin">Admin control</NavLink>
           </div>
         </div>
 
@@ -52,20 +51,22 @@ export function HomePage() {
           <StateNotice message="No divisions have been created yet. Admins can provision them before the season starts." />
         ) : null}
         {divisionsQuery.data && divisionsQuery.data.length > 0 ? (
-          <div className="week-grid" aria-label="Divisions">
+          <div className="division-board-grid" aria-label="Divisions">
             {divisionsQuery.data.map((division) => (
-              <article className="week-card" key={division.id}>
-                <header>
-                  <div>
-                    <span className="section-eyebrow">Division {division.position}</span>
-                    <h2>{division.name}</h2>
+              <article className="week-card division-board-card" key={division.id}>
+                <div className="division-board-copy">
+                  <header>
+                    <div>
+                      <h2>{division.name}</h2>
+                    </div>
+                  </header>
+                  <p>Fixtures, standings, and results stay isolated on this board.</p>
+                </div>
+                <div className="division-board-actions">
+                  <div className="hero-actions">
+                    <NavLink to={`/divisions/${division.slug}`}>View fixtures</NavLink>
+                    <NavLink to={`/divisions/${division.slug}/standings`}>View standings</NavLink>
                   </div>
-                  <span className="status-pill live">/{division.slug}</span>
-                </header>
-                <p>Fixtures, standings, and results stay isolated inside this division.</p>
-                <div className="hero-actions">
-                  <NavLink to={`/divisions/${division.slug}`}>View fixtures</NavLink>
-                  <NavLink to={`/divisions/${division.slug}/standings`}>View standings</NavLink>
                 </div>
               </article>
             ))}

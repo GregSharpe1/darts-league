@@ -20,6 +20,13 @@ export type SeasonSummary = {
   timezone: string
   started_at?: string
   registration_open: boolean
+  season_started: boolean
+  admin_locked: boolean
+  can_start_season: boolean
+  can_edit_settings: boolean
+  can_edit_division_channel: boolean
+  can_edit_divisions: boolean
+  can_assign_players: boolean
   player_count: number
   week_count: number
   game_variant: string
@@ -251,11 +258,12 @@ export function useDivisionStandings(slug: string) {
   })
 }
 
-export function useAdminPlayers() {
+export function useAdminPlayers(enabled = true) {
   return useQuery({
     queryKey: ['admin', 'players'],
     queryFn: async () => (await request<{ players: Player[] }>('/api/admin/players')).players,
     retry: false,
+    enabled,
   })
 }
 
@@ -405,9 +413,14 @@ export function useAssignPlayer() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: ({ playerId, divisionId }: { playerId: number; divisionId?: number }) => request<Player>(`/api/admin/players/${playerId}/assignment`, { method: 'PUT', body: JSON.stringify({ division_id: divisionId ?? null }) }),
-    onSuccess: async () => {
+    onSuccess: async (updatedPlayer) => {
+      queryClient.setQueryData<Player[] | undefined>(['admin', 'players'], (players) =>
+        players?.map((player) => (player.id === updatedPlayer.id ? updatedPlayer : player)),
+      )
       await queryClient.invalidateQueries({ queryKey: ['admin', 'players'] })
       await queryClient.invalidateQueries({ queryKey: ['season'] })
+      await queryClient.invalidateQueries({ queryKey: ['division'] })
+      await queryClient.invalidateQueries({ queryKey: ['admin', 'division'] })
     },
   })
 }

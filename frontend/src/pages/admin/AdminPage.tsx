@@ -5,7 +5,6 @@ import {
   ApiError,
   useAdminDivisions,
   useAdminLogin,
-  useAdminLogout,
   useAdminPlayers,
   useAssignPlayer,
   useDeletePlayer,
@@ -28,7 +27,6 @@ export function AdminPage() {
   const isAuthenticated = playersQuery.isSuccess
   const divisionsQuery = useAdminDivisions(isAuthenticated)
   const loginMutation = useAdminLogin()
-  const logoutMutation = useAdminLogout()
   const updateSeasonMutation = useUpdateSeason()
   const updateConfigMutation = useUpdateSeasonConfig()
   const provisionDivisionsMutation = useProvisionDivisions()
@@ -36,8 +34,8 @@ export function AdminPage() {
   const assignPlayerMutation = useAssignPlayer()
   const seasonStartMutation = useSeasonStart()
   const deletePlayerMutation = useDeletePlayer()
-  const presetsQuery = useGamesPerWeekPresets(isAuthenticated && Boolean(seasonQuery.data?.registration_open))
-  const previewQuery = useSchedulePreview(isAuthenticated && Boolean(seasonQuery.data?.registration_open))
+  const presetsQuery = useGamesPerWeekPresets(isAuthenticated && Boolean(seasonQuery.data?.can_edit_settings))
+  const previewQuery = useSchedulePreview(isAuthenticated && Boolean(seasonQuery.data?.can_edit_settings))
 
   const [username, setUsername] = useState('admin')
   const [password, setPassword] = useState('')
@@ -98,7 +96,7 @@ export function AdminPage() {
             <h2>What unlocks after login</h2>
             <ul className="check-list">
               <li><strong>Season config</strong><span className="fixture-meta">Shared format and naming across every division.</span></li>
-              <li><strong>Division setup</strong><span className="fixture-meta">Provision division count, rename slugs, and wire Slack channels.</span></li>
+              <li><strong>Division setup</strong><span className="fixture-meta">Provision division count, name each board, and wire Slack channels.</span></li>
               <li><strong>Roster assignment</strong><span className="fixture-meta">Place players into one division or leave them waitlisted.</span></li>
               <li><strong>Division scoring</strong><span className="fixture-meta">Open a dedicated admin page for each division once fixtures exist.</span></li>
             </ul>
@@ -112,18 +110,20 @@ export function AdminPage() {
               <span className="fixture-meta">{seasonQuery.data?.registration_open ? 'Registration open' : 'Season started'}</span>
             </div>
             <div className="toolbar-actions">
-              <button className="secondary-button" type="button" onClick={() => logoutMutation.mutate()} disabled={logoutMutation.isPending}>{logoutMutation.isPending ? 'Logging out...' : 'Log out'}</button>
-              <button type="button" onClick={() => seasonStartMutation.mutate()} disabled={!seasonQuery.data?.registration_open || seasonStartMutation.isPending || (seasonQuery.data?.assigned_count ?? 0) < 2}>{seasonStartMutation.isPending ? 'Starting season...' : 'Start season'}</button>
+              {seasonQuery.data?.can_start_season ? (
+                <button type="button" onClick={() => seasonStartMutation.mutate()} disabled={seasonStartMutation.isPending || (seasonQuery.data?.assigned_count ?? 0) < 2}>{seasonStartMutation.isPending ? 'Starting season...' : 'Start season'}</button>
+              ) : null}
             </div>
           </section>
 
           {seasonStartMutation.error ? <StateNotice tone="error" message={readError(seasonStartMutation.error)} compact /> : null}
-          {seasonQuery.data && !seasonQuery.data.registration_open ? <StateNotice message="Registration is locked, division names are frozen, and only division scoring pages remain editable." compact /> : null}
+          {seasonQuery.data?.season_started && !seasonQuery.data?.admin_locked ? <StateNotice message="Registration is locked. League settings and Slack channels stay editable until the first week is released." compact /> : null}
+          {seasonQuery.data?.admin_locked ? <StateNotice message="The first week is live. Central season setup is now locked and only division scoring pages remain editable." compact /> : null}
 
           <section className="admin-grid admin-grid-wide">
             <article className="admin-card">
               <h2>League settings</h2>
-              <p>Configure the league before the season starts. Match rules apply to every division.</p>
+              <p>Configure the league before kickoff. Match rules apply to every division and stay editable until the first week is released.</p>
               <form
                 className="admin-login"
                 onSubmit={(event) => {
@@ -138,28 +138,30 @@ export function AdminPage() {
               >
                 <div className="field">
                   <label htmlFor="season-name">League name</label>
-                  <input id="season-name" value={seasonName} onChange={(event) => setSeasonName(event.target.value)} disabled={!seasonQuery.data?.registration_open} />
+                  <input id="season-name" value={seasonName} onChange={(event) => setSeasonName(event.target.value)} disabled={!seasonQuery.data?.can_edit_settings} />
                 </div>
                 <div className="field">
                   <label htmlFor="game-variant">Game variant</label>
-                  <select id="game-variant" value={gameVariant} onChange={(event) => setGameVariant(event.target.value)} disabled={!seasonQuery.data?.registration_open}>
+                  <select id="game-variant" value={gameVariant} onChange={(event) => setGameVariant(event.target.value)} disabled={!seasonQuery.data?.can_edit_settings}>
                     <option value="501">501</option>
                     <option value="301">301</option>
                   </select>
                 </div>
                 <div className="field">
                   <label htmlFor="legs-to-win">First to (legs)</label>
-                  <input id="legs-to-win" type="number" min="1" value={legsToWin} onChange={(event) => setLegsToWin(event.target.value)} disabled={!seasonQuery.data?.registration_open} />
+                  <input id="legs-to-win" type="number" min="1" value={legsToWin} onChange={(event) => setLegsToWin(event.target.value)} disabled={!seasonQuery.data?.can_edit_settings} />
                 </div>
                 <div className="field">
                   <label htmlFor="games-per-week">Games per player per week</label>
-                  <select id="games-per-week" value={gamesPerWeek} onChange={(event) => setGamesPerWeek(event.target.value)} disabled={!seasonQuery.data?.registration_open}>
+                  <select id="games-per-week" value={gamesPerWeek} onChange={(event) => setGamesPerWeek(event.target.value)} disabled={!seasonQuery.data?.can_edit_settings}>
                     {(presetsQuery.data && presetsQuery.data.length > 0 ? presetsQuery.data : [{ games_per_week: Number(gamesPerWeek), week_count: previewQuery.data?.week_count ?? 0 }]).map((preset) => (
                       <option key={preset.games_per_week} value={String(preset.games_per_week)}>{preset.games_per_week} game{preset.games_per_week !== 1 ? 's' : ''}/week</option>
                     ))}
                   </select>
                 </div>
-                <button type="submit" disabled={!seasonQuery.data?.registration_open || updateSeasonMutation.isPending || updateConfigMutation.isPending}>{updateSeasonMutation.isPending || updateConfigMutation.isPending ? 'Saving...' : 'Save config'}</button>
+                {seasonQuery.data?.can_edit_settings ? (
+                  <button type="submit" disabled={updateSeasonMutation.isPending || updateConfigMutation.isPending}>{updateSeasonMutation.isPending || updateConfigMutation.isPending ? 'Saving...' : 'Save config'}</button>
+                ) : null}
               </form>
               {updateSeasonMutation.error ? <StateNotice tone="error" message={readError(updateSeasonMutation.error)} compact /> : null}
               {updateConfigMutation.error ? <StateNotice tone="error" message={readError(updateConfigMutation.error)} compact /> : null}
@@ -167,13 +169,15 @@ export function AdminPage() {
 
             <article className="admin-card">
               <h2>Divisions</h2>
-              <p>Choose a count, auto-create defaults, then rename each division and set the public Slack channel before the season starts.</p>
+              <p>Choose a count and rename divisions until the first week is released. Reprovisioning divisions resets all assignments back to the waitlist.</p>
               <form className="admin-login" onSubmit={(event) => { event.preventDefault(); provisionDivisionsMutation.mutate(Number(divisionCount)) }}>
                 <div className="field">
                   <label htmlFor="division-count">Division count</label>
-                  <input id="division-count" type="number" min="1" value={divisionCount} onChange={(event) => setDivisionCount(event.target.value)} disabled={!seasonQuery.data?.registration_open} />
+                  <input id="division-count" type="number" min="1" value={divisionCount} onChange={(event) => setDivisionCount(event.target.value)} disabled={!seasonQuery.data?.can_edit_divisions} />
                 </div>
-                <button type="submit" disabled={!seasonQuery.data?.registration_open || provisionDivisionsMutation.isPending}>{provisionDivisionsMutation.isPending ? 'Creating...' : 'Create divisions'}</button>
+                {seasonQuery.data?.can_edit_divisions ? (
+                  <button type="submit" disabled={provisionDivisionsMutation.isPending}>{provisionDivisionsMutation.isPending ? 'Creating...' : 'Create divisions'}</button>
+                ) : null}
               </form>
               {provisionDivisionsMutation.error ? <StateNotice tone="error" message={readError(provisionDivisionsMutation.error)} compact /> : null}
               {divisionsQuery.data?.map((division) => (
@@ -186,28 +190,29 @@ export function AdminPage() {
                     updateDivisionMutation.mutate({
                       id: division.id,
                       name: String(formData.get(`division-name-${division.id}`) ?? division.name),
-                      slug: String(formData.get(`division-slug-${division.id}`) ?? division.slug),
+                      slug: division.slug,
                       slack_public_channel_id: String(formData.get(`division-slack-${division.id}`) ?? division.slack_public_channel_id ?? ''),
                     })
                   }}
                 >
                   <div className="field">
                     <label htmlFor={`division-name-${division.id}`}>Division name</label>
-                    <input id={`division-name-${division.id}`} name={`division-name-${division.id}`} defaultValue={division.name} disabled={!seasonQuery.data?.registration_open} />
-                  </div>
-                  <div className="field">
-                    <label htmlFor={`division-slug-${division.id}`}>Division slug</label>
-                    <input id={`division-slug-${division.id}`} name={`division-slug-${division.id}`} defaultValue={division.slug} disabled={!seasonQuery.data?.registration_open} />
-                  </div>
-                  <div className="field">
-                    <label htmlFor={`division-slack-${division.id}`}>Slack public channel</label>
-                    <input id={`division-slack-${division.id}`} name={`division-slack-${division.id}`} defaultValue={division.slack_public_channel_id ?? ''} disabled={!seasonQuery.data?.registration_open} />
-                  </div>
-                  <div className="toolbar-actions">
-                    <button type="submit" disabled={!seasonQuery.data?.registration_open || updateDivisionMutation.isPending}>{updateDivisionMutation.isPending ? 'Saving...' : 'Save division'}</button>
-                    <Link to={`/admin/divisions/${division.slug}`}>Open scoring page</Link>
-                  </div>
-                </form>
+                      <input id={`division-name-${division.id}`} name={`division-name-${division.id}`} defaultValue={division.name} disabled={!seasonQuery.data?.can_edit_divisions} />
+                    </div>
+                    <div className="field">
+                      <label htmlFor={`division-slack-${division.id}`}>Slack public channel</label>
+                      <input id={`division-slack-${division.id}`} name={`division-slack-${division.id}`} defaultValue={division.slack_public_channel_id ?? ''} disabled={!seasonQuery.data?.can_edit_division_channel} />
+                    </div>
+                    <div className="toolbar-actions">
+                     {seasonQuery.data?.can_edit_divisions ? (
+                       <button type="submit" disabled={updateDivisionMutation.isPending}>{updateDivisionMutation.isPending ? 'Saving...' : 'Save division'}</button>
+                     ) : null}
+                     {seasonQuery.data?.season_started && !seasonQuery.data?.admin_locked && !seasonQuery.data?.can_edit_divisions ? (
+                       <button type="submit" disabled={updateDivisionMutation.isPending}>{updateDivisionMutation.isPending ? 'Saving...' : 'Save channel'}</button>
+                     ) : null}
+                     <Link className="button-link secondary-button" to={`/admin/divisions/${division.slug}`}>Open scoring page</Link>
+                   </div>
+                 </form>
               ))}
               {updateDivisionMutation.error ? <StateNotice tone="error" message={readError(updateDivisionMutation.error)} compact /> : null}
             </article>
@@ -220,7 +225,8 @@ export function AdminPage() {
                 <PlayerRoster
                   players={playersQuery.data}
                   divisions={divisionsQuery.data ?? []}
-                  registrationOpen={Boolean(seasonQuery.data?.registration_open)}
+                  canAssign={Boolean(seasonQuery.data?.can_assign_players)}
+                  canDelete={Boolean(seasonQuery.data?.registration_open)}
                   onDelete={(playerId) => deletePlayerMutation.mutateAsync(playerId)}
                   onAssign={(playerId, divisionId) => assignPlayerMutation.mutateAsync({ playerId, divisionId })}
                   isDeleting={deletePlayerMutation.isPending}

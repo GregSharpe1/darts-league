@@ -95,7 +95,7 @@ func TestSeasonUpdateRejectsInvalidName(t *testing.T) {
 	assertErrorCode(t, recorder.Body.Bytes(), "season_name_required")
 }
 
-func TestSeasonUpdateLocksAfterSeasonStart(t *testing.T) {
+func TestSeasonUpdateAllowsRenameAfterSeasonStartBeforeFirstReveal(t *testing.T) {
 	t.Parallel()
 
 	handler := newSeasonHandlerWithNow(time.Date(2026, time.March, 18, 12, 0, 0, 0, time.UTC))
@@ -104,8 +104,35 @@ func TestSeasonUpdateLocksAfterSeasonStart(t *testing.T) {
 	hitEndpoint(t, handler.season.handleSeasonStart, httptest.NewRequest(http.MethodPost, "/api/admin/season/start", nil), http.StatusCreated)
 
 	request := httptest.NewRequest(http.MethodPut, "/api/admin/season", bytes.NewBufferString(`{"name":"Locked League"}`))
+	recorder := hitEndpoint(t, handler.season.handleSeasonUpdate, request, http.StatusOK)
+
+	var response seasonSummaryResponse
+	if err := json.Unmarshal(recorder.Body.Bytes(), &response); err != nil {
+		t.Fatalf("expected valid season response, got %v", err)
+	}
+	if response.Name != "Locked League" {
+		t.Fatalf("expected rename to succeed before first reveal, got %q", response.Name)
+	}
+	if response.AdminLocked {
+		t.Fatal("expected season to remain editable before first reveal")
+	}
+	if !response.CanEditSettings {
+		t.Fatal("expected settings to remain editable before first reveal")
+	}
+}
+
+func TestSeasonUpdateLocksAfterFirstWeekRelease(t *testing.T) {
+	t.Parallel()
+
+	handler := newSeasonHandlerWithNow(time.Date(2026, time.March, 18, 12, 0, 0, 0, time.UTC))
+	registerTestPlayers(t, handler.registration, []string{"Luke Humphries", "Michael Smith"})
+	assignAllPlayersToSingleDivision(t, handler)
+	hitEndpoint(t, handler.season.handleSeasonStart, httptest.NewRequest(http.MethodPost, "/api/admin/season/start", nil), http.StatusCreated)
+	handler.clock.Set(time.Date(2026, time.March, 23, 10, 0, 0, 0, mustLoadLondon(t)))
+
+	request := httptest.NewRequest(http.MethodPut, "/api/admin/season", bytes.NewBufferString(`{"name":"Locked League"}`))
 	recorder := hitEndpoint(t, handler.season.handleSeasonUpdate, request, http.StatusConflict)
-	assertErrorCode(t, recorder.Body.Bytes(), "season_started")
+	assertErrorCode(t, recorder.Body.Bytes(), "season_locked")
 }
 
 func TestPublicFixturesHideFutureWeekDetailsUntilUnlock(t *testing.T) {
@@ -285,7 +312,7 @@ func TestSeasonUpdateConfigRejectsInvalidVariant(t *testing.T) {
 	assertErrorCode(t, recorder.Body.Bytes(), "invalid_game_variant")
 }
 
-func TestSeasonUpdateConfigLockedAfterStart(t *testing.T) {
+func TestSeasonUpdateConfigAllowedAfterStartBeforeFirstRelease(t *testing.T) {
 	t.Parallel()
 
 	handler := newSeasonHandlerWithNow(time.Date(2026, time.March, 18, 12, 0, 0, 0, time.UTC))
@@ -294,8 +321,18 @@ func TestSeasonUpdateConfigLockedAfterStart(t *testing.T) {
 	hitEndpoint(t, handler.season.handleSeasonStart, httptest.NewRequest(http.MethodPost, "/api/admin/season/start", nil), http.StatusCreated)
 
 	request := httptest.NewRequest(http.MethodPut, "/api/admin/season/config", bytes.NewBufferString(`{"game_variant":"301","legs_to_win":5,"games_per_week":1}`))
-	recorder := hitEndpoint(t, handler.season.handleSeasonUpdateConfig, request, http.StatusConflict)
-	assertErrorCode(t, recorder.Body.Bytes(), "season_started")
+	recorder := hitEndpoint(t, handler.season.handleSeasonUpdateConfig, request, http.StatusOK)
+
+	var response seasonSummaryResponse
+	if err := json.Unmarshal(recorder.Body.Bytes(), &response); err != nil {
+		t.Fatalf("expected valid season response, got %v", err)
+	}
+	if response.GameVariant != "301" || response.LegsToWin != 5 {
+		t.Fatalf("expected config update before first release, got %+v", response)
+	}
+	if response.AdminLocked {
+		t.Fatal("expected admin controls to remain unlocked before first release")
+	}
 }
 
 func TestGamesPerWeekPresetsEndpoint(t *testing.T) {

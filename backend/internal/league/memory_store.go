@@ -125,6 +125,22 @@ func (s *MemoryStore) GetDivisionBySlug(_ context.Context, seasonID int64, slug 
 func (s *MemoryStore) ReplaceDivisions(_ context.Context, seasonID int64, divisions []Division) ([]Division, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	for fixtureID, fixture := range s.fixturesByID {
+		if fixture.SeasonID != seasonID {
+			continue
+		}
+		delete(s.fixturesByID, fixtureID)
+		for resultID, result := range s.resultsByID {
+			if result.FixtureID == fixtureID {
+				delete(s.resultsByID, resultID)
+			}
+		}
+		for auditID, entry := range s.auditByID {
+			if entry.FixtureID == fixtureID {
+				delete(s.auditByID, auditID)
+			}
+		}
+	}
 	for id, division := range s.divisionsByID {
 		if division.SeasonID == seasonID {
 			delete(s.divisionsByID, id)
@@ -212,6 +228,35 @@ func (s *MemoryStore) CreateFixtures(_ context.Context, fixtures []Fixture) ([]F
 		created[i] = fixture
 	}
 
+	return created, nil
+}
+
+func (s *MemoryStore) ReplaceFixturesBySeason(_ context.Context, seasonID int64, fixtures []Fixture) ([]Fixture, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	for fixtureID, fixture := range s.fixturesByID {
+		if fixture.SeasonID != seasonID {
+			continue
+		}
+		delete(s.fixturesByID, fixtureID)
+		for resultID, result := range s.resultsByID {
+			if result.FixtureID == fixtureID {
+				delete(s.resultsByID, resultID)
+			}
+		}
+		for auditID, entry := range s.auditByID {
+			if entry.FixtureID == fixtureID {
+				delete(s.auditByID, auditID)
+			}
+		}
+	}
+	created := make([]Fixture, len(fixtures))
+	for i, fixture := range fixtures {
+		fixture.ID = s.nextFixtureID
+		s.nextFixtureID++
+		s.fixturesByID[fixture.ID] = fixture
+		created[i] = fixture
+	}
 	return created, nil
 }
 

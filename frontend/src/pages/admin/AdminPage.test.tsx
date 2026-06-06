@@ -44,7 +44,7 @@ describe('Admin page', () => {
     })
   })
 
-  it('locks central admin editing after the season starts', async () => {
+  it('keeps settings editable after season start until the first week is released', async () => {
     renderApp('/admin')
 
     fireEvent.change(screen.getByLabelText(/username/i), { target: { value: 'admin' } })
@@ -55,9 +55,31 @@ describe('Admin page', () => {
     fireEvent.click(screen.getByRole('button', { name: /start season/i }))
 
     await waitFor(() => {
-      expect(screen.getByText(/registration is locked, division names are frozen/i)).toBeInTheDocument()
+      expect(screen.getByText(/league settings and slack channels stay editable until the first week is released/i)).toBeInTheDocument()
     })
 
-    expect(screen.getByRole('button', { name: /start season/i })).toBeDisabled()
+    expect(screen.queryByRole('button', { name: /start season/i })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /create divisions/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /save config/i })).toBeInTheDocument()
+    expect(screen.getAllByRole('button', { name: /save division/i }).length).toBeGreaterThan(0)
+    expect(screen.queryByRole('button', { name: /save channel/i })).not.toBeInTheDocument()
+    expect(screen.getByLabelText(/the freeze \(luke humphries\) division/i)).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /delete/i })).not.toBeInTheDocument()
+  })
+
+  it('locks central admin editing after the first week is released', async () => {
+    vi.stubGlobal('fetch', createMockFetch({ authenticated: false, seasonStarted: true, firstWeekReleased: true, seasonName: 'MVP Season' }))
+    renderApp('/admin')
+
+    fireEvent.change(screen.getByLabelText(/username/i), { target: { value: 'admin' } })
+    fireEvent.change(screen.getByLabelText(/password/i), { target: { value: 'secret' } })
+    fireEvent.click(screen.getByRole('button', { name: /unlock admin tools/i }))
+
+    await waitFor(() => {
+      expect(screen.getByText(/the first week is live/i)).toBeInTheDocument()
+    })
+
+    expect(screen.queryByRole('button', { name: /save config/i })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /save channel/i })).not.toBeInTheDocument()
   })
 })

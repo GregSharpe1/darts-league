@@ -241,6 +241,13 @@ type seasonSummaryResponse struct {
 	Timezone         string `json:"timezone"`
 	StartedAt        string `json:"started_at,omitempty"`
 	RegistrationOpen bool   `json:"registration_open"`
+	SeasonStarted    bool   `json:"season_started"`
+	AdminLocked      bool   `json:"admin_locked"`
+	CanStartSeason   bool   `json:"can_start_season"`
+	CanEditSettings  bool   `json:"can_edit_settings"`
+	CanEditDivisionChannel bool `json:"can_edit_division_channel"`
+	CanEditDivisions bool   `json:"can_edit_divisions"`
+	CanAssignPlayers bool   `json:"can_assign_players"`
 	PlayerCount      int    `json:"player_count"`
 	WeekCount        int    `json:"week_count"`
 	GameVariant      string `json:"game_variant"`
@@ -285,6 +292,13 @@ func (h SeasonHandler) toSeasonSummaryResponse(summary league.SeasonSummary) sea
 		Status:           string(summary.Status),
 		Timezone:         summary.Timezone,
 		RegistrationOpen: summary.RegistrationOpen,
+		SeasonStarted:    summary.SeasonStarted,
+		AdminLocked:      summary.AdminLocked,
+		CanStartSeason:   summary.CanStartSeason,
+		CanEditSettings:  summary.CanEditSettings,
+		CanEditDivisionChannel: summary.CanEditDivisionChannel,
+		CanEditDivisions: summary.CanEditDivisions,
+		CanAssignPlayers: summary.CanAssignPlayers,
 		PlayerCount:      summary.PlayerCount,
 		WeekCount:        summary.WeekCount,
 		GameVariant:      summary.GameVariant,

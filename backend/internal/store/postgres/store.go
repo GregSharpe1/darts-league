@@ -473,6 +473,34 @@ func (s *Store) CreateFixtures(ctx context.Context, fixtures []league.Fixture) (
 	return created, nil
 }
 
+func (s *Store) ReplaceFixturesBySeason(ctx context.Context, seasonID int64, fixtures []league.Fixture) ([]league.Fixture, error) {
+	tx, err := s.pool.Begin(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback(ctx)
+	if _, err := tx.Exec(ctx, `DELETE FROM fixtures WHERE season_id = $1`, seasonID); err != nil {
+		return nil, err
+	}
+	created := make([]league.Fixture, 0, len(fixtures))
+	for _, fixture := range fixtures {
+		row := tx.QueryRow(ctx, `
+			INSERT INTO fixtures (season_id, division_id, week_number, scheduled_at, player_one_id, player_two_id, game_variant, legs_to_win, status)
+			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+			RETURNING id, season_id, division_id, week_number, scheduled_at, player_one_id, player_two_id, game_variant, legs_to_win, status
+		`, fixture.SeasonID, fixture.DivisionID, fixture.WeekNumber, fixture.ScheduledAt, fixture.PlayerOneID, fixture.PlayerTwoID, fixture.GameVariant, fixture.LegsToWin, fixture.Status)
+		var createdFixture league.Fixture
+		if err := row.Scan(&createdFixture.ID, &createdFixture.SeasonID, &createdFixture.DivisionID, &createdFixture.WeekNumber, &createdFixture.ScheduledAt, &createdFixture.PlayerOneID, &createdFixture.PlayerTwoID, &createdFixture.GameVariant, &createdFixture.LegsToWin, &createdFixture.Status); err != nil {
+			return nil, err
+		}
+		created = append(created, createdFixture)
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return nil, err
+	}
+	return created, nil
+}
+
 func (s *Store) CreateResult(ctx context.Context, result league.Result) (league.Result, error) {
 	row := s.pool.QueryRow(ctx, `
 		INSERT INTO results (fixture_id, player_one_legs, player_two_legs, player_one_average, player_two_average, winner_id, entered_at, updated_at)
