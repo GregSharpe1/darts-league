@@ -129,6 +129,21 @@ func TestProtectedEditUsesSessionActorForAudit(t *testing.T) {
 		rec := httptest.NewRecorder()
 		mux.ServeHTTP(rec, req)
 	}
+	seasonService := league.NewSeasonServiceWithNow(store, clock)
+	registrationService := league.NewRegistrationServiceWithNow(store, clock)
+	divisions, err := seasonService.ProvisionDivisions(httptest.NewRequest(http.MethodGet, "/", nil).Context(), 1)
+	if err != nil {
+		t.Fatalf("expected division provisioning, got %v", err)
+	}
+	players, err := registrationService.ListPlayers(httptest.NewRequest(http.MethodGet, "/", nil).Context())
+	if err != nil {
+		t.Fatalf("expected players, got %v", err)
+	}
+	for _, player := range players {
+		if _, err := registrationService.AssignPlayer(httptest.NewRequest(http.MethodGet, "/", nil).Context(), player.ID, &divisions[0].ID); err != nil {
+			t.Fatalf("expected assignment, got %v", err)
+		}
+	}
 
 	loginRecorder := httptest.NewRecorder()
 	loginReq := httptest.NewRequest(http.MethodPost, "/api/admin/login", bytes.NewBufferString(`{"username":"admin","password":"secret"}`))
@@ -151,7 +166,7 @@ func TestProtectedEditUsesSessionActorForAudit(t *testing.T) {
 	editRec := httptest.NewRecorder()
 	mux.ServeHTTP(editRec, editReq)
 
-	auditReq := httptest.NewRequest(http.MethodGet, "/api/admin/audit", nil)
+	auditReq := httptest.NewRequest(http.MethodGet, "/api/admin/divisions/"+divisions[0].Slug+"/audit", nil)
 	auditReq.AddCookie(sessionCookie)
 	auditRec := httptest.NewRecorder()
 	mux.ServeHTTP(auditRec, auditReq)

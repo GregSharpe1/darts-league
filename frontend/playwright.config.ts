@@ -1,14 +1,17 @@
 import { defineConfig } from '@playwright/test'
 
+const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? 'http://127.0.0.1:4174'
+const useDocker = process.env.PLAYWRIGHT_USE_DOCKER === '1'
+
 export default defineConfig({
   testDir: './tests',
   timeout: 60_000,
   workers: 1,
   use: {
-    baseURL: 'http://127.0.0.1:4174',
+    baseURL,
     trace: 'on-first-retry',
   },
-  webServer: [
+  webServer: useDocker ? undefined : [
     {
       command: 'go run ./cmd/api',
       cwd: '../backend',

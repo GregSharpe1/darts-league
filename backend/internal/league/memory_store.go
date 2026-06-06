@@ -3,6 +3,7 @@ package league
 import (
 	"context"
 	"errors"
+	"sort"
 	"sync"
 )
 
@@ -10,17 +11,19 @@ var ErrPlayerNotFound = errors.New("player not found")
 var ErrResultNotFound = errors.New("result not found")
 
 type MemoryStore struct {
-	mu            sync.RWMutex
-	activeSeason  Season
-	playersByID   map[int64]Player
-	fixturesByID  map[int64]Fixture
-	resultsByID   map[int64]Result
-	auditByID     map[int64]AuditLogEntry
-	nextPlayerID  int64
-	nextFixtureID int64
-	nextResultID  int64
-	nextAuditID   int64
-	nextSeasonID  int64
+	mu             sync.RWMutex
+	activeSeason   Season
+	divisionsByID  map[int64]Division
+	playersByID    map[int64]Player
+	fixturesByID   map[int64]Fixture
+	resultsByID    map[int64]Result
+	auditByID      map[int64]AuditLogEntry
+	nextDivisionID int64
+	nextPlayerID   int64
+	nextFixtureID  int64
+	nextResultID   int64
+	nextAuditID    int64
+	nextSeasonID   int64
 }
 
 func NewMemoryStore() *MemoryStore {
@@ -28,16 +31,18 @@ func NewMemoryStore() *MemoryStore {
 	season.ID = 1
 
 	return &MemoryStore{
-		activeSeason:  season,
-		playersByID:   make(map[int64]Player),
-		fixturesByID:  make(map[int64]Fixture),
-		resultsByID:   make(map[int64]Result),
-		auditByID:     make(map[int64]AuditLogEntry),
-		nextPlayerID:  1,
-		nextFixtureID: 1,
-		nextResultID:  1,
-		nextAuditID:   1,
-		nextSeasonID:  2,
+		activeSeason:   season,
+		divisionsByID:  make(map[int64]Division),
+		playersByID:    make(map[int64]Player),
+		fixturesByID:   make(map[int64]Fixture),
+		resultsByID:    make(map[int64]Result),
+		auditByID:      make(map[int64]AuditLogEntry),
+		nextDivisionID: 1,
+		nextPlayerID:   1,
+		nextFixtureID:  1,
+		nextResultID:   1,
+		nextAuditID:    1,
+		nextSeasonID:   2,
 	}
 }
 
@@ -80,9 +85,103 @@ func (s *MemoryStore) ListPlayersBySeason(_ context.Context, seasonID int64) ([]
 	return players, nil
 }
 
+func (s *MemoryStore) AssignPlayer(_ context.Context, seasonID, playerID int64, divisionID *int64, status PlayerStatus) (Player, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	player, ok := s.playersByID[playerID]
+	if !ok || player.SeasonID != seasonID {
+		return Player{}, ErrPlayerNotFound
+	}
+	player.DivisionID = divisionID
+	player.Status = status
+	s.playersByID[playerID] = player
+	return player, nil
+}
+
+func (s *MemoryStore) ListDivisionsBySeason(_ context.Context, seasonID int64) ([]Division, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	divisions := make([]Division, 0, len(s.divisionsByID))
+	for _, division := range s.divisionsByID {
+		if division.SeasonID == seasonID {
+			divisions = append(divisions, division)
+		}
+	}
+	sort.Slice(divisions, func(i, j int) bool { return divisions[i].Position < divisions[j].Position })
+	return divisions, nil
+}
+
+func (s *MemoryStore) GetDivisionBySlug(_ context.Context, seasonID int64, slug string) (Division, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	for _, division := range s.divisionsByID {
+		if division.SeasonID == seasonID && division.Slug == slug {
+			return division, nil
+		}
+	}
+	return Division{}, ErrDivisionNotFound
+}
+
+func (s *MemoryStore) ReplaceDivisions(_ context.Context, seasonID int64, divisions []Division) ([]Division, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	for fixtureID, fixture := range s.fixturesByID {
+		if fixture.SeasonID != seasonID {
+			continue
+		}
+		delete(s.fixturesByID, fixtureID)
+		for resultID, result := range s.resultsByID {
+			if result.FixtureID == fixtureID {
+				delete(s.resultsByID, resultID)
+			}
+		}
+		for auditID, entry := range s.auditByID {
+			if entry.FixtureID == fixtureID {
+				delete(s.auditByID, auditID)
+			}
+		}
+	}
+	for id, division := range s.divisionsByID {
+		if division.SeasonID == seasonID {
+			delete(s.divisionsByID, id)
+		}
+	}
+	for id, player := range s.playersByID {
+		if player.SeasonID == seasonID {
+			player.DivisionID = nil
+			player.Status = PlayerStatusWaitlist
+			s.playersByID[id] = player
+		}
+	}
+	created := make([]Division, len(divisions))
+	for i, division := range divisions {
+		division.ID = s.nextDivisionID
+		s.nextDivisionID++
+		division.SeasonID = seasonID
+		s.divisionsByID[division.ID] = division
+		created[i] = division
+	}
+	return created, nil
+}
+
+func (s *MemoryStore) UpdateDivision(_ context.Context, division Division) (Division, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if _, ok := s.divisionsByID[division.ID]; !ok {
+		return Division{}, ErrDivisionNotFound
+	}
+	s.divisionsByID[division.ID] = division
+	return division, nil
+}
+
 func (s *MemoryStore) CreatePlayer(_ context.Context, player Player) (Player, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	for _, existing := range s.playersByID {
+		if NormalizeDisplayName(existing.DisplayName) == NormalizeDisplayName(player.DisplayName) {
+			return Player{}, ErrDuplicatePlayerName
+		}
+	}
 
 	player.ID = s.nextPlayerID
 	s.nextPlayerID++
@@ -105,6 +204,18 @@ func (s *MemoryStore) ListFixturesBySeason(_ context.Context, seasonID int64) ([
 	return fixtures, nil
 }
 
+func (s *MemoryStore) ListFixturesByDivision(_ context.Context, divisionID int64) ([]Fixture, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	fixtures := make([]Fixture, 0, len(s.fixturesByID))
+	for _, fixture := range s.fixturesByID {
+		if fixture.DivisionID == divisionID {
+			fixtures = append(fixtures, fixture)
+		}
+	}
+	return fixtures, nil
+}
+
 func (s *MemoryStore) CreateFixtures(_ context.Context, fixtures []Fixture) ([]Fixture, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -117,6 +228,35 @@ func (s *MemoryStore) CreateFixtures(_ context.Context, fixtures []Fixture) ([]F
 		created[i] = fixture
 	}
 
+	return created, nil
+}
+
+func (s *MemoryStore) ReplaceFixturesBySeason(_ context.Context, seasonID int64, fixtures []Fixture) ([]Fixture, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	for fixtureID, fixture := range s.fixturesByID {
+		if fixture.SeasonID != seasonID {
+			continue
+		}
+		delete(s.fixturesByID, fixtureID)
+		for resultID, result := range s.resultsByID {
+			if result.FixtureID == fixtureID {
+				delete(s.resultsByID, resultID)
+			}
+		}
+		for auditID, entry := range s.auditByID {
+			if entry.FixtureID == fixtureID {
+				delete(s.auditByID, auditID)
+			}
+		}
+	}
+	created := make([]Fixture, len(fixtures))
+	for i, fixture := range fixtures {
+		fixture.ID = s.nextFixtureID
+		s.nextFixtureID++
+		s.fixturesByID[fixture.ID] = fixture
+		created[i] = fixture
+	}
 	return created, nil
 }
 
@@ -137,6 +277,19 @@ func (s *MemoryStore) ListResultsBySeason(_ context.Context, seasonID int64) ([]
 	for _, result := range s.resultsByID {
 		fixture, ok := s.fixturesByID[result.FixtureID]
 		if ok && fixture.SeasonID == seasonID {
+			results = append(results, result)
+		}
+	}
+	return results, nil
+}
+
+func (s *MemoryStore) ListResultsByDivision(_ context.Context, divisionID int64) ([]Result, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	results := make([]Result, 0, len(s.resultsByID))
+	for _, result := range s.resultsByID {
+		fixture, ok := s.fixturesByID[result.FixtureID]
+		if ok && fixture.DivisionID == divisionID {
 			results = append(results, result)
 		}
 	}
@@ -201,6 +354,19 @@ func (s *MemoryStore) ListAuditLogsBySeason(_ context.Context, seasonID int64) (
 	for _, entry := range s.auditByID {
 		fixture, ok := s.fixturesByID[entry.FixtureID]
 		if ok && fixture.SeasonID == seasonID {
+			entries = append(entries, entry)
+		}
+	}
+	return entries, nil
+}
+
+func (s *MemoryStore) ListAuditLogsByDivision(_ context.Context, divisionID int64) ([]AuditLogEntry, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	entries := make([]AuditLogEntry, 0, len(s.auditByID))
+	for _, entry := range s.auditByID {
+		fixture, ok := s.fixturesByID[entry.FixtureID]
+		if ok && fixture.DivisionID == divisionID {
 			entries = append(entries, entry)
 		}
 	}

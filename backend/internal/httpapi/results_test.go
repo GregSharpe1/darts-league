@@ -22,9 +22,12 @@ func TestRecordResultAndStandingsFlow(t *testing.T) {
 	results := NewResultHandler(league.NewResultServiceWithNow(store, clock))
 
 	registerTestPlayers(t, registration, []string{"Luke Humphries", "Michael Smith", "Peter Wright", "Gerwyn Price"})
+	division := assignPlayersToDivisionInStore(t, store, clock)
 	hitEndpoint(t, season.handleSeasonStart, httptest.NewRequest(http.MethodPost, "/api/admin/season/start", nil), http.StatusCreated)
 
-	fixtureList := hitEndpoint(t, season.handlePublicFixtures, httptest.NewRequest(http.MethodGet, "/api/fixtures", nil), http.StatusOK)
+	fixtureReq := httptest.NewRequest(http.MethodGet, "/api/divisions/"+division.Slug+"/fixtures", nil)
+	fixtureReq.SetPathValue("divisionSlug", division.Slug)
+	fixtureList := hitEndpoint(t, season.handlePublicFixtures, fixtureReq, http.StatusOK)
 	var fixtures struct {
 		Weeks []fixtureWeekResponse `json:"weeks"`
 	}
@@ -37,7 +40,9 @@ func TestRecordResultAndStandingsFlow(t *testing.T) {
 	request.SetPathValue("fixtureID", strconv.FormatInt(fixtureID, 10))
 	hitEndpoint(t, results.handleRecordResult, request, http.StatusCreated)
 
-	standingsResponse := hitEndpoint(t, results.handleStandings, httptest.NewRequest(http.MethodGet, "/api/standings", nil), http.StatusOK)
+	standingsReq := httptest.NewRequest(http.MethodGet, "/api/divisions/"+division.Slug+"/standings", nil)
+	standingsReq.SetPathValue("divisionSlug", division.Slug)
+	standingsResponse := hitEndpoint(t, results.handleStandings, standingsReq, http.StatusOK)
 	var standings struct {
 		Rows []standingRowResponse `json:"standings"`
 	}
@@ -68,6 +73,7 @@ func TestRecordResultRejectsInvalidScorelines(t *testing.T) {
 	results := NewResultHandler(league.NewResultServiceWithNow(store, clock))
 
 	registerTestPlayers(t, registration, []string{"Luke Humphries", "Michael Smith"})
+	assignPlayersToDivisionInStore(t, store, clock)
 	hitEndpoint(t, season.handleSeasonStart, httptest.NewRequest(http.MethodPost, "/api/admin/season/start", nil), http.StatusCreated)
 
 	request := httptest.NewRequest(http.MethodPost, "/api/admin/fixtures/1/result", bytes.NewBufferString(`{"player_one_legs":2,"player_two_legs":2}`))
@@ -87,6 +93,7 @@ func TestEditResultCreatesAuditLogEntry(t *testing.T) {
 	results := NewResultHandler(league.NewResultServiceWithNow(store, clock))
 
 	registerTestPlayers(t, registration, []string{"Luke Humphries", "Michael Smith"})
+	division := assignPlayersToDivisionInStore(t, store, clock)
 	hitEndpoint(t, season.handleSeasonStart, httptest.NewRequest(http.MethodPost, "/api/admin/season/start", nil), http.StatusCreated)
 
 	createReq := httptest.NewRequest(http.MethodPost, "/api/admin/fixtures/1/result", bytes.NewBufferString(`{"player_one_legs":3,"player_two_legs":0,"player_one_average":92.6,"player_two_average":81.3}`))
@@ -99,7 +106,9 @@ func TestEditResultCreatesAuditLogEntry(t *testing.T) {
 	editReq.SetPathValue("fixtureID", "1")
 	hitEndpoint(t, results.handleEditResult, editReq, http.StatusOK)
 
-	auditResp := hitEndpoint(t, results.handleAuditLog, httptest.NewRequest(http.MethodGet, "/api/admin/audit", nil), http.StatusOK)
+	auditReq := httptest.NewRequest(http.MethodGet, "/api/admin/divisions/"+division.Slug+"/audit", nil)
+	auditReq.SetPathValue("divisionSlug", division.Slug)
+	auditResp := hitEndpoint(t, results.handleAuditLog, auditReq, http.StatusOK)
 	var audit struct {
 		Entries []struct {
 			Actor     string                `json:"actor"`
@@ -136,6 +145,7 @@ func TestDeleteResultCreatesAuditLogEntry(t *testing.T) {
 	results := NewResultHandler(league.NewResultServiceWithNow(store, clock))
 
 	registerTestPlayers(t, registration, []string{"Luke Humphries", "Michael Smith"})
+	division := assignPlayersToDivisionInStore(t, store, clock)
 	hitEndpoint(t, season.handleSeasonStart, httptest.NewRequest(http.MethodPost, "/api/admin/season/start", nil), http.StatusCreated)
 
 	createReq := httptest.NewRequest(http.MethodPost, "/api/admin/fixtures/1/result", bytes.NewBufferString(`{"player_one_legs":3,"player_two_legs":0}`))
@@ -146,7 +156,9 @@ func TestDeleteResultCreatesAuditLogEntry(t *testing.T) {
 	deleteReq.SetPathValue("fixtureID", "1")
 	hitEndpoint(t, results.handleDeleteResult, deleteReq, http.StatusNoContent)
 
-	auditResp := hitEndpoint(t, results.handleAuditLog, httptest.NewRequest(http.MethodGet, "/api/admin/audit", nil), http.StatusOK)
+	auditReq := httptest.NewRequest(http.MethodGet, "/api/admin/divisions/"+division.Slug+"/audit", nil)
+	auditReq.SetPathValue("divisionSlug", division.Slug)
+	auditResp := hitEndpoint(t, results.handleAuditLog, auditReq, http.StatusOK)
 	var audit struct {
 		Entries []struct {
 			Action    string                 `json:"action"`
@@ -163,4 +175,25 @@ func TestDeleteResultCreatesAuditLogEntry(t *testing.T) {
 	if audit.Entries[0].OldResult.PlayerOneLegs != 3 || audit.Entries[0].NewResult != nil {
 		t.Fatalf("expected old result snapshot only, got %+v", audit.Entries[0])
 	}
+}
+
+func assignPlayersToDivisionInStore(t *testing.T, store *league.MemoryStore, clock func() time.Time) league.Division {
+	t.Helper()
+	seasonService := league.NewSeasonServiceWithNow(store, clock)
+	registrationService := league.NewRegistrationServiceWithNow(store, clock)
+	ctx := httptest.NewRequest(http.MethodGet, "/", nil).Context()
+	divisions, err := seasonService.ProvisionDivisions(ctx, 1)
+	if err != nil {
+		t.Fatalf("expected division provisioning to succeed, got %v", err)
+	}
+	players, err := registrationService.ListPlayers(ctx)
+	if err != nil {
+		t.Fatalf("expected players to be listed, got %v", err)
+	}
+	for _, player := range players {
+		if _, err := registrationService.AssignPlayer(ctx, player.ID, &divisions[0].ID); err != nil {
+			t.Fatalf("expected assignment to succeed, got %v", err)
+		}
+	}
+	return divisions[0]
 }

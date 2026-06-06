@@ -1,6 +1,6 @@
 # Darts League
 
-`darts-league` is a full-stack darts league app for running a single active season with public registration, public fixtures/standings, and a restricted admin workflow for season control and score entry.
+`darts-league` is a full-stack darts league app for running a single active season with admin-managed divisions, public fixtures/standings, and a restricted admin workflow for season control and score entry.
 
 ## Stack
 
@@ -12,14 +12,16 @@
 
 ## Current MVP Features
 
-- Public player registration before the season starts
+- Public player registration into a shared waitlist before the season starts
 - Optional player nickname, with nickname-first public display
-- Single round-robin season generation
+- Multi-division season management inside one active season
+- Single round-robin fixture generation per division
 - Public standings table with `P`, `W`, `L`, `LF`, `LA`, `LD`, `Pts`
 - Public week unlocking logic
 - Locked future weeks with placeholder/funny hidden fixture names
 - Admin-only login at `/admin`
 - Admin player deletion before season start
+- Admin player assignment and reassignment across divisions until week one is released
 - Admin result entry, editing, undo, and audit history
 - Fixed match format: `501`, first to `3` legs
 - Frontend and backend version reporting sourced from container image builds
@@ -130,6 +132,14 @@ Default local credentials from `docker-compose.yml`:
 - Username: `admin`
 - Password: `change-me`
 
+Admin workflow notes:
+
+- Registration is global; players do not pick a division themselves
+- Admins create divisions, assign players, and then start the season
+- After season start and before the first Monday `09:00 Europe/London` release, admins can still edit league settings, rename divisions, change division count, move players between divisions, and update Slack channel IDs
+- Recreating divisions in that pre-release window resets player assignments back to the waitlist and regenerates fixtures
+- After the first weekly release, central season setup locks and only division scoring remains editable
+
 ## Instance Naming
 
 Use `INSTANCE_NAME` to label a deployment in the UI and browser title.
@@ -234,9 +244,10 @@ Some important locked rules in the current MVP:
 - Single active season only
 - Registration stays open until admin explicitly starts the season
 - Admins can delete players only before season start
+- One season can contain multiple admin-managed divisions
 - Match scoring is win `2`, loss `0`
 - Match format is fixed to `501`, first to `3` legs
-- Display names must be unique per season, case-insensitive
+- Display names are globally reserved, case-insensitive
 - Public views prefer nickname when available
 - Admins can edit and undo results, and all changes are audited
 

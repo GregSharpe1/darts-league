@@ -1,4 +1,5 @@
-import { useSeasonSummary, useStandings } from '../../lib/api'
+import { useParams } from 'react-router-dom'
+import { useDivisions, useDivisionStandings, useSeasonSummary } from '../../lib/api'
 import { StateNotice } from '../../components/StateNotice'
 import { readError } from '../../lib/utils'
 
@@ -7,14 +8,17 @@ function formatAverage(average?: number | null) {
 }
 
 export function StandingsPage() {
+  const { slug = '' } = useParams()
   const seasonQuery = useSeasonSummary()
-  const standingsQuery = useStandings()
+  const divisionsQuery = useDivisions()
+  const standingsQuery = useDivisionStandings(slug)
+  const division = divisionsQuery.data?.find((item) => item.slug === slug)
 
   return (
     <section className="standings-card">
       <div className="page-intro">
         <span className="eyebrow">Live table</span>
-        <h1>Standings</h1>
+        <h1>{division?.name ?? 'Division standings'}</h1>
         <p className="fixture-meta">{seasonQuery.data?.name ?? 'Active season'}</p>
         <p>Public labels prefer nicknames, while the table still rewards clean legs and relentless finishing.</p>
       </div>

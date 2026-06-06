@@ -25,6 +25,7 @@ export function response(body: unknown, status = 200) {
 export type AppState = {
   authenticated: boolean
   seasonStarted: boolean
+  firstWeekReleased?: boolean
   seasonName: string
 }
 
@@ -41,16 +42,35 @@ export function createMockFetch(state: AppState) {
         status: state.seasonStarted ? 'started' : 'registration_open',
         timezone: 'Europe/London',
         registration_open: !state.seasonStarted,
+        season_started: state.seasonStarted,
+        admin_locked: Boolean(state.firstWeekReleased),
+        can_start_season: !state.seasonStarted,
+        can_edit_settings: !state.firstWeekReleased,
+        can_edit_division_channel: !state.firstWeekReleased,
+        can_edit_divisions: !state.firstWeekReleased,
+        can_assign_players: !state.firstWeekReleased,
         player_count: 4,
         week_count: state.seasonStarted ? 3 : 0,
         game_variant: '501',
         legs_to_win: 3,
         games_per_week: 1,
         total_fixtures: state.seasonStarted ? 6 : 0,
+        division_count: 2,
+        assigned_count: state.seasonStarted ? 4 : 2,
+        waitlist_count: state.seasonStarted ? 0 : 2,
       })
     }
 
-    if (path === '/api/fixtures') {
+    if (path === '/api/divisions' || path === '/api/admin/divisions') {
+      return response({
+        divisions: [
+          { id: 1, name: 'Premier Division', slug: 'premier', position: 1, slack_public_channel_id: 'CPREMIER' },
+          { id: 2, name: 'Challenger Division', slug: 'challenger', position: 2, slack_public_channel_id: 'CCHALLENGER' },
+        ],
+      })
+    }
+
+    if (path === '/api/divisions/premier/fixtures') {
       return response({
         current_week: 1,
         weeks: [
@@ -59,15 +79,15 @@ export function createMockFetch(state: AppState) {
             status: 'unlocked',
             reveal_at: 'Mon, 23 Mar 2026 09:00:00 GMT',
             fixtures: [
-              { id: 1, player_one: 'The Freeze', player_two: 'Bully Boy', scheduled_at: 'Mon, 23 Mar 2026 19:30:00 GMT', game_variant: '501', legs_to_win: 3, result: { player_one_legs: 3, player_two_legs: 1, player_one_average: 96.4, player_two_average: 89.3, winner_id: 1 } },
-              { id: 4, player_one: 'The Asp', player_two: 'The Ferret', scheduled_at: 'Tue, 24 Mar 2026 19:30:00 GMT', game_variant: '501', legs_to_win: 3 },
+              { id: 1, player_one: 'The Freeze (Luke Humphries)', player_two: 'Bully Boy (Michael Smith)', scheduled_at: 'Mon, 23 Mar 2026 19:30:00 GMT', game_variant: '501', legs_to_win: 3, result: { player_one_legs: 3, player_two_legs: 1, player_one_average: 96.4, player_two_average: 89.3, winner_id: 1 } },
+              { id: 4, player_one: 'The Asp (Nathan Aspinall)', player_two: 'The Ferret (Jonny Clayton)', scheduled_at: 'Tue, 24 Mar 2026 19:30:00 GMT', game_variant: '501', legs_to_win: 3 },
             ],
           },
           {
             week_number: 2,
             status: 'unlocked',
             reveal_at: 'Mon, 30 Mar 2026 09:00:00 GMT',
-            fixtures: [{ id: 3, player_one: 'Voltage', player_two: 'Snakebite', scheduled_at: 'Mon, 30 Mar 2026 19:30:00 GMT', game_variant: '501', legs_to_win: 3 }],
+            fixtures: [{ id: 3, player_one: 'Voltage (Rob Cross)', player_two: 'Snakebite (Peter Wright)', scheduled_at: 'Mon, 30 Mar 2026 19:30:00 GMT', game_variant: '501', legs_to_win: 3 }],
           },
           {
             week_number: 3,
@@ -79,59 +99,15 @@ export function createMockFetch(state: AppState) {
       })
     }
 
-    if (path === '/api/standings') {
-        return response({
-          standings: [
-            {
-              player: 'The Freeze',
-              display_name: 'Luke Humphries',
-              played: 1,
-              won: 1,
-              lost: 0,
-              legs_for: 3,
-              legs_against: 1,
-              leg_difference: 2,
-              average: 95.4,
-              points: 2,
-            },
-            {
-              player: 'Snakebite',
-              display_name: 'Peter Wright',
-              played: 0,
-              won: 0,
-              lost: 0,
-              legs_for: 0,
-              legs_against: 0,
-              leg_difference: 0,
-              average: null,
-              points: 0,
-            },
-            {
-              player: 'Voltage',
-              display_name: 'Rob Cross',
-              played: 0,
-              won: 0,
-              lost: 0,
-              legs_for: 0,
-              legs_against: 0,
-              leg_difference: 0,
-              average: null,
-              points: 0,
-            },
-            {
-              player: 'The Asp',
-              display_name: 'Nathan Aspinall',
-              played: 0,
-              won: 0,
-              lost: 0,
-              legs_for: 0,
-              legs_against: 0,
-              leg_difference: 0,
-              average: null,
-              points: 0,
-            },
-          ],
-        })
+    if (path === '/api/divisions/premier/standings') {
+      return response({
+        standings: [
+          { player: 'The Freeze', display_name: 'Luke Humphries', played: 1, won: 1, lost: 0, legs_for: 3, legs_against: 1, leg_difference: 2, average: 95.4, points: 2 },
+          { player: 'Snakebite', display_name: 'Peter Wright', played: 0, won: 0, lost: 0, legs_for: 0, legs_against: 0, leg_difference: 0, average: null, points: 0 },
+          { player: 'Voltage', display_name: 'Rob Cross', played: 0, won: 0, lost: 0, legs_for: 0, legs_against: 0, leg_difference: 0, average: null, points: 0 },
+          { player: 'The Asp', display_name: 'Nathan Aspinall', played: 0, won: 0, lost: 0, legs_for: 0, legs_against: 0, leg_difference: 0, average: null, points: 0 },
+        ],
+      })
     }
 
     if (path === '/api/version') {
@@ -154,56 +130,38 @@ export function createMockFetch(state: AppState) {
       }
       return response({
         players: [
-          { id: 1, display_name: 'Luke Humphries', preferred_name: 'The Freeze', admin_label: 'The Freeze (Luke Humphries)', registered_at: 'Mon, 16 Mar 2026 19:00:00 GMT' },
-          { id: 2, display_name: 'Michael Smith', preferred_name: 'Bully Boy', admin_label: 'Bully Boy (Michael Smith)', registered_at: 'Mon, 16 Mar 2026 19:05:00 GMT' },
+          { id: 1, display_name: 'Luke Humphries', preferred_name: 'The Freeze', admin_label: 'The Freeze (Luke Humphries)', status: 'waitlist', registered_at: 'Mon, 16 Mar 2026 19:00:00 GMT' },
+          { id: 2, display_name: 'Michael Smith', preferred_name: 'Bully Boy', admin_label: 'Bully Boy (Michael Smith)', status: 'waitlist', registered_at: 'Mon, 16 Mar 2026 19:05:00 GMT' },
         ],
       })
     }
 
-    if (path === '/api/admin/fixtures') {
+    if (path === '/api/admin/divisions/premier/fixtures') {
       return response({
         weeks: [
-          {
-            week_number: 1,
-            reveal_at: 'Mon, 23 Mar 2026 09:00:00 GMT',
-            fixtures: [
-              {
-                id: 1,
-                player_one: 'The Freeze (Luke Humphries)',
-                player_two: 'Bully Boy (Michael Smith)',
-                scheduled_at: 'Mon, 23 Mar 2026 19:30:00 GMT',
-                game_variant: '501',
-                legs_to_win: 3,
-                status: 'scheduled',
-                result: { player_one_legs: 3, player_two_legs: 1, player_one_average: 96.4, player_two_average: 89.3, winner_id: 1 },
-              },
-            ],
-          },
+          { week_number: 1, reveal_at: 'Mon, 23 Mar 2026 09:00:00 GMT', fixtures: [{ id: 1, player_one: 'The Freeze (Luke Humphries)', player_two: 'Bully Boy (Michael Smith)', scheduled_at: 'Mon, 23 Mar 2026 19:30:00 GMT', game_variant: '501', legs_to_win: 3, status: 'scheduled', result: { player_one_legs: 3, player_two_legs: 1, winner_id: 1 } }] },
         ],
       })
     }
 
-    if (path === '/api/admin/audit') {
-      return response({
-        entries: [
-          { id: 1, fixture_id: 1, fixture_label: 'The Freeze (Luke Humphries) vs Bully Boy (Michael Smith)', action: 'result_edited', actor: 'admin', created_at: 'Mon, 23 Mar 2026 20:45:00 GMT', old_result: { player_one_legs: 3, player_two_legs: 0, player_one_average: 92.1, player_two_average: 80.4, winner_id: 1 }, new_result: { player_one_legs: 3, player_two_legs: 1, player_one_average: 96.4, player_two_average: 89.3, winner_id: 1 } },
-        ],
-      })
+    if (path === '/api/admin/divisions/premier/audit') {
+      return response({ entries: [{ id: 1, fixture_id: 1, fixture_label: 'The Freeze (Luke Humphries) vs Bully Boy (Michael Smith)', action: 'result_edited', actor: 'admin', created_at: 'Mon, 23 Mar 2026 20:45:00 GMT', old_result: { player_one_legs: 3, player_two_legs: 0, winner_id: 1 }, new_result: { player_one_legs: 3, player_two_legs: 1, winner_id: 1 } }] })
     }
 
     if (path === '/api/admin/season/start' && method === 'POST') {
       state.seasonStarted = true
-      return response({ id: 1, instance_name: 'Cardiff Office - Darts League', name: state.seasonName, status: 'started', timezone: 'Europe/London', registration_open: false, player_count: 4, week_count: 3, game_variant: '501', legs_to_win: 3, games_per_week: 1, total_fixtures: 6 })
+      state.firstWeekReleased = false
+      return response({ id: 1, instance_name: 'Cardiff Office - Darts League', name: state.seasonName, status: 'started', timezone: 'Europe/London', registration_open: false, season_started: true, admin_locked: false, can_start_season: false, can_edit_settings: true, can_edit_division_channel: true, can_edit_divisions: true, can_assign_players: true, player_count: 4, week_count: 3, game_variant: '501', legs_to_win: 3, games_per_week: 1, total_fixtures: 6, division_count: 2, assigned_count: 4, waitlist_count: 0 })
     }
 
     if (path === '/api/admin/season' && method === 'PUT') {
       const body = JSON.parse(String(init?.body ?? '{}'))
       state.seasonName = body.name
-      return response({ id: 1, instance_name: 'Cardiff Office - Darts League', name: state.seasonName, status: state.seasonStarted ? 'started' : 'registration_open', timezone: 'Europe/London', registration_open: !state.seasonStarted, player_count: 4, week_count: state.seasonStarted ? 3 : 0, game_variant: '501', legs_to_win: 3, games_per_week: 1, total_fixtures: state.seasonStarted ? 6 : 0 })
+      return response({ id: 1, instance_name: 'Cardiff Office - Darts League', name: state.seasonName, status: state.seasonStarted ? 'started' : 'registration_open', timezone: 'Europe/London', registration_open: !state.seasonStarted, season_started: state.seasonStarted, admin_locked: Boolean(state.firstWeekReleased), can_start_season: !state.seasonStarted, can_edit_settings: !state.firstWeekReleased, can_edit_division_channel: !state.firstWeekReleased, can_edit_divisions: !state.firstWeekReleased, can_assign_players: !state.firstWeekReleased, player_count: 4, week_count: state.seasonStarted ? 3 : 0, game_variant: '501', legs_to_win: 3, games_per_week: 1, total_fixtures: state.seasonStarted ? 6 : 0, division_count: 2, assigned_count: state.seasonStarted ? 4 : 2, waitlist_count: state.seasonStarted ? 0 : 2 })
     }
 
     if (path === '/api/admin/season/config' && method === 'PUT') {
-      return response({ id: 1, instance_name: 'Cardiff Office - Darts League', name: state.seasonName, status: 'registration_open', timezone: 'Europe/London', registration_open: true, player_count: 4, week_count: 0, game_variant: '501', legs_to_win: 3, games_per_week: 1, total_fixtures: 0 })
+      return response({ id: 1, instance_name: 'Cardiff Office - Darts League', name: state.seasonName, status: state.seasonStarted ? 'started' : 'registration_open', timezone: 'Europe/London', registration_open: !state.seasonStarted, season_started: state.seasonStarted, admin_locked: Boolean(state.firstWeekReleased), can_start_season: !state.seasonStarted, can_edit_settings: !state.firstWeekReleased, can_edit_division_channel: !state.firstWeekReleased, can_edit_divisions: !state.firstWeekReleased, can_assign_players: !state.firstWeekReleased, player_count: 4, week_count: state.seasonStarted ? 3 : 0, game_variant: '501', legs_to_win: 3, games_per_week: 1, total_fixtures: state.seasonStarted ? 6 : 0, division_count: 2, assigned_count: state.seasonStarted ? 4 : 2, waitlist_count: state.seasonStarted ? 0 : 2 })
     }
 
     if (path === '/api/admin/season/presets') {
@@ -212,6 +170,19 @@ export function createMockFetch(state: AppState) {
 
     if (path === '/api/admin/season/preview') {
       return response({ player_count: 4, game_variant: '501', legs_to_win: 3, games_per_week: 1, week_count: 3, total_fixtures: 6 })
+    }
+
+    if (path === '/api/admin/divisions/provision' && method === 'POST') {
+      return response({ divisions: [{ id: 1, name: 'Division 1', slug: 'division-1', position: 1 }, { id: 2, name: 'Division 2', slug: 'division-2', position: 2 }] }, 201)
+    }
+
+    if (path.startsWith('/api/admin/divisions/') && method === 'PUT') {
+      const body = JSON.parse(String(init?.body ?? '{}'))
+      return response({ id: body.id, name: body.name, slug: body.slug, position: 1, slack_public_channel_id: body.slack_public_channel_id ?? '' })
+    }
+
+    if (path.includes('/assignment') && method === 'PUT') {
+      return response({})
     }
 
     if (path.startsWith('/api/admin/players/') && method === 'DELETE') {

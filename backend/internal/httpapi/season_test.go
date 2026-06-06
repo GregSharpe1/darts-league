@@ -2,6 +2,7 @@ package httpapi
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -40,6 +41,7 @@ func TestSeasonStartGeneratesFixturesAndClosesRegistration(t *testing.T) {
 	hitEndpoint(t, handler.registration.handleRegisterPlayer, httptest.NewRequest(http.MethodPost, "/api/players/register", bytes.NewBufferString(`{"display_name":"Luke Humphries","nickname":"The Freeze"}`)), http.StatusCreated)
 	hitEndpoint(t, handler.registration.handleRegisterPlayer, httptest.NewRequest(http.MethodPost, "/api/players/register", bytes.NewBufferString(`{"display_name":"Michael Smith","nickname":"Bully Boy"}`)), http.StatusCreated)
 	registerTestPlayers(t, handler.registration, []string{"Peter Wright", "Gerwyn Price"})
+	assignAllPlayersToSingleDivision(t, handler)
 
 	recorder := hitEndpoint(t, handler.season.handleSeasonStart, httptest.NewRequest(http.MethodPost, "/api/admin/season/start", nil), http.StatusCreated)
 
@@ -93,16 +95,44 @@ func TestSeasonUpdateRejectsInvalidName(t *testing.T) {
 	assertErrorCode(t, recorder.Body.Bytes(), "season_name_required")
 }
 
-func TestSeasonUpdateLocksAfterSeasonStart(t *testing.T) {
+func TestSeasonUpdateAllowsRenameAfterSeasonStartBeforeFirstReveal(t *testing.T) {
 	t.Parallel()
 
 	handler := newSeasonHandlerWithNow(time.Date(2026, time.March, 18, 12, 0, 0, 0, time.UTC))
 	registerTestPlayers(t, handler.registration, []string{"Luke Humphries", "Michael Smith"})
+	assignAllPlayersToSingleDivision(t, handler)
 	hitEndpoint(t, handler.season.handleSeasonStart, httptest.NewRequest(http.MethodPost, "/api/admin/season/start", nil), http.StatusCreated)
 
 	request := httptest.NewRequest(http.MethodPut, "/api/admin/season", bytes.NewBufferString(`{"name":"Locked League"}`))
+	recorder := hitEndpoint(t, handler.season.handleSeasonUpdate, request, http.StatusOK)
+
+	var response seasonSummaryResponse
+	if err := json.Unmarshal(recorder.Body.Bytes(), &response); err != nil {
+		t.Fatalf("expected valid season response, got %v", err)
+	}
+	if response.Name != "Locked League" {
+		t.Fatalf("expected rename to succeed before first reveal, got %q", response.Name)
+	}
+	if response.AdminLocked {
+		t.Fatal("expected season to remain editable before first reveal")
+	}
+	if !response.CanEditSettings {
+		t.Fatal("expected settings to remain editable before first reveal")
+	}
+}
+
+func TestSeasonUpdateLocksAfterFirstWeekRelease(t *testing.T) {
+	t.Parallel()
+
+	handler := newSeasonHandlerWithNow(time.Date(2026, time.March, 18, 12, 0, 0, 0, time.UTC))
+	registerTestPlayers(t, handler.registration, []string{"Luke Humphries", "Michael Smith"})
+	assignAllPlayersToSingleDivision(t, handler)
+	hitEndpoint(t, handler.season.handleSeasonStart, httptest.NewRequest(http.MethodPost, "/api/admin/season/start", nil), http.StatusCreated)
+	handler.clock.Set(time.Date(2026, time.March, 23, 10, 0, 0, 0, mustLoadLondon(t)))
+
+	request := httptest.NewRequest(http.MethodPut, "/api/admin/season", bytes.NewBufferString(`{"name":"Locked League"}`))
 	recorder := hitEndpoint(t, handler.season.handleSeasonUpdate, request, http.StatusConflict)
-	assertErrorCode(t, recorder.Body.Bytes(), "season_started")
+	assertErrorCode(t, recorder.Body.Bytes(), "season_locked")
 }
 
 func TestPublicFixturesHideFutureWeekDetailsUntilUnlock(t *testing.T) {
@@ -114,6 +144,7 @@ func TestPublicFixturesHideFutureWeekDetailsUntilUnlock(t *testing.T) {
 	hitEndpoint(t, handler.registration.handleRegisterPlayer, httptest.NewRequest(http.MethodPost, "/api/players/register", bytes.NewBufferString(`{"display_name":"Luke Humphries","nickname":"The Freeze"}`)), http.StatusCreated)
 	hitEndpoint(t, handler.registration.handleRegisterPlayer, httptest.NewRequest(http.MethodPost, "/api/players/register", bytes.NewBufferString(`{"display_name":"Michael Smith","nickname":"Bully Boy"}`)), http.StatusCreated)
 	registerTestPlayers(t, handler.registration, []string{"Peter Wright", "Gerwyn Price"})
+	division := assignAllPlayersToSingleDivision(t, handler)
 	hitEndpoint(t, handler.season.handleSeasonStart, httptest.NewRequest(http.MethodPost, "/api/admin/season/start", nil), http.StatusCreated)
 	fixtures, err := handler.store.ListFixturesBySeason(httptest.NewRequest(http.MethodGet, "/", nil).Context(), 1)
 	if err != nil {
@@ -134,7 +165,9 @@ func TestPublicFixturesHideFutureWeekDetailsUntilUnlock(t *testing.T) {
 	}
 
 	handler.clock.Set(time.Date(2026, time.March, 23, 10, 0, 0, 0, mustLoadLondon(t)))
-	recorder := hitEndpoint(t, handler.season.handlePublicFixtures, httptest.NewRequest(http.MethodGet, "/api/fixtures", nil), http.StatusOK)
+	req := httptest.NewRequest(http.MethodGet, "/api/divisions/"+division.Slug+"/fixtures", nil)
+	req.SetPathValue("divisionSlug", division.Slug)
+	recorder := hitEndpoint(t, handler.season.handlePublicFixtures, req, http.StatusOK)
 
 	var response struct {
 		CurrentWeek int                   `json:"current_week"`
@@ -184,33 +217,6 @@ func TestPublicFixturesHideFutureWeekDetailsUntilUnlock(t *testing.T) {
 	}
 }
 
-func TestCurrentWeekEndpointReturnsUnlockedWeekOnly(t *testing.T) {
-	t.Parallel()
-
-	startTime := time.Date(2026, time.March, 18, 12, 0, 0, 0, time.UTC)
-	handler := newSeasonHandlerWithNow(startTime)
-	registerTestPlayers(t, handler.registration, []string{"Luke Humphries", "Michael Smith", "Peter Wright", "Gerwyn Price"})
-	hitEndpoint(t, handler.season.handleSeasonStart, httptest.NewRequest(http.MethodPost, "/api/admin/season/start", nil), http.StatusCreated)
-
-	handler.clock.Set(time.Date(2026, time.March, 30, 10, 0, 0, 0, mustLoadLondon(t)))
-	recorder := hitEndpoint(t, handler.season.handleCurrentWeek, httptest.NewRequest(http.MethodGet, "/api/fixtures/current-week", nil), http.StatusOK)
-
-	var response struct {
-		CurrentWeek int                 `json:"current_week"`
-		Week        fixtureWeekResponse `json:"week"`
-	}
-	if err := json.Unmarshal(recorder.Body.Bytes(), &response); err != nil {
-		t.Fatalf("expected valid current week response, got %v", err)
-	}
-
-	if response.CurrentWeek != 2 || response.Week.WeekNumber != 2 {
-		t.Fatalf("expected current week response for week 2, got current=%d week=%d", response.CurrentWeek, response.Week.WeekNumber)
-	}
-	if response.Week.Status != "unlocked" {
-		t.Fatalf("expected current week to be unlocked, got %q", response.Week.Status)
-	}
-}
-
 func TestAdminFixturesIncludeRecordedResults(t *testing.T) {
 	t.Parallel()
 
@@ -218,12 +224,15 @@ func TestAdminFixturesIncludeRecordedResults(t *testing.T) {
 	handler := newSeasonHandlerWithNow(startTime)
 	resultService := league.NewResultServiceWithNow(handler.store, handler.clock.Now)
 	registerTestPlayers(t, handler.registration, []string{"Luke Humphries", "Michael Smith"})
+	division := assignAllPlayersToSingleDivision(t, handler)
 	hitEndpoint(t, handler.season.handleSeasonStart, httptest.NewRequest(http.MethodPost, "/api/admin/season/start", nil), http.StatusCreated)
 	if _, err := resultService.RecordResult(httptest.NewRequest(http.MethodGet, "/", nil).Context(), 1, 3, 1, nil, nil); err != nil {
 		t.Fatalf("expected result to be recorded, got %v", err)
 	}
 
-	recorder := hitEndpoint(t, handler.season.handleAdminFixtures, httptest.NewRequest(http.MethodGet, "/api/admin/fixtures", nil), http.StatusOK)
+	req := httptest.NewRequest(http.MethodGet, "/api/admin/divisions/"+division.Slug+"/fixtures", nil)
+	req.SetPathValue("divisionSlug", division.Slug)
+	recorder := hitEndpoint(t, handler.season.handleAdminFixtures, req, http.StatusOK)
 
 	var response struct {
 		Weeks []struct {
@@ -303,16 +312,27 @@ func TestSeasonUpdateConfigRejectsInvalidVariant(t *testing.T) {
 	assertErrorCode(t, recorder.Body.Bytes(), "invalid_game_variant")
 }
 
-func TestSeasonUpdateConfigLockedAfterStart(t *testing.T) {
+func TestSeasonUpdateConfigAllowedAfterStartBeforeFirstRelease(t *testing.T) {
 	t.Parallel()
 
 	handler := newSeasonHandlerWithNow(time.Date(2026, time.March, 18, 12, 0, 0, 0, time.UTC))
 	registerTestPlayers(t, handler.registration, []string{"Luke Humphries", "Michael Smith"})
+	assignAllPlayersToSingleDivision(t, handler)
 	hitEndpoint(t, handler.season.handleSeasonStart, httptest.NewRequest(http.MethodPost, "/api/admin/season/start", nil), http.StatusCreated)
 
 	request := httptest.NewRequest(http.MethodPut, "/api/admin/season/config", bytes.NewBufferString(`{"game_variant":"301","legs_to_win":5,"games_per_week":1}`))
-	recorder := hitEndpoint(t, handler.season.handleSeasonUpdateConfig, request, http.StatusConflict)
-	assertErrorCode(t, recorder.Body.Bytes(), "season_started")
+	recorder := hitEndpoint(t, handler.season.handleSeasonUpdateConfig, request, http.StatusOK)
+
+	var response seasonSummaryResponse
+	if err := json.Unmarshal(recorder.Body.Bytes(), &response); err != nil {
+		t.Fatalf("expected valid season response, got %v", err)
+	}
+	if response.GameVariant != "301" || response.LegsToWin != 5 {
+		t.Fatalf("expected config update before first release, got %+v", response)
+	}
+	if response.AdminLocked {
+		t.Fatal("expected admin controls to remain unlocked before first release")
+	}
 }
 
 func TestGamesPerWeekPresetsEndpoint(t *testing.T) {
@@ -346,6 +366,7 @@ func TestSchedulePreviewEndpoint(t *testing.T) {
 
 	handler := newSeasonHandlerWithNow(time.Date(2026, time.March, 18, 12, 0, 0, 0, time.UTC))
 	registerTestPlayers(t, handler.registration, []string{"Luke Humphries", "Michael Smith", "Peter Wright", "Gerwyn Price"})
+	assignAllPlayersToSingleDivision(t, handler)
 
 	recorder := hitEndpoint(t, handler.season.handleSchedulePreview, httptest.NewRequest(http.MethodGet, "/api/admin/season/preview", nil), http.StatusOK)
 
@@ -371,6 +392,7 @@ func TestSeasonStartWithCustomConfig(t *testing.T) {
 
 	handler := newSeasonHandlerWithNow(time.Date(2026, time.March, 18, 12, 0, 0, 0, time.UTC))
 	registerTestPlayers(t, handler.registration, []string{"Luke Humphries", "Michael Smith", "Peter Wright", "Gerwyn Price"})
+	assignAllPlayersToSingleDivision(t, handler)
 
 	// Set custom config
 	configReq := httptest.NewRequest(http.MethodPut, "/api/admin/season/config", bytes.NewBufferString(`{"game_variant":"301","legs_to_win":2,"games_per_week":2}`))
@@ -435,6 +457,27 @@ func registerTestPlayers(t *testing.T, handler RegistrationHandler, names []stri
 		body := []byte(`{"display_name":"` + name + `"}`)
 		hitEndpoint(t, handler.handleRegisterPlayer, httptest.NewRequest(http.MethodPost, "/api/players/register", bytes.NewBuffer(body)), http.StatusCreated)
 	}
+}
+
+func assignAllPlayersToSingleDivision(t *testing.T, bundle seasonHandlerBundle) league.Division {
+	t.Helper()
+	seasonService := league.NewSeasonServiceWithNow(bundle.store, bundle.clock.Now)
+	registrationService := league.NewRegistrationServiceWithNow(bundle.store, bundle.clock.Now)
+	ctx := context.Background()
+	divisions, err := seasonService.ProvisionDivisions(ctx, 1)
+	if err != nil {
+		t.Fatalf("expected division provisioning to succeed, got %v", err)
+	}
+	players, err := registrationService.ListPlayers(ctx)
+	if err != nil {
+		t.Fatalf("expected player listing to succeed, got %v", err)
+	}
+	for _, player := range players {
+		if _, err := registrationService.AssignPlayer(ctx, player.ID, &divisions[0].ID); err != nil {
+			t.Fatalf("expected assignment to succeed, got %v", err)
+		}
+	}
+	return divisions[0]
 }
 
 func mustLoadLondon(t *testing.T) *time.Location {

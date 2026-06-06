@@ -24,6 +24,20 @@
   display: flex;
   align-items: center;
   gap: 0.9rem;
+  color: inherit;
+  text-decoration: none;
+}
+
+.brand-mark:hover .brand-badge,
+.brand-mark:focus-visible .brand-badge {
+  transform: translateY(-1px);
+  box-shadow: 0 1.2rem 2.2rem rgba(151, 27, 27, 0.48);
+}
+
+.brand-mark:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.3);
+  outline-offset: 0.35rem;
+  border-radius: 1rem;
 }
 
 .brand-badge {
@@ -32,6 +46,7 @@
   border-radius: 0.9rem;
   background: linear-gradient(180deg, #ff5b5b 0%, #971b1b 100%);
   box-shadow: 0 1rem 2rem rgba(151, 27, 27, 0.4);
+  transition: transform 160ms ease, box-shadow 160ms ease;
 }
 
 .brand-copy strong,
@@ -60,7 +75,8 @@
   gap: 0.75rem;
 }
 
-.primary-nav a {
+.primary-nav a,
+.primary-nav button {
   padding: 0.7rem 1rem;
   border-radius: 999px;
   color: var(--color-text);
@@ -68,10 +84,14 @@
   border: 1px solid rgba(255, 255, 255, 0.08);
   background: rgba(255, 255, 255, 0.03);
   transition: transform 160ms ease, border-color 160ms ease, background 160ms ease;
+  font: inherit;
+  cursor: pointer;
 }
 
 .primary-nav a:hover,
-.primary-nav a.active {
+.primary-nav a.active,
+.primary-nav button:hover,
+.primary-nav button:focus-visible {
   transform: translateY(-1px);
   border-color: rgba(255, 91, 91, 0.6);
   background: rgba(255, 91, 91, 0.12);
@@ -147,7 +167,8 @@
 }
 
 .hero-actions a,
-.cta-link {
+.cta-link,
+.button-link {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -349,6 +370,34 @@
 
 .week-grid {
   grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.division-board-grid {
+  display: grid;
+  gap: 1rem;
+  margin-top: 1.25rem;
+}
+
+.division-board-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(260px, 0.9fr);
+  gap: 1.25rem;
+  align-items: center;
+}
+
+.division-board-copy {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.division-board-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.division-board-actions .hero-actions {
+  margin-top: 0;
+  justify-content: flex-end;
 }
 
 .week-card {
@@ -643,7 +692,8 @@
 .admin-login button,
 .form-preview button,
 .score-form button,
-.toolbar-actions button {
+.toolbar-actions button,
+.toolbar-actions .button-link {
   min-height: 3rem;
   border: 0;
   border-radius: 1rem;
@@ -701,6 +751,24 @@
   color: var(--color-text);
   background: rgba(255, 255, 255, 0.06);
   border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.roster-assignment-field {
+  min-width: 13rem;
+}
+
+.roster-assignment-select {
+  width: 100%;
+  min-width: 13rem;
+  font-weight: 600;
+  border-color: rgba(255, 91, 91, 0.22);
+  background-color: rgba(255, 255, 255, 0.06);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.roster-assignment-select:focus-visible {
+  outline: 2px solid rgba(255, 91, 91, 0.4);
+  outline-offset: 2px;
 }
 
 .ghost-button {
@@ -974,6 +1042,7 @@
   .hero-panel,
   .grid-panels,
   .week-grid,
+  .division-board-card,
   .register-grid,
   .admin-grid,
   .admin-login,
@@ -988,6 +1057,11 @@
 
   .primary-nav {
     width: 100%;
+    justify-content: flex-start;
+  }
+
+  .division-board-actions,
+  .division-board-actions .hero-actions {
     justify-content: flex-start;
   }
 

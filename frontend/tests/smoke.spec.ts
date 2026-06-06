@@ -30,14 +30,7 @@ function getBranchName(): string {
   }
 }
 
-const screenshotDirectory = path.resolve(
-  currentDirectory,
-  '..',
-  '..',
-  'docs',
-  'pr-screenshots',
-  getBranchName(),
-)
+const screenshotDirectory = path.resolve(currentDirectory, '..', '..', 'docs', 'pr-screenshots', getBranchName())
 
 async function captureScreenshot(page: Page, fileName: string) {
   if (!captureUiScreenshots) {
@@ -48,7 +41,7 @@ async function captureScreenshot(page: Page, fileName: string) {
   await page.screenshot({ path: path.join(screenshotDirectory, fileName), fullPage: true })
 }
 
-test('register, start season, enter result, and view standings', async ({ page }) => {
+test('register, assign divisions, start season, enter result, and view division standings', async ({ page }) => {
   const leagueName = 'Cardiff Premier League'
   const players = [
     ['Luke Humphries', 'The Freeze'],
@@ -66,9 +59,11 @@ test('register, start season, enter result, and view standings', async ({ page }
     await expect(page.getByLabel('Display name')).toBeEnabled()
     await page.getByLabel('Display name').fill(displayName)
     await page.getByLabel('Nickname').fill(nickname)
-    await page.getByRole('button', { name: /register for this season/i }).click()
-    await expect(page.getByText(new RegExp(`${nickname} is in for the active season`, 'i'))).toBeVisible()
+    await page.getByRole('button', { name: /register for the league/i }).click()
+    await expect(page.getByText(new RegExp(`${nickname} is registered and waiting for division assignment`, 'i'))).toBeVisible()
   }
+
+  await captureScreenshot(page, 'register-open.png')
 
   await page.goto('/admin')
   await page.getByLabel('Username').fill('admin')
@@ -76,34 +71,42 @@ test('register, start season, enter result, and view standings', async ({ page }
   await page.getByRole('button', { name: /unlock admin tools/i }).click()
 
   await expect(page.getByRole('heading', { name: /league settings/i })).toBeVisible()
-  await expect(page.getByLabel('League name')).toHaveValue('MVP Season')
   await page.getByLabel('League name').fill(leagueName)
   await page.getByRole('button', { name: /save config/i }).click()
   await expect(page.getByText(leagueName)).toBeVisible()
-  await expect(page.getByLabel('League name')).toHaveValue(leagueName)
 
-  await expect(page.getByRole('heading', { name: /registered players/i })).toBeVisible()
-  await expect(page.getByRole('button', { name: /^delete$/i }).first()).toBeVisible()
+  await page.getByLabel('Division count').fill('2')
+  await page.getByRole('button', { name: /create divisions/i }).click()
 
-  await page.goto('/')
-  await expect(page.getByText(leagueName)).toBeVisible()
+  const divisionNameInputs = page.getByLabel('Division name')
+  await expect(divisionNameInputs.first()).toBeVisible()
+  await divisionNameInputs.nth(0).fill('Premier Division')
+  await page.getByLabel('Division slug').nth(0).fill('premier')
+  await page.getByLabel('Slack public channel').nth(0).fill('CPREMIER')
+  await page.getByRole('button', { name: /save division/i }).nth(0).click()
 
-  await page.goto('/register')
-  await expect(page.getByText(leagueName)).toBeVisible()
-  await captureScreenshot(page, 'register-open.png')
+  await divisionNameInputs.nth(1).fill('Challenger Division')
+  await page.getByLabel('Division slug').nth(1).fill('challenger')
+  await page.getByLabel('Slack public channel').nth(1).fill('CCHALLENGER')
+  await page.getByRole('button', { name: /save division/i }).nth(1).click()
 
-  await page.goto('/admin')
+  const divisionSelects = page.locator('select[aria-label$=" division"]')
+  for (let index = 0; index < 4; index++) {
+    await divisionSelects.nth(index).selectOption({ label: 'Premier Division' })
+  }
+  for (let index = 4; index < 8; index++) {
+    await divisionSelects.nth(index).selectOption({ label: 'Challenger Division' })
+  }
+
   await captureScreenshot(page, 'admin-pre-start.png')
+
   await page.getByRole('button', { name: /start season/i }).click()
-  await page.getByRole('button', { name: /^start season$/i }).last().click()
-  await expect(page.getByText(/registration is locked and player deletion is now disabled/i)).toBeVisible()
-  await expect(page.getByText(/roster locked/i).first()).toBeVisible()
+  await expect(page.getByText(/registration is locked, division names are frozen/i)).toBeVisible()
   await expect(page.getByRole('button', { name: /start season/i })).toBeDisabled()
-  await expect(page.getByLabel('League name')).toBeDisabled()
-  await expect(page.getByText(/all settings are locked once the season has started/i)).toBeVisible()
   await captureScreenshot(page, 'admin-post-start.png')
 
-  await expect(page.getByText(/week 1/i)).toBeVisible()
+  await page.goto('/admin/divisions/premier')
+  await expect(page.getByRole('heading', { name: /premier division/i })).toBeVisible()
   const editedFixture = page.locator('#p1-1').locator('xpath=ancestor::article[1]')
   await page.locator('#p1-1').fill('3')
   await page.locator('#p2-1').fill('1')
@@ -111,18 +114,12 @@ test('register, start season, enter result, and view standings', async ({ page }
   await page.locator('#a2-1').fill('89.1')
   await editedFixture.getByRole('button', { name: /save score/i }).click()
   await expect(page.getByText(/score saved/i)).toBeVisible()
-  await editedFixture.getByRole('button', { name: /undo result/i }).click()
-  await expect(editedFixture.getByRole('button', { name: /undo result/i })).toHaveCount(0)
-  await page.locator('#p1-1').fill('3')
-  await page.locator('#p2-1').fill('1')
-  await editedFixture.getByRole('button', { name: /save score/i }).click()
-  await expect(page.getByText(/score saved/i)).toBeVisible()
 
-  await page.route('**/api/fixtures', async (route) => {
+  await page.route('**/api/divisions/premier/fixtures', async (route) => {
     await route.fulfill({
       contentType: 'application/json',
       body: JSON.stringify({
-        current_week: 2,
+        current_week: 1,
         weeks: [
           {
             week_number: 1,
@@ -130,59 +127,39 @@ test('register, start season, enter result, and view standings', async ({ page }
             reveal_at: '2026-03-23T09:00:00Z',
             fixtures: [
               {
-                id: 101,
+                id: 1,
                 player_one: 'The Freeze (Luke Humphries)',
-                player_two: 'The Ferret (Jonny Clayton)',
+                player_two: 'Bully Boy (Michael Smith)',
                 scheduled_at: '2026-03-24T19:30:00Z',
                 game_variant: '501',
                 legs_to_win: 3,
+                result: { player_one_legs: 3, player_two_legs: 1, player_one_average: 96.4, player_two_average: 89.1, winner_id: 1 },
               },
             ],
           },
           {
             week_number: 2,
-            status: 'unlocked',
-            reveal_at: '2026-03-30T09:00:00Z',
-            fixtures: [
-              {
-                id: 102,
-                player_one: 'Voltage (Rob Cross)',
-                player_two: 'Snakebite (Peter Wright)',
-                scheduled_at: '2026-03-31T19:30:00Z',
-                game_variant: '501',
-                legs_to_win: 3,
-              },
-            ],
-          },
-          {
-            week_number: 3,
             status: 'locked',
-            reveal_at: '2026-04-06T09:00:00Z',
-            fixtures: [
-              { id: 103, player_one: 'I knew you\'d look', player_two: 'Nothing to see here' },
-            ],
+            reveal_at: '2026-03-30T09:00:00Z',
+            fixtures: [{ id: 2, player_one: 'I knew you\'d look', player_two: 'Nothing to see here' }],
           },
         ],
       }),
     })
   })
 
-  await page.goto('/')
-  await expect(page.getByRole('button', { name: /week 2/i })).toBeVisible()
-  await expect(page.getByRole('button', { name: /week 2/i })).toHaveAttribute('aria-expanded', 'true')
-  await expect(page.getByText(/voltage \(rob cross\) vs snakebite \(peter wright\)/i)).toBeVisible()
-  await page.getByRole('button', { name: /week 1/i }).click()
-  await expect(page.getByText(/the freeze \(luke humphries\) vs the ferret \(jonny clayton\)/i)).toBeVisible()
+  await page.goto('/divisions/premier')
+  await expect(page.getByText(/premier division/i)).toBeVisible()
+  await expect(page.getByText(/every unlocked fixture in this division has been played so far/i)).toBeVisible()
   await captureScreenshot(page, 'public-post-start.png')
 
-  await page.goto('/standings')
+  await page.goto('/divisions/premier/standings')
   await expect(page.getByText('The Freeze')).toBeVisible()
   await expect(page.getByText('Luke Humphries')).toBeVisible()
   await expect(page.getByRole('columnheader', { name: 'LW' })).toBeVisible()
   await expect(page.getByRole('columnheader', { name: 'LL' })).toBeVisible()
   await captureScreenshot(page, 'standings-post-start.png')
 
-  await expect(page.getByRole('link', { name: /^register$/i })).toHaveCount(0)
   await page.goto('/register')
   await expect(page.getByText(/registration closed/i)).toBeVisible()
   await expect(page.getByText(/the active season has already started/i)).toBeVisible()

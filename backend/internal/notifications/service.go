@@ -67,41 +67,54 @@ func NewWeeklyService(store league.Store, now func() time.Time, poster MessagePo
 }
 
 func (s WeeklyService) PostWeeklyFixtures(ctx context.Context) (bool, error) {
-	text, ok, err := s.ComposeWeeklyFixturesMessage(ctx)
-	if err != nil || !ok {
-		return false, err
-	}
-	if s.poster == nil || s.publicChannelID == "" {
-		return false, nil
-	}
-	if err := s.poster.PostMessage(ctx, s.publicChannelID, text); err != nil {
-		if errorsIsDisabled(err) {
-			return false, nil
-		}
-		return false, err
-	}
-	return true, nil
+	return s.postByDivision(ctx, s.ComposeWeeklyFixturesMessage)
 }
 
 func (s WeeklyService) PostWeeklySummary(ctx context.Context) (bool, error) {
-	text, ok, err := s.ComposeWeeklySummaryMessage(ctx)
-	if err != nil || !ok {
-		return false, err
-	}
-	if s.poster == nil || s.publicChannelID == "" {
-		return false, nil
-	}
-	if err := s.poster.PostMessage(ctx, s.publicChannelID, text); err != nil {
-		if errorsIsDisabled(err) {
-			return false, nil
-		}
-		return false, err
-	}
-	return true, nil
+	return s.postByDivision(ctx, s.ComposeWeeklySummaryMessage)
 }
 
-func (s WeeklyService) ComposeWeeklyFixturesMessage(ctx context.Context) (string, bool, error) {
-	data, ok, err := s.weeklyData(ctx)
+func (s WeeklyService) postByDivision(ctx context.Context, compose func(context.Context, league.Division) (string, bool, error)) (bool, error) {
+	if s.store == nil {
+		return false, nil
+	}
+	season, err := s.store.GetActiveSeason(ctx)
+	if err != nil {
+		return false, err
+	}
+	divisions, err := s.store.ListDivisionsBySeason(ctx, season.ID)
+	if err != nil {
+		return false, err
+	}
+	posted := false
+	for _, division := range divisions {
+		text, ok, err := compose(ctx, division)
+		if err != nil {
+			return posted, err
+		}
+		if !ok {
+			continue
+		}
+		channelID := strings.TrimSpace(division.SlackPublicChannelID)
+		if channelID == "" {
+			channelID = s.publicChannelID
+		}
+		if s.poster == nil || channelID == "" {
+			continue
+		}
+		if err := s.poster.PostMessage(ctx, channelID, text); err != nil {
+			if errorsIsDisabled(err) {
+				continue
+			}
+			return posted, err
+		}
+		posted = true
+	}
+	return posted, nil
+}
+
+func (s WeeklyService) ComposeWeeklyFixturesMessage(ctx context.Context, division league.Division) (string, bool, error) {
+	data, ok, err := s.weeklyData(ctx, division)
 	if err != nil || !ok {
 		return "", false, err
 	}
@@ -120,8 +133,8 @@ func (s WeeklyService) ComposeWeeklyFixturesMessage(ctx context.Context) (string
 	return strings.TrimSpace(builder.String()), true, nil
 }
 
-func (s WeeklyService) ComposeWeeklySummaryMessage(ctx context.Context) (string, bool, error) {
-	data, ok, err := s.weeklyData(ctx)
+func (s WeeklyService) ComposeWeeklySummaryMessage(ctx context.Context, division league.Division) (string, bool, error) {
+	data, ok, err := s.weeklyData(ctx, division)
 	if err != nil || !ok {
 		return "", false, err
 	}
@@ -172,6 +185,7 @@ type weeklyMessageData struct {
 	season             league.Season
 	players            []league.Player
 	playersByID        map[int64]league.Player
+	division           league.Division
 	fixtures           []league.Fixture
 	results            []league.Result
 	resultsByFixtureID map[int64]league.Result
@@ -181,7 +195,7 @@ type weeklyMessageData struct {
 	now                time.Time
 }
 
-func (s WeeklyService) weeklyData(ctx context.Context) (weeklyMessageData, bool, error) {
+func (s WeeklyService) weeklyData(ctx context.Context, division league.Division) (weeklyMessageData, bool, error) {
 	if s.store == nil {
 		return weeklyMessageData{}, false, nil
 	}
@@ -190,7 +204,7 @@ func (s WeeklyService) weeklyData(ctx context.Context) (weeklyMessageData, bool,
 	if err != nil {
 		return weeklyMessageData{}, false, err
 	}
-	fixtures, err := s.store.ListFixturesBySeason(ctx, season.ID)
+	fixtures, err := s.store.ListFixturesByDivision(ctx, division.ID)
 	if err != nil {
 		return weeklyMessageData{}, false, err
 	}
@@ -202,7 +216,7 @@ func (s WeeklyService) weeklyData(ctx context.Context) (weeklyMessageData, bool,
 	if err != nil {
 		return weeklyMessageData{}, false, err
 	}
-	results, err := s.store.ListResultsBySeason(ctx, season.ID)
+	results, err := s.store.ListResultsByDivision(ctx, division.ID)
 	if err != nil {
 		return weeklyMessageData{}, false, err
 	}
@@ -242,6 +256,7 @@ func (s WeeklyService) weeklyData(ctx context.Context) (weeklyMessageData, bool,
 		season:             season,
 		players:            players,
 		playersByID:        playersByID,
+		division:           division,
 		fixtures:           fixtures,
 		results:            results,
 		resultsByFixtureID: resultsByFixtureID,

@@ -17,11 +17,11 @@ func NewResultHandler(results league.ResultService) ResultHandler {
 }
 
 func (h ResultHandler) RegisterRoutes(mux *http.ServeMux, requireAdmin func(http.HandlerFunc) http.HandlerFunc) {
-	mux.HandleFunc("GET /api/standings", h.handleStandings)
+	mux.HandleFunc("GET /api/divisions/{divisionSlug}/standings", h.handleStandings)
 	mux.HandleFunc("POST /api/admin/fixtures/{fixtureID}/result", requireAdmin(h.handleRecordResult))
 	mux.HandleFunc("PUT /api/admin/fixtures/{fixtureID}/result", requireAdmin(h.handleEditResult))
 	mux.HandleFunc("DELETE /api/admin/fixtures/{fixtureID}/result", requireAdmin(h.handleDeleteResult))
-	mux.HandleFunc("GET /api/admin/audit", requireAdmin(h.handleAuditLog))
+	mux.HandleFunc("GET /api/admin/divisions/{divisionSlug}/audit", requireAdmin(h.handleAuditLog))
 }
 
 type resultRequest struct {
@@ -45,7 +45,7 @@ type standingRowResponse struct {
 }
 
 func (h ResultHandler) handleStandings(w http.ResponseWriter, r *http.Request) {
-	rows, err := h.results.Standings(r.Context())
+	rows, err := h.results.Standings(r.Context(), r.PathValue("divisionSlug"))
 	if err != nil {
 		writeDomainError(w, err)
 		return
@@ -147,7 +147,7 @@ func (h ResultHandler) handleDeleteResult(w http.ResponseWriter, r *http.Request
 }
 
 func (h ResultHandler) handleAuditLog(w http.ResponseWriter, r *http.Request) {
-	entries, err := h.results.AuditLog(r.Context())
+	entries, err := h.results.AuditLog(r.Context(), r.PathValue("divisionSlug"))
 	if err != nil {
 		writeDomainError(w, err)
 		return
