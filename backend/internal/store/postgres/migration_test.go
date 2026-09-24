@@ -29,6 +29,8 @@ func TestMigrationPreservesLegacySeason(t *testing.T) {
 		t.Fatal(err)
 	}
 	if _, err := tx.Exec(ctx, `
+		ALTER TABLE players DROP CONSTRAINT players_season_id_display_name_normalized_key;
+		ALTER TABLE players ADD CONSTRAINT players_display_name_normalized_key UNIQUE (display_name_normalized);
 		ALTER TABLE players DROP COLUMN division_id, DROP COLUMN status;
 		ALTER TABLE fixtures DROP COLUMN division_id;
 		DROP TABLE divisions;
@@ -59,5 +61,11 @@ func TestMigrationPreservesLegacySeason(t *testing.T) {
 	}
 	if divisions != 1 || players != 2 || fixtures != 1 || results != 1 || audits != 1 {
 		t.Fatalf("migration lost legacy data: divisions=%d players=%d fixtures=%d results=%d audits=%d", divisions, players, fixtures, results, audits)
+	}
+	if _, err := tx.Exec(ctx, `
+		INSERT INTO seasons (id, name, status) VALUES (2, 'Next', 'registration_open');
+		INSERT INTO players (id, season_id, display_name, display_name_normalized) VALUES (3, 2, 'Alice', 'alice');
+	`); err != nil {
+		t.Fatalf("returning player after migration: %v", err)
 	}
 }

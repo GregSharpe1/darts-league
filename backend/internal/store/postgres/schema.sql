@@ -33,8 +33,12 @@ CREATE TABLE IF NOT EXISTS players (
     nickname TEXT,
     status TEXT NOT NULL DEFAULT 'waitlist',
     registered_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    UNIQUE (display_name_normalized)
+    UNIQUE (season_id, display_name_normalized)
 );
+
+ALTER TABLE players DROP CONSTRAINT IF EXISTS players_display_name_normalized_key;
+CREATE UNIQUE INDEX IF NOT EXISTS players_season_id_display_name_normalized_key
+    ON players (season_id, display_name_normalized);
 
 ALTER TABLE players ADD COLUMN IF NOT EXISTS division_id BIGINT REFERENCES divisions (id) ON DELETE SET NULL;
 ALTER TABLE players ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'waitlist';
