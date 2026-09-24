@@ -43,7 +43,7 @@ func TestComposeWeeklyFixturesMessageUsesCurrentPublicWeek(t *testing.T) {
 	service := NewWeeklyService(store, func() time.Time {
 		loc, _ := time.LoadLocation("Europe/London")
 		return time.Date(2026, time.March, 30, 9, 0, 0, 0, loc)
-	}, nil, "CPUBLIC")
+	}, nil, "CPUBLIC", "")
 
 	division, err := store.GetDivisionBySlug(context.Background(), 1, "division-1")
 	if err != nil {
@@ -80,7 +80,7 @@ func TestComposeWeeklySummaryMessageIncludesResultsAndFullStandings(t *testing.T
 	service := NewWeeklyService(store, func() time.Time {
 		loc, _ := time.LoadLocation("Europe/London")
 		return time.Date(2026, time.March, 30, 9, 0, 0, 0, loc)
-	}, nil, "CPUBLIC")
+	}, nil, "CPUBLIC", "")
 	division, err := store.GetDivisionBySlug(context.Background(), 1, "division-1")
 	if err != nil {
 		t.Fatalf("expected division, got %v", err)
@@ -134,7 +134,7 @@ func TestPostWeeklySummaryUsesPublicChannel(t *testing.T) {
 	service := NewWeeklyService(store, func() time.Time {
 		loc, _ := time.LoadLocation("Europe/London")
 		return time.Date(2026, time.March, 30, 9, 0, 0, 0, loc)
-	}, poster, "CPUBLIC")
+	}, poster, "CPUBLIC", "")
 
 	posted, err := service.PostWeeklyFixtures(context.Background())
 	if err != nil {

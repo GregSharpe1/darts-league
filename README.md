@@ -188,6 +188,11 @@ Set these environment variables to enable it:
 - `SLACK_PUBLIC_CHANNEL_ID`
 - `SLACK_ADMIN_CHANNEL_ID`
 
+Set `PUBLIC_BASE_URL` to the public frontend URL (for example,
+`https://darts.example.com`) to include "View the standings here." in both weekly
+messages, with only "here" linked to that division's standings page. The link is
+omitted when this variable is unset. Weekly headers include the division name.
+
 Behavior:
 
 - successful player registrations post to the admin Slack channel

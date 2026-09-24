@@ -91,6 +91,7 @@ backend:
   env:
     slackPublicChannelId: C0123456789
     slackAdminChannelId: C0987654321
+    publicBaseUrl: https://darts.example.com
   slack:
     botToken: xoxb-replace-me
   notifications:
@@ -114,6 +115,10 @@ When enabled, the chart creates two backend CronJobs:
 
 - Monday `09:00 Europe/London` for weekly fixtures
 - Friday `09:00 Europe/London` for the weekly summary and full standings
+
+Set `backend.env.publicBaseUrl` to your public frontend URL to include a link to
+the division's standings in both messages. Only "here" in "View the standings
+here." is clickable. If left empty, the link is omitted.
 
 The bundled PostgreSQL chart stores its cluster data under a dedicated `PGDATA`
 subdirectory so mounted volumes do not fail on `lost+found`, and it applies an

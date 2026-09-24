@@ -67,7 +67,7 @@ func runNotificationCommand(ctx context.Context, cfg config.Config, store league
 	}
 
 	client := slack.NewClient(cfg.SlackBotToken)
-	weeklyService := notifications.NewWeeklyService(store, now, client, cfg.SlackPublicChannel)
+	weeklyService := notifications.NewWeeklyService(store, now, client, cfg.SlackPublicChannel, cfg.PublicBaseURL)
 
 	var (
 		posted bool
