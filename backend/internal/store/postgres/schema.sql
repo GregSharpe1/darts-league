@@ -54,6 +54,22 @@ CREATE TABLE IF NOT EXISTS fixtures (
 
 ALTER TABLE fixtures ADD COLUMN IF NOT EXISTS division_id BIGINT REFERENCES divisions (id) ON DELETE CASCADE;
 
+INSERT INTO divisions (season_id, name, slug)
+SELECT DISTINCT season_id, 'Division 1', 'division-1'
+FROM fixtures WHERE division_id IS NULL
+ON CONFLICT (season_id, slug) DO NOTHING;
+
+UPDATE players p SET division_id = d.id, status = 'assigned'
+FROM divisions d
+WHERE p.season_id = d.season_id AND d.slug = 'division-1' AND p.division_id IS NULL
+  AND EXISTS (SELECT 1 FROM fixtures f WHERE f.season_id = p.season_id AND f.division_id IS NULL);
+
+UPDATE fixtures f SET division_id = d.id
+FROM divisions d
+WHERE f.season_id = d.season_id AND d.slug = 'division-1' AND f.division_id IS NULL;
+
+ALTER TABLE fixtures ALTER COLUMN division_id SET NOT NULL;
+
 CREATE TABLE IF NOT EXISTS results (
     id BIGSERIAL PRIMARY KEY,
     fixture_id BIGINT NOT NULL UNIQUE REFERENCES fixtures (id) ON DELETE CASCADE,

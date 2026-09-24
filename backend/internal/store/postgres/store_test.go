@@ -43,8 +43,12 @@ func TestStoreSeasonPlayerAndResultFlow(t *testing.T) {
 		t.Fatalf("expected season update, got %v", err)
 	}
 
+	divisions, err := store.ReplaceDivisions(ctx, season.ID, []league.Division{{SeasonID: season.ID, Name: "Division 1", Slug: "division-1", Position: 1}})
+	if err != nil {
+		t.Fatalf("expected division creation, got %v", err)
+	}
 	fixtures, err := store.CreateFixtures(ctx, []league.Fixture{{
-		SeasonID: season.ID, WeekNumber: 1, ScheduledAt: time.Now().UTC(),
+		SeasonID: season.ID, DivisionID: divisions[0].ID, WeekNumber: 1, ScheduledAt: time.Now().UTC(),
 		PlayerOneID: playerOne.ID, PlayerTwoID: playerTwo.ID, GameVariant: league.GameVariant501, LegsToWin: league.DefaultLegsToWin, Status: "scheduled",
 	}})
 	if err != nil {
