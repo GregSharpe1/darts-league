@@ -83,6 +83,11 @@ postgres:
 
 ## Slack notifications
 
+See the [notifications guide](../../../docs/notifications.md) for message examples,
+division channel routing, manual delivery precautions, and troubleshooting.
+Weekly CronJobs are disabled by default; enabling them does not configure Slack
+channel membership or division channel IDs.
+
 To enable Slack app delivery, provide the public and admin channel IDs through
 backend environment values and the bot token through the Slack secret values:
 
@@ -91,6 +96,7 @@ backend:
   env:
     slackPublicChannelId: C0123456789
     slackAdminChannelId: C0987654321
+    publicBaseUrl: https://darts.example.com
   slack:
     botToken: xoxb-replace-me
   notifications:
@@ -112,8 +118,17 @@ backend:
 
 When enabled, the chart creates two backend CronJobs:
 
-- Monday `09:00 Europe/London` for weekly fixtures
-- Friday `09:00 Europe/London` for the weekly summary and full standings
+- Monday `09:00 Europe/London` for weekly fixtures, one message per eligible division
+- Friday `09:00 Europe/London` for the weekly summary and cumulative standings, one message per eligible division
+
+Messages use the division's channel ID when set, otherwise
+`backend.env.slackPublicChannelId`. Set division channel IDs through `/admin`
+before the first weekly release. Both jobs use the same backend ConfigMap and
+database/Slack Secrets. Disabling the CronJobs does not disable signup messages.
+
+Set `backend.env.publicBaseUrl` to your public frontend URL to include a link to
+the division's standings in both messages. Only "here" in "View the standings
+here." is clickable. If left empty, the link is omitted.
 
 The bundled PostgreSQL chart stores its cluster data under a dedicated `PGDATA`
 subdirectory so mounted volumes do not fail on `lost+found`, and it applies an

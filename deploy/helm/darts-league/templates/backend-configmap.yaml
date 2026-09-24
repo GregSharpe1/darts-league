@@ -7,6 +7,7 @@ metadata:
 data:
   HTTP_ADDRESS: {{ .Values.backend.env.httpAddress | quote }}
   INSTANCE_NAME: {{ .Values.backend.env.instanceName | quote }}
+  PUBLIC_BASE_URL: {{ .Values.backend.env.publicBaseUrl | default "" | quote }}
   APP_TIMEZONE: {{ .Values.backend.env.appTimezone | quote }}
   SLACK_PUBLIC_CHANNEL_ID: {{ .Values.backend.env.slackPublicChannelId | quote }}
   SLACK_ADMIN_CHANNEL_ID: {{ .Values.backend.env.slackAdminChannelId | quote }}

@@ -43,7 +43,7 @@ func TestComposeWeeklyFixturesMessageUsesCurrentPublicWeek(t *testing.T) {
 	service := NewWeeklyService(store, func() time.Time {
 		loc, _ := time.LoadLocation("Europe/London")
 		return time.Date(2026, time.March, 30, 9, 0, 0, 0, loc)
-	}, nil, "CPUBLIC")
+	}, nil, "CPUBLIC", "")
 
 	division, err := store.GetDivisionBySlug(context.Background(), 1, "division-1")
 	if err != nil {
@@ -80,7 +80,7 @@ func TestComposeWeeklySummaryMessageIncludesResultsAndFullStandings(t *testing.T
 	service := NewWeeklyService(store, func() time.Time {
 		loc, _ := time.LoadLocation("Europe/London")
 		return time.Date(2026, time.March, 30, 9, 0, 0, 0, loc)
-	}, nil, "CPUBLIC")
+	}, nil, "CPUBLIC", "")
 	division, err := store.GetDivisionBySlug(context.Background(), 1, "division-1")
 	if err != nil {
 		t.Fatalf("expected division, got %v", err)
@@ -134,7 +134,7 @@ func TestPostWeeklySummaryUsesPublicChannel(t *testing.T) {
 	service := NewWeeklyService(store, func() time.Time {
 		loc, _ := time.LoadLocation("Europe/London")
 		return time.Date(2026, time.March, 30, 9, 0, 0, 0, loc)
-	}, poster, "CPUBLIC")
+	}, poster, "CPUBLIC", "")
 
 	posted, err := service.PostWeeklyFixtures(context.Background())
 	if err != nil {
@@ -165,7 +165,7 @@ func TestCompletedSeasonDoesNotPostWeeklyMessages(t *testing.T) {
 		t.Fatal(err)
 	}
 	poster := &stubPoster{}
-	service := NewWeeklyService(store, func() time.Time { return time.Date(2026, 4, 10, 10, 0, 0, 0, time.UTC) }, poster, "CPUBLIC")
+	service := NewWeeklyService(store, func() time.Time { return time.Date(2026, 4, 10, 10, 0, 0, 0, time.UTC) }, poster, "CPUBLIC", "https://darts.example.com")
 	for _, post := range []func(context.Context) (bool, error){service.PostWeeklyFixtures, service.PostWeeklySummary} {
 		if posted, err := post(ctx); err != nil || posted {
 			t.Fatalf("completed notification: %v %v", posted, err)
