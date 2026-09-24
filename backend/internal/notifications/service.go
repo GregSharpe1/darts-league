@@ -55,14 +55,16 @@ type WeeklyService struct {
 	now             func() time.Time
 	poster          MessagePoster
 	publicChannelID string
+	publicBaseURL   string
 }
 
-func NewWeeklyService(store league.Store, now func() time.Time, poster MessagePoster, publicChannelID string) WeeklyService {
+func NewWeeklyService(store league.Store, now func() time.Time, poster MessagePoster, publicChannelID, publicBaseURL string) WeeklyService {
 	return WeeklyService{
 		store:           store,
 		now:             now,
 		poster:          poster,
 		publicChannelID: strings.TrimSpace(publicChannelID),
+		publicBaseURL:   strings.TrimRight(strings.TrimSpace(publicBaseURL), "/"),
 	}
 }
 
@@ -120,8 +122,9 @@ func (s WeeklyService) ComposeWeeklyFixturesMessage(ctx context.Context, divisio
 	}
 
 	var builder strings.Builder
-	builder.WriteString(fmt.Sprintf("🎯 Week %d Fixtures\n", data.currentWeek))
+	builder.WriteString(fmt.Sprintf("🎯 Week %d Fixtures — %s\n", data.currentWeek, division.Name))
 	builder.WriteString(fmt.Sprintf("📅 %s • %s\n", data.week.Fixtures[0].ScheduledAt.In(data.location).Format("Mon 02 Jan 2006 15:04 MST"), data.season.Name))
+	builder.WriteString(s.standingsLink(division))
 	builder.WriteString("\n")
 	for _, fixture := range data.week.Fixtures {
 		builder.WriteString(fmt.Sprintf("🏆 %s vs %s\n",
@@ -140,8 +143,10 @@ func (s WeeklyService) ComposeWeeklySummaryMessage(ctx context.Context, division
 	}
 
 	var builder strings.Builder
-	builder.WriteString(fmt.Sprintf("📣 Week %d Results + Standings\n", data.currentWeek))
-	builder.WriteString(fmt.Sprintf("📅 %s • %s\n\n", data.now.In(data.location).Format("Fri 02 Jan 2006"), data.season.Name))
+	builder.WriteString(fmt.Sprintf("📣 Week %d Results + Standings — %s\n", data.currentWeek, division.Name))
+	builder.WriteString(fmt.Sprintf("📅 %s • %s\n", data.now.In(data.location).Format("Fri 02 Jan 2006"), data.season.Name))
+	builder.WriteString(s.standingsLink(division))
+	builder.WriteString("\n")
 	builder.WriteString("✅ Results\n")
 
 	resultsPosted := 0
@@ -179,6 +184,13 @@ func (s WeeklyService) ComposeWeeklySummaryMessage(ctx context.Context, division
 	builder.WriteString("```")
 
 	return strings.TrimSpace(builder.String()), true, nil
+}
+
+func (s WeeklyService) standingsLink(division league.Division) string {
+	if s.publicBaseURL == "" {
+		return ""
+	}
+	return fmt.Sprintf("View the standings <%s/divisions/%s/standings|here>.\n", s.publicBaseURL, division.Slug)
 }
 
 type weeklyMessageData struct {

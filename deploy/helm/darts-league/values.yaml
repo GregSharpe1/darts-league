@@ -44,6 +44,7 @@ backend:
   env:
     httpAddress: ":8080"
     instanceName: Darts League
+    publicBaseUrl: ""
     appTimezone: Europe/London
     appNow: ""
     slackPublicChannelId: ""

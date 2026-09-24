@@ -34,6 +34,7 @@
 - `backend/` - Go API and Postgres store
 - `frontend/` - React app
 - `.agents/skills/` - repo-local agent workflow and skill docs
+- `docs/` - operational guides, including [Slack notifications](docs/notifications.md)
 - `docker-compose.yml` - local container stack
 - `Makefile` - common local commands
 - `AGENTS.md` - project/product rules for coding agents
@@ -177,6 +178,9 @@ Both services use `APP_VERSION` during image builds. Local Docker Compose sets t
 
 The backend supports an optional Slack app integration.
 
+See the [notifications guide](docs/notifications.md) for setup, channel routing,
+message examples, safe testing, troubleshooting, and known limitations.
+
 Quick setup:
 
 1. Go to https://api.slack.com/apps and create a new app for your workspace.
@@ -198,18 +202,30 @@ Set these environment variables to enable it:
 - `SLACK_PUBLIC_CHANNEL_ID`
 - `SLACK_ADMIN_CHANNEL_ID`
 
+Set `PUBLIC_BASE_URL` to the public frontend URL (for example,
+`https://darts.example.com`) to include "View the standings here." in both weekly
+messages, with only "here" linked to that division's standings page. The link is
+omitted when this variable is unset. Weekly headers include the division name.
+
 Behavior:
 
 - successful player registrations post to the admin Slack channel
-- Monday `09:00 Europe/London` posts this week's fixtures to the public channel
-- Friday `09:00 Europe/London` posts this week's results plus the full standings table to the public channel
+- With Helm notifications enabled, Monday `09:00 Europe/London` posts this week's fixtures per division
+- Friday `09:00 Europe/London` posts this week's results plus cumulative standings per division
+- Weekly messages use each division's configured channel, falling back to `SLACK_PUBLIC_CHANNEL_ID`
+- Weekly scheduling is disabled by default; enable `backend.notifications.enabled` in Helm (the API server and Docker Compose do not schedule these commands)
 
-You can test the scheduled message commands locally from `backend/`:
+For manual delivery, run from `backend/` with the database and Slack environment
+configured. **These commands send real messages; there is no dry-run mode and
+rerunning them can produce duplicates.** Use test channels for testing.
 
 ```bash
-go run ./cmd/api notify weekly-fixtures or docker compose exec backend /usr/local/bin/darts-league-api notify weekly-fixtures
-go run ./cmd/api notify weekly-summary or docker compose exec backend /usr/local/bin/darts-league-api notify weekly-summary
+go run ./cmd/api notify weekly-fixtures
+go run ./cmd/api notify weekly-summary
 ```
+
+See the [testing and manual delivery section](docs/notifications.md#testing-and-manual-delivery)
+for automated tests and Docker Compose configuration.
 
 ## Testing
 
