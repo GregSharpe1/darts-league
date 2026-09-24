@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -21,13 +22,22 @@ type Store interface {
 	EnsureActiveSeason(ctx context.Context, season Season) (Season, error)
 	GetActiveSeason(ctx context.Context) (Season, error)
 	ListPlayersBySeason(ctx context.Context, seasonID int64) ([]Player, error)
+	AssignPlayer(ctx context.Context, seasonID, playerID int64, divisionID *int64, status PlayerStatus) (Player, error)
+	ListDivisionsBySeason(ctx context.Context, seasonID int64) ([]Division, error)
+	GetDivisionBySlug(ctx context.Context, seasonID int64, slug string) (Division, error)
+	ReplaceDivisions(ctx context.Context, seasonID int64, divisions []Division) ([]Division, error)
+	UpdateDivision(ctx context.Context, division Division) (Division, error)
 	ListFixturesBySeason(ctx context.Context, seasonID int64) ([]Fixture, error)
+	ListFixturesByDivision(ctx context.Context, divisionID int64) ([]Fixture, error)
 	GetFixture(ctx context.Context, fixtureID int64) (Fixture, error)
 	ListResultsBySeason(ctx context.Context, seasonID int64) ([]Result, error)
+	ListResultsByDivision(ctx context.Context, divisionID int64) ([]Result, error)
 	GetResultByFixture(ctx context.Context, fixtureID int64) (Result, error)
 	ListAuditLogsBySeason(ctx context.Context, seasonID int64) ([]AuditLogEntry, error)
+	ListAuditLogsByDivision(ctx context.Context, divisionID int64) ([]AuditLogEntry, error)
 	CreatePlayer(ctx context.Context, player Player) (Player, error)
 	CreateFixtures(ctx context.Context, fixtures []Fixture) ([]Fixture, error)
+	ReplaceFixturesBySeason(ctx context.Context, seasonID int64, fixtures []Fixture) ([]Fixture, error)
 	CreateResult(ctx context.Context, result Result) (Result, error)
 	UpdateResult(ctx context.Context, result Result) (Result, error)
 	DeleteResultByFixture(ctx context.Context, fixtureID int64) error
@@ -84,6 +94,7 @@ func (s RegistrationService) RegisterPlayer(ctx context.Context, player Player) 
 	player.SeasonID = season.ID
 	player.DisplayName = normalizeSpacing(player.DisplayName)
 	player.Nickname = normalizeSpacing(player.Nickname)
+	player.Status = PlayerStatusWaitlist
 	player.RegisteredAt = s.now().UTC()
 
 	created, err := s.store.CreatePlayer(ctx, player)
@@ -129,6 +140,91 @@ func (s RegistrationService) DeletePlayer(ctx context.Context, playerID int64) e
 	return s.store.DeletePlayer(ctx, season.ID, playerID)
 }
 
+func (s RegistrationService) AssignPlayer(ctx context.Context, playerID int64, divisionID *int64) (Player, error) {
+	season, players, err := s.activeSeasonAndPlayers(ctx)
+	if err != nil {
+		return Player{}, err
+	}
+	fixtures, err := s.store.ListFixturesBySeason(ctx, season.ID)
+	if err != nil {
+		return Player{}, err
+	}
+	adminLocked, err := NewSeasonServiceWithNow(s.store, s.now).adminLockedForSeason(season, fixtures)
+	if err != nil {
+		return Player{}, err
+	}
+	if adminLocked {
+		return Player{}, ErrPlayerAssignLocked
+	}
+	if divisionID != nil {
+		divisions, err := s.store.ListDivisionsBySeason(ctx, season.ID)
+		if err != nil {
+			return Player{}, err
+		}
+		found := false
+		for _, division := range divisions {
+			if division.ID == *divisionID {
+				found = true
+				break
+			}
+		}
+		if !found {
+			return Player{}, ErrDivisionNotFound
+		}
+	}
+	status := PlayerStatusWaitlist
+	if divisionID != nil {
+		status = PlayerStatusAssigned
+	}
+	assignedPlayer, err := s.store.AssignPlayer(ctx, season.ID, playerID, divisionID, status)
+	if err != nil {
+		return Player{}, err
+	}
+	if season.RegistrationOpen() {
+		return assignedPlayer, nil
+	}
+	updatedPlayers := make([]Player, len(players))
+	copy(updatedPlayers, players)
+	for index := range updatedPlayers {
+		if updatedPlayers[index].ID == assignedPlayer.ID {
+			updatedPlayers[index] = assignedPlayer
+			break
+		}
+	}
+	if err := rebuildSeasonFixtures(ctx, s.store, season, updatedPlayers); err != nil {
+		return Player{}, err
+	}
+	return assignedPlayer, nil
+}
+
+func rebuildSeasonFixtures(ctx context.Context, store Store, season Season, players []Player) error {
+	divisions, err := store.ListDivisionsBySeason(ctx, season.ID)
+	if err != nil {
+		return err
+	}
+	playersByDivision := make(map[int64][]Player, len(divisions))
+	for _, player := range players {
+		if player.DivisionID == nil || player.Status != PlayerStatusAssigned {
+			continue
+		}
+		playersByDivision[*player.DivisionID] = append(playersByDivision[*player.DivisionID], player)
+	}
+	fixtures := make([]Fixture, 0)
+	for _, division := range divisions {
+		divisionPlayers := playersByDivision[division.ID]
+		if len(divisionPlayers) < 2 {
+			continue
+		}
+		divisionFixtures, err := GenerateRoundRobinFixtures(season, division, divisionPlayers)
+		if err != nil {
+			return err
+		}
+		fixtures = append(fixtures, divisionFixtures...)
+	}
+	_, err = store.ReplaceFixturesBySeason(ctx, season.ID, fixtures)
+	return err
+}
+
 func (s RegistrationService) activeSeasonAndPlayers(ctx context.Context) (Season, []Player, error) {
 	return activeSeasonAndPlayers(ctx, s.store)
 }
@@ -158,12 +254,22 @@ type SeasonSummary struct {
 	Timezone         string
 	StartedAt        *time.Time
 	RegistrationOpen bool
+	SeasonStarted    bool
+	AdminLocked      bool
+	CanStartSeason   bool
+	CanEditSettings  bool
+	CanEditDivisionChannel bool
+	CanEditDivisions bool
+	CanAssignPlayers bool
 	PlayerCount      int
 	WeekCount        int
 	GameVariant      string
 	LegsToWin        int
 	GamesPerWeek     int
 	TotalFixtures    int
+	DivisionCount    int
+	AssignedCount    int
+	WaitlistCount    int
 }
 
 type SeasonService struct {
@@ -189,8 +295,16 @@ func (s SeasonService) Summary(ctx context.Context) (SeasonSummary, error) {
 	if err != nil {
 		return SeasonSummary{}, err
 	}
+	divisions, err := s.store.ListDivisionsBySeason(ctx, season.ID)
+	if err != nil {
+		return SeasonSummary{}, err
+	}
 
 	fixtures, err := s.store.ListFixturesBySeason(ctx, season.ID)
+	if err != nil {
+		return SeasonSummary{}, err
+	}
+	adminLocked, err := s.adminLockedForSeason(season, fixtures)
 	if err != nil {
 		return SeasonSummary{}, err
 	}
@@ -202,6 +316,16 @@ func (s SeasonService) Summary(ctx context.Context) (SeasonSummary, error) {
 		}
 	}
 
+	assignedCount := 0
+	waitlistCount := 0
+	for _, player := range players {
+		if player.DivisionID != nil && player.Status == PlayerStatusAssigned {
+			assignedCount++
+			continue
+		}
+		waitlistCount++
+	}
+
 	return SeasonSummary{
 		ID:               season.ID,
 		Name:             season.Name,
@@ -209,17 +333,61 @@ func (s SeasonService) Summary(ctx context.Context) (SeasonSummary, error) {
 		Timezone:         season.Timezone,
 		StartedAt:        season.StartedAt,
 		RegistrationOpen: season.RegistrationOpen(),
+		SeasonStarted:    !season.RegistrationOpen(),
+		AdminLocked:      adminLocked,
+		CanStartSeason:   season.RegistrationOpen(),
+		CanEditSettings:  !adminLocked,
+		CanEditDivisionChannel: !adminLocked,
+		CanEditDivisions: !adminLocked,
+		CanAssignPlayers: !adminLocked,
 		PlayerCount:      len(players),
 		WeekCount:        weekCount,
 		GameVariant:      season.GameVariant,
 		LegsToWin:        season.LegsToWin,
 		GamesPerWeek:     season.GamesPerWeek,
 		TotalFixtures:    len(fixtures),
+		DivisionCount:    len(divisions),
+		AssignedCount:    assignedCount,
+		WaitlistCount:    waitlistCount,
 	}, nil
+}
+
+func (s SeasonService) adminLockedForSeason(season Season, fixtures []Fixture) (bool, error) {
+	if season.RegistrationOpen() {
+		return false, nil
+	}
+	if len(fixtures) == 0 {
+		return false, nil
+	}
+	loc, err := time.LoadLocation(season.Timezone)
+	if err != nil {
+		return false, err
+	}
+	firstReveal := firstFixtureReveal(fixtures, loc)
+	if firstReveal == nil {
+		return false, nil
+	}
+	return !s.now().In(loc).Before(*firstReveal), nil
+}
+
+func firstFixtureReveal(fixtures []Fixture, loc *time.Location) *time.Time {
+	var firstReveal *time.Time
+	for _, fixture := range fixtures {
+		revealAt := time.Date(fixture.ScheduledAt.In(loc).Year(), fixture.ScheduledAt.In(loc).Month(), fixture.ScheduledAt.In(loc).Day(), 9, 0, 0, 0, loc)
+		if firstReveal == nil || revealAt.Before(*firstReveal) {
+			value := revealAt
+			firstReveal = &value
+		}
+	}
+	return firstReveal
 }
 
 func (s SeasonService) StartSeason(ctx context.Context) (SeasonSummary, error) {
 	season, players, err := activeSeasonAndPlayers(ctx, s.store)
+	if err != nil {
+		return SeasonSummary{}, err
+	}
+	divisions, err := s.store.ListDivisionsBySeason(ctx, season.ID)
 	if err != nil {
 		return SeasonSummary{}, err
 	}
@@ -235,14 +403,40 @@ func (s SeasonService) StartSeason(ctx context.Context) (SeasonSummary, error) {
 	if err := ValidateLegsToWin(season.LegsToWin); err != nil {
 		return SeasonSummary{}, err
 	}
-	if err := ValidateGamesPerWeek(season.GamesPerWeek, len(players)); err != nil {
-		return SeasonSummary{}, err
+	playersByDivision := make(map[int64][]Player, len(divisions))
+	for _, player := range players {
+		if player.DivisionID == nil || player.Status != PlayerStatusAssigned {
+			continue
+		}
+		playersByDivision[*player.DivisionID] = append(playersByDivision[*player.DivisionID], player)
+	}
+	hasEligibleDivision := false
+	for _, division := range divisions {
+		divisionPlayers := playersByDivision[division.ID]
+		if len(divisionPlayers) < 2 {
+			continue
+		}
+		hasEligibleDivision = true
+		if err := ValidateGamesPerWeek(season.GamesPerWeek, len(divisionPlayers)); err != nil {
+			return SeasonSummary{}, err
+		}
+	}
+	if !hasEligibleDivision {
+		return SeasonSummary{}, ErrNotEnoughPlayers
 	}
 
 	startedSeason := season.Start(s.now().UTC())
-	fixtures, err := GenerateRoundRobinFixtures(startedSeason, players)
-	if err != nil {
-		return SeasonSummary{}, err
+	fixtures := make([]Fixture, 0)
+	for _, division := range divisions {
+		divisionPlayers := playersByDivision[division.ID]
+		if len(divisionPlayers) < 2 {
+			continue
+		}
+		divisionFixtures, err := GenerateRoundRobinFixtures(startedSeason, division, divisionPlayers)
+		if err != nil {
+			return SeasonSummary{}, err
+		}
+		fixtures = append(fixtures, divisionFixtures...)
 	}
 
 	startedSeason, err = s.store.UpsertSeason(ctx, startedSeason)
@@ -267,7 +461,15 @@ func (s SeasonService) UpdateName(ctx context.Context, name string) (SeasonSumma
 		return SeasonSummary{}, err
 	}
 
-	if !season.RegistrationOpen() {
+	fixtures, err := s.store.ListFixturesBySeason(ctx, season.ID)
+	if err != nil {
+		return SeasonSummary{}, err
+	}
+	adminLocked, err := s.adminLockedForSeason(season, fixtures)
+	if err != nil {
+		return SeasonSummary{}, err
+	}
+	if adminLocked {
 		return SeasonSummary{}, ErrSeasonRenameLocked
 	}
 
@@ -289,7 +491,15 @@ func (s SeasonService) UpdateConfig(ctx context.Context, gameVariant string, leg
 		return SeasonSummary{}, err
 	}
 
-	if !season.RegistrationOpen() {
+	fixtures, err := s.store.ListFixturesBySeason(ctx, season.ID)
+	if err != nil {
+		return SeasonSummary{}, err
+	}
+	adminLocked, err := s.adminLockedForSeason(season, fixtures)
+	if err != nil {
+		return SeasonSummary{}, err
+	}
+	if adminLocked {
 		return SeasonSummary{}, ErrSeasonConfigLocked
 	}
 
@@ -300,12 +510,8 @@ func (s SeasonService) UpdateConfig(ctx context.Context, gameVariant string, leg
 		return SeasonSummary{}, err
 	}
 
-	players, err := s.store.ListPlayersBySeason(ctx, season.ID)
-	if err != nil {
-		return SeasonSummary{}, err
-	}
-	if err := ValidateGamesPerWeek(gamesPerWeek, len(players)); err != nil {
-		return SeasonSummary{}, err
+	if gamesPerWeek < 1 {
+		return SeasonSummary{}, ErrInvalidGamesPerWeek
 	}
 
 	season.GameVariant = gameVariant
@@ -328,7 +534,122 @@ func (s SeasonService) SchedulePreview(ctx context.Context) (SchedulePreview, er
 	if err != nil {
 		return SchedulePreview{}, err
 	}
-	return ComputeSchedulePreview(len(players), season.GameVariant, season.LegsToWin, season.GamesPerWeek), nil
+	divisions, err := s.store.ListDivisionsBySeason(ctx, season.ID)
+	if err != nil {
+		return SchedulePreview{}, err
+	}
+	playersByDivision := make(map[int64]int, len(divisions))
+	assignedCount := 0
+	totalFixtures := 0
+	weekCount := 0
+	for _, player := range players {
+		if player.DivisionID == nil || player.Status != PlayerStatusAssigned {
+			continue
+		}
+		assignedCount++
+		playersByDivision[*player.DivisionID]++
+	}
+	for _, division := range divisions {
+		preview := ComputeSchedulePreview(playersByDivision[division.ID], season.GameVariant, season.LegsToWin, season.GamesPerWeek)
+		totalFixtures += preview.TotalFixtures
+		if preview.WeekCount > weekCount {
+			weekCount = preview.WeekCount
+		}
+	}
+	return SchedulePreview{
+		PlayerCount:   assignedCount,
+		GameVariant:   season.GameVariant,
+		LegsToWin:     season.LegsToWin,
+		GamesPerWeek:  season.GamesPerWeek,
+		WeekCount:     weekCount,
+		TotalFixtures: totalFixtures,
+	}, nil
+}
+
+func (s SeasonService) ListDivisions(ctx context.Context) ([]Division, error) {
+	season, err := s.store.GetActiveSeason(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return s.store.ListDivisionsBySeason(ctx, season.ID)
+}
+
+func (s SeasonService) ProvisionDivisions(ctx context.Context, count int) ([]Division, error) {
+	season, err := s.store.GetActiveSeason(ctx)
+	if err != nil {
+		return nil, err
+	}
+	fixtures, err := s.store.ListFixturesBySeason(ctx, season.ID)
+	if err != nil {
+		return nil, err
+	}
+	adminLocked, err := s.adminLockedForSeason(season, fixtures)
+	if err != nil {
+		return nil, err
+	}
+	if adminLocked {
+		return nil, ErrDivisionSlugLocked
+	}
+	if err := ValidateDivisionCount(count); err != nil {
+		return nil, err
+	}
+	divisions := make([]Division, 0, count)
+	for i := 1; i <= count; i++ {
+		name := "Division " + strconv.Itoa(i)
+		divisions = append(divisions, Division{
+			SeasonID: season.ID,
+			Name:     name,
+			Slug:     NormalizeDivisionSlug(name),
+			Position: i,
+		})
+	}
+	return s.store.ReplaceDivisions(ctx, season.ID, divisions)
+}
+
+func (s SeasonService) UpdateDivision(ctx context.Context, divisionID int64, name, slug, slackPublicChannelID string) (Division, error) {
+	season, err := s.store.GetActiveSeason(ctx)
+	if err != nil {
+		return Division{}, err
+	}
+	fixtures, err := s.store.ListFixturesBySeason(ctx, season.ID)
+	if err != nil {
+		return Division{}, err
+	}
+	adminLocked, err := s.adminLockedForSeason(season, fixtures)
+	if err != nil {
+		return Division{}, err
+	}
+	if adminLocked {
+		return Division{}, ErrDivisionChannelLocked
+	}
+	if err := ValidateDivisionName(name); err != nil {
+		return Division{}, err
+	}
+	if err := ValidateDivisionSlug(slug); err != nil {
+		return Division{}, err
+	}
+	divisions, err := s.store.ListDivisionsBySeason(ctx, season.ID)
+	if err != nil {
+		return Division{}, err
+	}
+	for _, division := range divisions {
+		if division.ID != divisionID && NormalizeDivisionSlug(division.Slug) == NormalizeDivisionSlug(slug) {
+			return Division{}, ErrDuplicateDivisionSlug
+		}
+	}
+	for _, division := range divisions {
+		if division.ID == divisionID {
+			if !adminLocked {
+				division.Name = NormalizeDivisionName(name)
+			}
+			if season.RegistrationOpen() {
+				division.Slug = NormalizeDivisionSlug(slug)
+			}
+			division.SlackPublicChannelID = normalizeSpacing(slackPublicChannelID)
+			return s.store.UpdateDivision(ctx, division)
+		}
+	}
+	return Division{}, ErrDivisionNotFound
 }
 
 type PublicFixtureWeek struct {
@@ -361,13 +682,17 @@ func NewFixtureServiceWithNow(store Store, now func() time.Time) FixtureService 
 	return FixtureService{store: store, now: now}
 }
 
-func (s FixtureService) PublicSchedule(ctx context.Context) ([]PublicFixtureWeek, int, error) {
+func (s FixtureService) PublicSchedule(ctx context.Context, divisionSlug string) ([]PublicFixtureWeek, int, error) {
 	season, err := s.store.GetActiveSeason(ctx)
 	if err != nil {
 		return nil, 0, err
 	}
+	division, err := s.store.GetDivisionBySlug(ctx, season.ID, divisionSlug)
+	if err != nil {
+		return nil, 0, err
+	}
 
-	fixtures, err := s.store.ListFixturesBySeason(ctx, season.ID)
+	fixtures, err := s.store.ListFixturesByDivision(ctx, division.ID)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -383,7 +708,7 @@ func (s FixtureService) PublicSchedule(ctx context.Context) ([]PublicFixtureWeek
 	for _, player := range players {
 		playersByID[player.ID] = player
 	}
-	results, err := s.store.ListResultsBySeason(ctx, season.ID)
+	results, err := s.store.ListResultsByDivision(ctx, division.ID)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -455,12 +780,16 @@ type AdminFixture struct {
 	Result      *ResultSnapshot
 }
 
-func (s FixtureService) AdminSchedule(ctx context.Context) ([]AdminFixtureWeek, error) {
+func (s FixtureService) AdminSchedule(ctx context.Context, divisionSlug string) ([]AdminFixtureWeek, error) {
 	season, err := s.store.GetActiveSeason(ctx)
 	if err != nil {
 		return nil, err
 	}
-	fixtures, err := s.store.ListFixturesBySeason(ctx, season.ID)
+	division, err := s.store.GetDivisionBySlug(ctx, season.ID, divisionSlug)
+	if err != nil {
+		return nil, err
+	}
+	fixtures, err := s.store.ListFixturesByDivision(ctx, division.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -471,7 +800,7 @@ func (s FixtureService) AdminSchedule(ctx context.Context) ([]AdminFixtureWeek, 
 	if err != nil {
 		return nil, err
 	}
-	results, err := s.store.ListResultsBySeason(ctx, season.ID)
+	results, err := s.store.ListResultsByDivision(ctx, division.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -538,11 +867,7 @@ func (s ResultService) RecordResult(ctx context.Context, fixtureID int64, player
 		return Result{}, err
 	}
 
-	season, err := s.store.GetActiveSeason(ctx)
-	if err != nil {
-		return Result{}, err
-	}
-	results, err := s.store.ListResultsBySeason(ctx, season.ID)
+	results, err := s.store.ListResultsByDivision(ctx, fixture.DivisionID)
 	if err != nil {
 		return Result{}, err
 	}
@@ -632,8 +957,12 @@ func (s ResultService) DeleteResult(ctx context.Context, fixtureID int64, actor 
 	return err
 }
 
-func (s ResultService) Standings(ctx context.Context) ([]StandingRow, error) {
+func (s ResultService) Standings(ctx context.Context, divisionSlug string) ([]StandingRow, error) {
 	season, err := s.store.GetActiveSeason(ctx)
+	if err != nil {
+		return nil, err
+	}
+	division, err := s.store.GetDivisionBySlug(ctx, season.ID, divisionSlug)
 	if err != nil {
 		return nil, err
 	}
@@ -641,23 +970,33 @@ func (s ResultService) Standings(ctx context.Context) ([]StandingRow, error) {
 	if err != nil {
 		return nil, err
 	}
-	fixtures, err := s.store.ListFixturesBySeason(ctx, season.ID)
+	fixtures, err := s.store.ListFixturesByDivision(ctx, division.ID)
 	if err != nil {
 		return nil, err
 	}
-	results, err := s.store.ListResultsBySeason(ctx, season.ID)
+	results, err := s.store.ListResultsByDivision(ctx, division.ID)
 	if err != nil {
 		return nil, err
 	}
-	return BuildStandings(players, fixtures, results), nil
+	divisionPlayers := make([]Player, 0)
+	for _, player := range players {
+		if player.DivisionID != nil && *player.DivisionID == division.ID && player.Status == PlayerStatusAssigned {
+			divisionPlayers = append(divisionPlayers, player)
+		}
+	}
+	return BuildStandings(divisionPlayers, fixtures, results), nil
 }
 
-func (s ResultService) AuditLog(ctx context.Context) ([]AuditLogEntry, error) {
+func (s ResultService) AuditLog(ctx context.Context, divisionSlug string) ([]AuditLogEntry, error) {
 	season, err := s.store.GetActiveSeason(ctx)
 	if err != nil {
 		return nil, err
 	}
-	fixtures, err := s.store.ListFixturesBySeason(ctx, season.ID)
+	division, err := s.store.GetDivisionBySlug(ctx, season.ID, divisionSlug)
+	if err != nil {
+		return nil, err
+	}
+	fixtures, err := s.store.ListFixturesByDivision(ctx, division.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -665,7 +1004,7 @@ func (s ResultService) AuditLog(ctx context.Context) ([]AuditLogEntry, error) {
 	if err != nil {
 		return nil, err
 	}
-	entries, err := s.store.ListAuditLogsBySeason(ctx, season.ID)
+	entries, err := s.store.ListAuditLogsByDivision(ctx, division.ID)
 	if err != nil {
 		return nil, err
 	}

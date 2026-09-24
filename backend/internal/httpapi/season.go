@@ -3,6 +3,7 @@ package httpapi
 import (
 	"encoding/json"
 	"net/http"
+	"strconv"
 
 	"github.com/greg/darts-league/backend/internal/league"
 )
@@ -19,14 +20,17 @@ func NewSeasonHandler(seasons league.SeasonService, fixtures league.FixtureServi
 
 func (h SeasonHandler) RegisterRoutes(mux *http.ServeMux, requireAdmin func(http.HandlerFunc) http.HandlerFunc) {
 	mux.HandleFunc("GET /api/season", h.handleSeasonSummary)
+	mux.HandleFunc("GET /api/divisions", h.handleDivisions)
+	mux.HandleFunc("GET /api/divisions/{divisionSlug}/fixtures", h.handlePublicFixtures)
 	mux.HandleFunc("PUT /api/admin/season", requireAdmin(h.handleSeasonUpdate))
 	mux.HandleFunc("PUT /api/admin/season/config", requireAdmin(h.handleSeasonUpdateConfig))
 	mux.HandleFunc("POST /api/admin/season/start", requireAdmin(h.handleSeasonStart))
 	mux.HandleFunc("GET /api/admin/season/preview", requireAdmin(h.handleSchedulePreview))
 	mux.HandleFunc("GET /api/admin/season/presets", requireAdmin(h.handleGamesPerWeekPresets))
-	mux.HandleFunc("GET /api/admin/fixtures", requireAdmin(h.handleAdminFixtures))
-	mux.HandleFunc("GET /api/fixtures", h.handlePublicFixtures)
-	mux.HandleFunc("GET /api/fixtures/current-week", h.handleCurrentWeek)
+	mux.HandleFunc("GET /api/admin/divisions", requireAdmin(h.handleAdminDivisions))
+	mux.HandleFunc("POST /api/admin/divisions/provision", requireAdmin(h.handleProvisionDivisions))
+	mux.HandleFunc("PUT /api/admin/divisions/{divisionID}", requireAdmin(h.handleUpdateDivision))
+	mux.HandleFunc("GET /api/admin/divisions/{divisionSlug}/fixtures", requireAdmin(h.handleAdminFixtures))
 }
 
 func (h SeasonHandler) handleSeasonSummary(w http.ResponseWriter, r *http.Request) {
@@ -128,7 +132,7 @@ func (h SeasonHandler) handleGamesPerWeekPresets(w http.ResponseWriter, r *http.
 }
 
 func (h SeasonHandler) handlePublicFixtures(w http.ResponseWriter, r *http.Request) {
-	weeks, currentWeek, err := h.fixtures.PublicSchedule(r.Context())
+	weeks, currentWeek, err := h.fixtures.PublicSchedule(r.Context(), r.PathValue("divisionSlug"))
 	if err != nil {
 		writeDomainError(w, err)
 		return
@@ -140,31 +144,8 @@ func (h SeasonHandler) handlePublicFixtures(w http.ResponseWriter, r *http.Reque
 	})
 }
 
-func (h SeasonHandler) handleCurrentWeek(w http.ResponseWriter, r *http.Request) {
-	weeks, currentWeek, err := h.fixtures.PublicSchedule(r.Context())
-	if err != nil {
-		writeDomainError(w, err)
-		return
-	}
-
-	for _, week := range weeks {
-		if week.WeekNumber == currentWeek {
-			writeJSON(w, http.StatusOK, map[string]any{
-				"current_week": currentWeek,
-				"week":         toFixtureWeekResponse(week),
-			})
-			return
-		}
-	}
-
-	writeJSON(w, http.StatusOK, map[string]any{
-		"current_week": currentWeek,
-		"week":         nil,
-	})
-}
-
 func (h SeasonHandler) handleAdminFixtures(w http.ResponseWriter, r *http.Request) {
-	weeks, err := h.fixtures.AdminSchedule(r.Context())
+	weeks, err := h.fixtures.AdminSchedule(r.Context(), r.PathValue("divisionSlug"))
 	if err != nil {
 		writeDomainError(w, err)
 		return
@@ -196,6 +177,62 @@ func (h SeasonHandler) handleAdminFixtures(w http.ResponseWriter, r *http.Reques
 	writeJSON(w, http.StatusOK, map[string]any{"weeks": response})
 }
 
+func (h SeasonHandler) handleDivisions(w http.ResponseWriter, r *http.Request) {
+	divisions, err := h.seasons.ListDivisions(r.Context())
+	if err != nil {
+		writeDomainError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"divisions": toDivisionResponses(divisions)})
+}
+
+func (h SeasonHandler) handleAdminDivisions(w http.ResponseWriter, r *http.Request) {
+	h.handleDivisions(w, r)
+}
+
+type provisionDivisionsRequest struct {
+	Count int `json:"count"`
+}
+
+func (h SeasonHandler) handleProvisionDivisions(w http.ResponseWriter, r *http.Request) {
+	var req provisionDivisionsRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid_json", "Request body must be valid JSON.")
+		return
+	}
+	divisions, err := h.seasons.ProvisionDivisions(r.Context(), req.Count)
+	if err != nil {
+		writeDomainError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusCreated, map[string]any{"divisions": toDivisionResponses(divisions)})
+}
+
+type updateDivisionRequest struct {
+	Name                 string `json:"name"`
+	Slug                 string `json:"slug"`
+	SlackPublicChannelID string `json:"slack_public_channel_id"`
+}
+
+func (h SeasonHandler) handleUpdateDivision(w http.ResponseWriter, r *http.Request) {
+	divisionID, err := strconv.ParseInt(r.PathValue("divisionID"), 10, 64)
+	if err != nil || divisionID <= 0 {
+		writeError(w, http.StatusBadRequest, "invalid_division_id", "Division id must be a positive integer.")
+		return
+	}
+	var req updateDivisionRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid_json", "Request body must be valid JSON.")
+		return
+	}
+	division, err := h.seasons.UpdateDivision(r.Context(), divisionID, req.Name, req.Slug, req.SlackPublicChannelID)
+	if err != nil {
+		writeDomainError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, toDivisionResponse(division))
+}
+
 type seasonSummaryResponse struct {
 	ID               int64  `json:"id"`
 	InstanceName     string `json:"instance_name"`
@@ -204,12 +241,30 @@ type seasonSummaryResponse struct {
 	Timezone         string `json:"timezone"`
 	StartedAt        string `json:"started_at,omitempty"`
 	RegistrationOpen bool   `json:"registration_open"`
+	SeasonStarted    bool   `json:"season_started"`
+	AdminLocked      bool   `json:"admin_locked"`
+	CanStartSeason   bool   `json:"can_start_season"`
+	CanEditSettings  bool   `json:"can_edit_settings"`
+	CanEditDivisionChannel bool `json:"can_edit_division_channel"`
+	CanEditDivisions bool   `json:"can_edit_divisions"`
+	CanAssignPlayers bool   `json:"can_assign_players"`
 	PlayerCount      int    `json:"player_count"`
 	WeekCount        int    `json:"week_count"`
 	GameVariant      string `json:"game_variant"`
 	LegsToWin        int    `json:"legs_to_win"`
 	GamesPerWeek     int    `json:"games_per_week"`
 	TotalFixtures    int    `json:"total_fixtures"`
+	DivisionCount    int    `json:"division_count"`
+	AssignedCount    int    `json:"assigned_count"`
+	WaitlistCount    int    `json:"waitlist_count"`
+}
+
+type divisionResponse struct {
+	ID                   int64  `json:"id"`
+	Name                 string `json:"name"`
+	Slug                 string `json:"slug"`
+	Position             int    `json:"position"`
+	SlackPublicChannelID string `json:"slack_public_channel_id,omitempty"`
 }
 
 type fixtureWeekResponse struct {
@@ -237,17 +292,45 @@ func (h SeasonHandler) toSeasonSummaryResponse(summary league.SeasonSummary) sea
 		Status:           string(summary.Status),
 		Timezone:         summary.Timezone,
 		RegistrationOpen: summary.RegistrationOpen,
+		SeasonStarted:    summary.SeasonStarted,
+		AdminLocked:      summary.AdminLocked,
+		CanStartSeason:   summary.CanStartSeason,
+		CanEditSettings:  summary.CanEditSettings,
+		CanEditDivisionChannel: summary.CanEditDivisionChannel,
+		CanEditDivisions: summary.CanEditDivisions,
+		CanAssignPlayers: summary.CanAssignPlayers,
 		PlayerCount:      summary.PlayerCount,
 		WeekCount:        summary.WeekCount,
 		GameVariant:      summary.GameVariant,
 		LegsToWin:        summary.LegsToWin,
 		GamesPerWeek:     summary.GamesPerWeek,
 		TotalFixtures:    summary.TotalFixtures,
+		DivisionCount:    summary.DivisionCount,
+		AssignedCount:    summary.AssignedCount,
+		WaitlistCount:    summary.WaitlistCount,
 	}
 	if summary.StartedAt != nil {
 		response.StartedAt = summary.StartedAt.UTC().Format(http.TimeFormat)
 	}
 	return response
+}
+
+func toDivisionResponses(divisions []league.Division) []divisionResponse {
+	response := make([]divisionResponse, 0, len(divisions))
+	for _, division := range divisions {
+		response = append(response, toDivisionResponse(division))
+	}
+	return response
+}
+
+func toDivisionResponse(division league.Division) divisionResponse {
+	return divisionResponse{
+		ID:                   division.ID,
+		Name:                 division.Name,
+		Slug:                 division.Slug,
+		Position:             division.Position,
+		SlackPublicChannelID: division.SlackPublicChannelID,
+	}
 }
 
 func toFixtureWeekResponses(weeks []league.PublicFixtureWeek) []fixtureWeekResponse {

@@ -6,6 +6,10 @@ import (
 	"time"
 )
 
+func testDivision() Division {
+	return Division{ID: 1, SeasonID: 1, Name: "Division 1", Slug: "division-1", Position: 1}
+}
+
 func TestGenerateRoundRobinFixturesCreatesSingleRoundRobin(t *testing.T) {
 	t.Parallel()
 
@@ -19,7 +23,7 @@ func TestGenerateRoundRobinFixturesCreatesSingleRoundRobin(t *testing.T) {
 		{ID: 4, DisplayName: "Gerwyn Price"},
 	}
 
-	fixtures, err := GenerateRoundRobinFixtures(season, players)
+	fixtures, err := GenerateRoundRobinFixtures(season, testDivision(), players)
 	if err != nil {
 		t.Fatalf("expected fixtures to be generated, got %v", err)
 	}
@@ -95,7 +99,7 @@ func TestNoPairingAppearsInMultipleWeeks(t *testing.T) {
 		}
 	}
 
-	fixtures, err := GenerateRoundRobinFixtures(season, players)
+	fixtures, err := GenerateRoundRobinFixtures(season, testDivision(), players)
 	if err != nil {
 		t.Fatalf("expected fixtures, got error: %v", err)
 	}
@@ -159,7 +163,7 @@ func TestGenerateFixturesUsesSeasonConfig(t *testing.T) {
 		{ID: 2, DisplayName: "Michael Smith"},
 	}
 
-	fixtures, err := GenerateRoundRobinFixtures(season, players)
+	fixtures, err := GenerateRoundRobinFixtures(season, testDivision(), players)
 	if err != nil {
 		t.Fatalf("expected fixtures, got %v", err)
 	}
@@ -190,7 +194,7 @@ func TestGenerateFixturesWithMultipleGamesPerWeek(t *testing.T) {
 		players[i] = Player{ID: int64(i + 1), DisplayName: fmt.Sprintf("Player %d", i+1)}
 	}
 
-	fixtures, err := GenerateRoundRobinFixtures(season, players)
+	fixtures, err := GenerateRoundRobinFixtures(season, testDivision(), players)
 	if err != nil {
 		t.Fatalf("expected fixtures, got %v", err)
 	}
@@ -242,7 +246,7 @@ func TestGenerateFixturesPartialFinalWeek(t *testing.T) {
 		players[i] = Player{ID: int64(i + 1), DisplayName: fmt.Sprintf("Player %d", i+1)}
 	}
 
-	fixtures, err := GenerateRoundRobinFixtures(season, players)
+	fixtures, err := GenerateRoundRobinFixtures(season, testDivision(), players)
 	if err != nil {
 		t.Fatalf("expected fixtures, got %v", err)
 	}
@@ -278,7 +282,7 @@ func TestGenerateFixturesBlitzMode(t *testing.T) {
 		players[i] = Player{ID: int64(i + 1), DisplayName: fmt.Sprintf("Player %d", i+1)}
 	}
 
-	fixtures, err := GenerateRoundRobinFixtures(season, players)
+	fixtures, err := GenerateRoundRobinFixtures(season, testDivision(), players)
 	if err != nil {
 		t.Fatalf("expected fixtures, got %v", err)
 	}
@@ -307,7 +311,7 @@ func TestScheduledAtIsRevealTime(t *testing.T) {
 		{ID: 3, DisplayName: "Charlie"},
 	}
 
-	fixtures, err := GenerateRoundRobinFixtures(season, players)
+	fixtures, err := GenerateRoundRobinFixtures(season, testDivision(), players)
 	if err != nil {
 		t.Fatalf("expected fixtures, got %v", err)
 	}

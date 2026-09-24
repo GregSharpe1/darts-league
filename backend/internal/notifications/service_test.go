@@ -45,7 +45,11 @@ func TestComposeWeeklyFixturesMessageUsesCurrentPublicWeek(t *testing.T) {
 		return time.Date(2026, time.March, 30, 9, 0, 0, 0, loc)
 	}, nil, "CPUBLIC")
 
-	message, ok, err := service.ComposeWeeklyFixturesMessage(context.Background())
+	division, err := store.GetDivisionBySlug(context.Background(), 1, "division-1")
+	if err != nil {
+		t.Fatalf("expected division, got %v", err)
+	}
+	message, ok, err := service.ComposeWeeklyFixturesMessage(context.Background(), division)
 	if err != nil {
 		t.Fatalf("expected fixtures message, got %v", err)
 	}
@@ -77,6 +81,10 @@ func TestComposeWeeklySummaryMessageIncludesResultsAndFullStandings(t *testing.T
 		loc, _ := time.LoadLocation("Europe/London")
 		return time.Date(2026, time.March, 30, 9, 0, 0, 0, loc)
 	}, nil, "CPUBLIC")
+	division, err := store.GetDivisionBySlug(context.Background(), 1, "division-1")
+	if err != nil {
+		t.Fatalf("expected division, got %v", err)
+	}
 
 	resultService := league.NewResultServiceWithNow(store, func() time.Time {
 		return time.Date(2026, time.April, 3, 8, 0, 0, 0, time.UTC)
@@ -88,7 +96,7 @@ func TestComposeWeeklySummaryMessageIncludesResultsAndFullStandings(t *testing.T
 		t.Fatalf("expected second result to succeed, got %v", err)
 	}
 
-	message, ok, err := service.ComposeWeeklySummaryMessage(context.Background())
+	message, ok, err := service.ComposeWeeklySummaryMessage(context.Background(), division)
 	if err != nil {
 		t.Fatalf("expected summary message, got %v", err)
 	}
@@ -159,6 +167,22 @@ func seededWeeklyStore(t *testing.T) *league.MemoryStore {
 		if _, err := registration.RegisterPlayer(ctx, player); err != nil {
 			t.Fatalf("expected registration to succeed, got %v", err)
 		}
+	}
+	divisions, err := seasonService.ProvisionDivisions(ctx, 1)
+	if err != nil {
+		t.Fatalf("expected division provisioning to succeed, got %v", err)
+	}
+	registeredPlayers, err := registration.ListPlayers(ctx)
+	if err != nil {
+		t.Fatalf("expected players to be listed, got %v", err)
+	}
+	for _, player := range registeredPlayers {
+		if _, err := registration.AssignPlayer(ctx, player.ID, &divisions[0].ID); err != nil {
+			t.Fatalf("expected assignment to succeed, got %v", err)
+		}
+	}
+	if _, err := seasonService.UpdateDivision(ctx, divisions[0].ID, divisions[0].Name, divisions[0].Slug, "CPUBLIC"); err != nil {
+		t.Fatalf("expected division slack channel update to succeed, got %v", err)
 	}
 	if _, err := seasonService.StartSeason(ctx); err != nil {
 		t.Fatalf("expected season start to succeed, got %v", err)

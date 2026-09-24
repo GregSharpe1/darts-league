@@ -20,12 +20,30 @@ export type SeasonSummary = {
   timezone: string
   started_at?: string
   registration_open: boolean
+  season_started: boolean
+  admin_locked: boolean
+  can_start_season: boolean
+  can_edit_settings: boolean
+  can_edit_division_channel: boolean
+  can_edit_divisions: boolean
+  can_assign_players: boolean
   player_count: number
   week_count: number
   game_variant: string
   legs_to_win: number
   games_per_week: number
   total_fixtures: number
+  division_count: number
+  assigned_count: number
+  waitlist_count: number
+}
+
+export type Division = {
+  id: number
+  name: string
+  slug: string
+  position: number
+  slack_public_channel_id?: string
 }
 
 export type PublicFixture = {
@@ -75,6 +93,8 @@ export type Player = {
   nickname?: string
   preferred_name: string
   admin_label: string
+  division_id?: number
+  status: 'waitlist' | 'assigned'
   registered_at?: string
 }
 
@@ -139,6 +159,13 @@ type UpdateSeasonConfigRequest = {
   games_per_week: number
 }
 
+type UpdateDivisionRequest = {
+  id: number
+  name: string
+  slug: string
+  slack_public_channel_id?: string
+}
+
 export type GamesPerWeekPreset = {
   games_per_week: number
   week_count: number
@@ -196,46 +223,71 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   return data as T
 }
 
+function divisionPath(slug: string, suffix: 'fixtures' | 'standings') {
+  return `/api/divisions/${slug}/${suffix}`
+}
+
 export function useSeasonSummary() {
   return useQuery({ queryKey: ['season'], queryFn: () => request<SeasonSummary>('/api/season') })
+}
+
+export function useDivisions() {
+  return useQuery({
+    queryKey: ['divisions'],
+    queryFn: async () => (await request<{ divisions: Division[] }>('/api/divisions')).divisions,
+  })
 }
 
 export function useBackendVersion() {
   return useQuery({ queryKey: ['version'], queryFn: () => request<VersionResponse>('/api/version') })
 }
 
-export function usePublicFixtures() {
-  return useQuery({ queryKey: ['fixtures'], queryFn: () => request<PublicFixturesResponse>('/api/fixtures') })
-}
-
-export function useStandings() {
+export function useDivisionFixtures(slug: string) {
   return useQuery({
-    queryKey: ['standings'],
-    queryFn: async () => (await request<{ standings: StandingRow[] }>('/api/standings')).standings,
+    queryKey: ['division', slug, 'fixtures'],
+    queryFn: () => request<PublicFixturesResponse>(divisionPath(slug, 'fixtures')),
+    enabled: Boolean(slug),
   })
 }
 
-export function useAdminPlayers() {
+export function useDivisionStandings(slug: string) {
+  return useQuery({
+    queryKey: ['division', slug, 'standings'],
+    queryFn: async () => (await request<{ standings: StandingRow[] }>(divisionPath(slug, 'standings'))).standings,
+    enabled: Boolean(slug),
+  })
+}
+
+export function useAdminPlayers(enabled = true) {
   return useQuery({
     queryKey: ['admin', 'players'],
     queryFn: async () => (await request<{ players: Player[] }>('/api/admin/players')).players,
     retry: false,
-  })
-}
-
-export function useAdminFixtures(enabled: boolean) {
-  return useQuery({
-    queryKey: ['admin', 'fixtures'],
-    queryFn: async () => (await request<{ weeks: AdminFixtureWeek[] }>('/api/admin/fixtures')).weeks,
     enabled,
   })
 }
 
-export function useAuditLog(enabled: boolean) {
+export function useAdminDivisions(enabled: boolean) {
   return useQuery({
-    queryKey: ['admin', 'audit'],
-    queryFn: async () => (await request<{ entries: AuditEntry[] }>('/api/admin/audit')).entries,
+    queryKey: ['admin', 'divisions'],
+    queryFn: async () => (await request<{ divisions: Division[] }>('/api/admin/divisions')).divisions,
     enabled,
+  })
+}
+
+export function useAdminDivisionFixtures(slug: string, enabled: boolean) {
+  return useQuery({
+    queryKey: ['admin', 'division', slug, 'fixtures'],
+    queryFn: async () => (await request<{ weeks: AdminFixtureWeek[] }>(`/api/admin/divisions/${slug}/fixtures`)).weeks,
+    enabled: enabled && Boolean(slug),
+  })
+}
+
+export function useAuditLog(slug: string, enabled: boolean) {
+  return useQuery({
+    queryKey: ['admin', 'division', slug, 'audit'],
+    queryFn: async () => (await request<{ entries: AuditEntry[] }>(`/api/admin/divisions/${slug}/audit`)).entries,
+    enabled: enabled && Boolean(slug),
   })
 }
 
@@ -276,9 +328,9 @@ export function useSeasonStart() {
     mutationFn: () => request<SeasonSummary>('/api/admin/season/start', { method: 'POST' }),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['season'] })
-      await queryClient.invalidateQueries({ queryKey: ['fixtures'] })
-      await queryClient.invalidateQueries({ queryKey: ['admin', 'fixtures'] })
-      await queryClient.invalidateQueries({ queryKey: ['admin', 'players'] })
+      await queryClient.invalidateQueries({ queryKey: ['divisions'] })
+      await queryClient.invalidateQueries({ queryKey: ['division'] })
+      await queryClient.invalidateQueries({ queryKey: ['admin'] })
     },
   })
 }
@@ -332,6 +384,47 @@ export function useDeletePlayer() {
   })
 }
 
+export function useProvisionDivisions() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (count: number) => request<{ divisions: Division[] }>('/api/admin/divisions/provision', { method: 'POST', body: JSON.stringify({ count }) }),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['divisions'] })
+      await queryClient.invalidateQueries({ queryKey: ['admin', 'divisions'] })
+      await queryClient.invalidateQueries({ queryKey: ['admin', 'players'] })
+      await queryClient.invalidateQueries({ queryKey: ['season'] })
+    },
+  })
+}
+
+export function useUpdateDivision() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (payload: UpdateDivisionRequest) => request<Division>(`/api/admin/divisions/${payload.id}`, { method: 'PUT', body: JSON.stringify(payload) }),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['divisions'] })
+      await queryClient.invalidateQueries({ queryKey: ['admin', 'divisions'] })
+      await queryClient.invalidateQueries({ queryKey: ['division'] })
+    },
+  })
+}
+
+export function useAssignPlayer() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ playerId, divisionId }: { playerId: number; divisionId?: number }) => request<Player>(`/api/admin/players/${playerId}/assignment`, { method: 'PUT', body: JSON.stringify({ division_id: divisionId ?? null }) }),
+    onSuccess: async (updatedPlayer) => {
+      queryClient.setQueryData<Player[] | undefined>(['admin', 'players'], (players) =>
+        players?.map((player) => (player.id === updatedPlayer.id ? updatedPlayer : player)),
+      )
+      await queryClient.invalidateQueries({ queryKey: ['admin', 'players'] })
+      await queryClient.invalidateQueries({ queryKey: ['season'] })
+      await queryClient.invalidateQueries({ queryKey: ['division'] })
+      await queryClient.invalidateQueries({ queryKey: ['admin', 'division'] })
+    },
+  })
+}
+
 export function useSaveResult() {
   const queryClient = useQueryClient()
   return useMutation({
@@ -352,10 +445,8 @@ export function useSaveResult() {
       }
     },
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ['standings'] })
-      await queryClient.invalidateQueries({ queryKey: ['admin', 'fixtures'] })
-      await queryClient.invalidateQueries({ queryKey: ['fixtures'] })
-      await queryClient.invalidateQueries({ queryKey: ['admin', 'audit'] })
+      await queryClient.invalidateQueries({ queryKey: ['division'] })
+      await queryClient.invalidateQueries({ queryKey: ['admin', 'division'] })
     },
   })
 }
@@ -365,19 +456,17 @@ export function useUndoResult() {
   return useMutation({
     mutationFn: (fixtureId: number) => request<void>(`/api/admin/fixtures/${fixtureId}/result`, { method: 'DELETE' }),
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ['standings'] })
-      await queryClient.invalidateQueries({ queryKey: ['fixtures'] })
-      await queryClient.invalidateQueries({ queryKey: ['admin', 'fixtures'] })
-      await queryClient.invalidateQueries({ queryKey: ['admin', 'audit'] })
+      await queryClient.invalidateQueries({ queryKey: ['division'] })
+      await queryClient.invalidateQueries({ queryKey: ['admin', 'division'] })
     },
   })
 }
 
 export function formatAverage(value?: number) {
-	if (value === undefined) {
-		return ''
-	}
-	return value.toFixed(1)
+  if (value === undefined) {
+    return ''
+  }
+  return value.toFixed(1)
 }
 
 export function formatWhen(value?: string) {

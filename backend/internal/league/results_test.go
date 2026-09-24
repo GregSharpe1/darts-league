@@ -147,6 +147,19 @@ func TestEditResultUpdatesStandingsAndWritesAuditLog(t *testing.T) {
 			t.Fatalf("expected player registration to succeed, got %v", err)
 		}
 	}
+	divisions, err := seasonService.ProvisionDivisions(ctx, 1)
+	if err != nil {
+		t.Fatalf("expected divisions to be provisioned, got %v", err)
+	}
+	players, err := registration.ListPlayers(ctx)
+	if err != nil {
+		t.Fatalf("expected players to be listed, got %v", err)
+	}
+	for _, player := range players {
+		if _, err := registration.AssignPlayer(ctx, player.ID, &divisions[0].ID); err != nil {
+			t.Fatalf("expected player assignment to succeed, got %v", err)
+		}
+	}
 	if _, err := seasonService.StartSeason(ctx); err != nil {
 		t.Fatalf("expected season start to succeed, got %v", err)
 	}
@@ -163,14 +176,14 @@ func TestEditResultUpdatesStandingsAndWritesAuditLog(t *testing.T) {
 		t.Fatalf("expected result edit to succeed, got %v", err)
 	}
 
-	standings, err := resultService.Standings(ctx)
+	standings, err := resultService.Standings(ctx, divisions[0].Slug)
 	if err != nil {
 		t.Fatalf("expected standings, got %v", err)
 	}
 	if standings[0].LegsAgainst != 2 {
 		t.Fatalf("expected edited result to affect standings, got %+v", standings[0])
 	}
-	audit, err := resultService.AuditLog(ctx)
+	audit, err := resultService.AuditLog(ctx, divisions[0].Slug)
 	if err != nil {
 		t.Fatalf("expected audit log, got %v", err)
 	}

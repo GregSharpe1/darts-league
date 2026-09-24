@@ -22,6 +22,7 @@ func (h RegistrationHandler) RegisterRoutes(mux *http.ServeMux, requireAdmin fun
 	mux.HandleFunc("POST /api/players/register", h.handleRegisterPlayer)
 	mux.HandleFunc("GET /api/admin/players", requireAdmin(h.handleListPlayers))
 	mux.HandleFunc("DELETE /api/admin/players/{playerID}", requireAdmin(h.handleDeletePlayer))
+	mux.HandleFunc("PUT /api/admin/players/{playerID}/assignment", requireAdmin(h.handleAssignPlayer))
 }
 
 type registerPlayerRequest struct {
@@ -35,7 +36,13 @@ type playerResponse struct {
 	Nickname      string `json:"nickname,omitempty"`
 	PreferredName string `json:"preferred_name"`
 	AdminLabel    string `json:"admin_label"`
+	DivisionID    *int64 `json:"division_id,omitempty"`
+	Status        string `json:"status"`
 	RegisteredAt  string `json:"registered_at"`
+}
+
+type assignPlayerRequest struct {
+	DivisionID *int64 `json:"division_id"`
 }
 
 func (h RegistrationHandler) handleRegisterPlayer(w http.ResponseWriter, r *http.Request) {
@@ -87,12 +94,33 @@ func (h RegistrationHandler) handleDeletePlayer(w http.ResponseWriter, r *http.R
 	w.WriteHeader(http.StatusNoContent)
 }
 
+func (h RegistrationHandler) handleAssignPlayer(w http.ResponseWriter, r *http.Request) {
+	playerID, err := strconv.ParseInt(r.PathValue("playerID"), 10, 64)
+	if err != nil || playerID <= 0 {
+		writeError(w, http.StatusBadRequest, "invalid_player_id", "Player id must be a positive integer.")
+		return
+	}
+	var req assignPlayerRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid_json", "Request body must be valid JSON.")
+		return
+	}
+	player, err := h.service.AssignPlayer(r.Context(), playerID, req.DivisionID)
+	if err != nil {
+		writeDomainError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, toPlayerResponse(player))
+}
+
 func toPlayerResponse(player league.Player) playerResponse {
 	response := playerResponse{
 		ID:            player.ID,
 		DisplayName:   player.DisplayName,
 		PreferredName: player.PreferredName(),
 		AdminLabel:    player.AdminLabel(),
+		DivisionID:    player.DivisionID,
+		Status:        string(player.Status),
 	}
 
 	if strings.TrimSpace(player.Nickname) != "" {
@@ -115,15 +143,31 @@ func writeDomainError(w http.ResponseWriter, err error) {
 	case errors.Is(err, league.ErrSeasonNameLength):
 		writeError(w, http.StatusBadRequest, "season_name_length", "League name must be between 2 and 60 characters.")
 	case errors.Is(err, league.ErrDuplicatePlayerName):
-		writeError(w, http.StatusConflict, "duplicate_display_name", "Display name already exists for this season.")
+		writeError(w, http.StatusConflict, "duplicate_display_name", "Display name is reserved and cannot be reused.")
 	case errors.Is(err, league.ErrRegistrationClosed):
 		writeError(w, http.StatusConflict, "registration_closed", "Registration is closed for the active season.")
 	case errors.Is(err, league.ErrSeasonRenameLocked):
-		writeError(w, http.StatusConflict, "season_started", "League name can only be changed before the season starts.")
+		writeError(w, http.StatusConflict, "season_locked", "League name can only be changed before the first week is released.")
 	case errors.Is(err, league.ErrPlayerDeleteLocked):
 		writeError(w, http.StatusConflict, "season_started", "Players can only be deleted before the season starts.")
+	case errors.Is(err, league.ErrPlayerAssignLocked):
+		writeError(w, http.StatusConflict, "season_started", "Players can only be assigned before the season starts.")
 	case errors.Is(err, league.ErrPlayerNotFound):
 		writeError(w, http.StatusNotFound, "player_not_found", "Player was not found in the active season.")
+	case errors.Is(err, league.ErrDivisionNotFound):
+		writeError(w, http.StatusNotFound, "division_not_found", "Division was not found.")
+	case errors.Is(err, league.ErrInvalidDivisionCount):
+		writeError(w, http.StatusBadRequest, "invalid_division_count", "Division count must be at least 1.")
+	case errors.Is(err, league.ErrDivisionNameRequired):
+		writeError(w, http.StatusBadRequest, "division_name_required", "Division name is required.")
+	case errors.Is(err, league.ErrDivisionSlugRequired):
+		writeError(w, http.StatusBadRequest, "division_slug_required", "Division slug is required.")
+	case errors.Is(err, league.ErrDuplicateDivisionSlug):
+		writeError(w, http.StatusConflict, "duplicate_division_slug", "Division slug already exists in this season.")
+	case errors.Is(err, league.ErrDivisionSlugLocked):
+		writeError(w, http.StatusConflict, "season_started", "Division names and slugs can only be changed before the season starts.")
+	case errors.Is(err, league.ErrDivisionChannelLocked):
+		writeError(w, http.StatusConflict, "season_locked", "Division channel can only be changed before the first week is released.")
 	case errors.Is(err, league.ErrSeasonNotFound):
 		writeError(w, http.StatusNotFound, "season_not_found", "No active season is available.")
 	case errors.Is(err, league.ErrSeasonAlreadyStarted):
@@ -133,7 +177,7 @@ func writeDomainError(w http.ResponseWriter, err error) {
 	case errors.Is(err, league.ErrFixtureNotFound):
 		writeError(w, http.StatusNotFound, "fixture_not_found", "Fixture was not found.")
 	case errors.Is(err, league.ErrSeasonConfigLocked):
-		writeError(w, http.StatusConflict, "season_started", "Match configuration can only be changed before the season starts.")
+		writeError(w, http.StatusConflict, "season_locked", "Match configuration can only be changed before the first week is released.")
 	case errors.Is(err, league.ErrInvalidGameVariant):
 		writeError(w, http.StatusBadRequest, "invalid_game_variant", "Game variant must be 301 or 501.")
 	case errors.Is(err, league.ErrInvalidLegsToWin):
