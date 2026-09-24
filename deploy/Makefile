@@ -29,7 +29,7 @@ helm-diff:
 	$(HELM) diff upgrade --install $(RELEASE_NAME) $(CHART_DIR) -n $(NAMESPACE) -f $(VALUES_FILE)
 
 helm-deploy:
-	$(HELM) upgrade --install $(RELEASE_NAME) $(CHART_DIR) -n $(NAMESPACE) --create-namespace -f $(VALUES_FILE)
+	$(HELM) upgrade --install $(RELEASE_NAME) $(CHART_DIR) -n $(NAMESPACE) -f $(VALUES_FILE)
 
 helm-uninstall:
 	$(HELM) uninstall $(RELEASE_NAME) -n $(NAMESPACE)
