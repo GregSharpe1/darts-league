@@ -204,6 +204,9 @@ func (s WeeklyService) weeklyData(ctx context.Context, division league.Division)
 	if err != nil {
 		return weeklyMessageData{}, false, err
 	}
+	if season.Status == league.SeasonStatusCompleted || division.SeasonID != season.ID {
+		return weeklyMessageData{}, false, nil
+	}
 	fixtures, err := s.store.ListFixturesByDivision(ctx, division.ID)
 	if err != nil {
 		return weeklyMessageData{}, false, err

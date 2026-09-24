@@ -148,6 +148,34 @@ func TestPostWeeklySummaryUsesPublicChannel(t *testing.T) {
 	}
 }
 
+func TestCompletedSeasonDoesNotPostWeeklyMessages(t *testing.T) {
+	store := seededWeeklyStore(t)
+	ctx := context.Background()
+	fixtures, err := store.ListFixturesBySeason(ctx, 1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	results := league.NewResultService(store)
+	for _, fixture := range fixtures {
+		if _, err := results.RecordResult(ctx, fixture.ID, 3, 0, nil, nil); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := store.CloseSeason(ctx, 1); err != nil {
+		t.Fatal(err)
+	}
+	poster := &stubPoster{}
+	service := NewWeeklyService(store, func() time.Time { return time.Date(2026, 4, 10, 10, 0, 0, 0, time.UTC) }, poster, "CPUBLIC")
+	for _, post := range []func(context.Context) (bool, error){service.PostWeeklyFixtures, service.PostWeeklySummary} {
+		if posted, err := post(ctx); err != nil || posted {
+			t.Fatalf("completed notification: %v %v", posted, err)
+		}
+	}
+	if len(poster.messages) != 0 {
+		t.Fatal("posted completed season")
+	}
+}
+
 func seededWeeklyStore(t *testing.T) *league.MemoryStore {
 	t.Helper()
 
