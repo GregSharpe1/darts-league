@@ -12,15 +12,19 @@ export function SeasonLifecycle({ season }: { readonly season: SeasonSummary }) 
   if (season.status === 'registration_open') return null
 
   return (
-    <section className="admin-card" aria-label="Season lifecycle">
+    <section className="admin-card season-lifecycle" aria-label="Season lifecycle">
       {season.status === 'started' ? (
-        <>
-          <h2>Finish the league</h2>
-          <p id="close-league-help">{season.remaining_fixtures} match{season.remaining_fixtures === 1 ? '' : 'es'} remaining across all divisions. Closing makes results read-only and keeps the division boards visible.</p>
-          <button type="button" aria-describedby="close-league-help" disabled={!season.can_close_season || close.isPending} onClick={() => {
-            if (window.confirm('Close this league? All divisions and results become read-only. Results stay visible until the next season registration opens. This cannot be undone.')) close.mutate({ season_id: season.id })
-          }}>{close.isPending ? 'Closing league...' : 'Close league'}</button>
-        </>
+        <div className="card-header">
+          <div className="card-copy">
+            <h2>Finish the league</h2>
+            <p id="close-league-help">{season.remaining_fixtures} match{season.remaining_fixtures === 1 ? '' : 'es'} remaining across all divisions. {!season.can_close_season ? 'Record every match result to enable closure. ' : ''}Closing makes results read-only and keeps the division boards visible.</p>
+          </div>
+          <div className="toolbar-actions season-close-actions">
+            <button className="season-close-button" type="button" aria-describedby="close-league-help" disabled={!season.can_close_season || close.isPending} onClick={() => {
+              if (window.confirm('Close this league? All divisions and results become read-only. Results stay visible until the next season registration opens. This cannot be undone.')) close.mutate({ season_id: season.id })
+            }}>{close.isPending ? 'Closing league...' : 'Close league'}</button>
+          </div>
+        </div>
       ) : (
         <>
           <h2>League completed</h2>

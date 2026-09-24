@@ -4,6 +4,7 @@ import { execSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 
 import { expect, test, type Page } from '@playwright/test'
+import { expectAdminActionLayout, expectMatchingControlHeights, expectMatchingDivisionWidths } from './form-control-checks'
 
 const captureUiScreenshots = process.env.CAPTURE_UI_SCREENSHOTS === '1'
 const currentDirectory = path.dirname(fileURLToPath(import.meta.url))
@@ -64,13 +65,16 @@ test('register, assign divisions, start season, enter result, and view division 
   }
 
   await captureScreenshot(page, 'register-open.png')
+  await expectMatchingControlHeights(page)
 
   await page.goto('/admin')
   await page.getByLabel('Username').fill('admin')
   await page.getByLabel('Password').fill('change-me')
+  await expectMatchingControlHeights(page)
   await page.getByRole('button', { name: /unlock admin tools/i }).click()
 
   await expect(page.getByRole('heading', { name: /league settings/i })).toBeVisible()
+  await expectMatchingControlHeights(page)
   await page.getByLabel('League name').fill(leagueName)
   await page.getByRole('button', { name: /save config/i }).click()
   await expect(page.getByText(leagueName)).toBeVisible()
@@ -97,10 +101,19 @@ test('register, assign divisions, start season, enter result, and view division 
   }
 
   await captureScreenshot(page, 'admin-pre-start.png')
+  await expectMatchingControlHeights(page)
+  await expectAdminActionLayout(page)
+  await expectMatchingDivisionWidths(page)
 
   await page.getByRole('button', { name: /start season/i }).click()
   await expect(page.getByText(/registration is locked/i)).toBeVisible()
   await expect(page.getByRole('button', { name: /start season/i })).toHaveCount(0)
+  const unavailableClose = page.getByRole('button', { name: 'Close league', exact: true })
+  await expect(unavailableClose).toBeDisabled()
+  await expect(unavailableClose).toHaveCSS('background-image', 'none')
+  await expect(unavailableClose).toHaveCSS('cursor', 'not-allowed')
+  const closeWidth = await unavailableClose.evaluate((button) => button.getBoundingClientRect().width / parseFloat(getComputedStyle(document.documentElement).fontSize))
+  expect(closeWidth).toBeGreaterThanOrEqual(12)
   await captureScreenshot(page, 'admin-post-start.png')
 
   await page.goto('/admin/divisions/division-1')
@@ -185,6 +198,22 @@ test('register, assign divisions, start season, enter result, and view division 
   }
   await page.goto('/admin')
   await expect(page.getByRole('button', { name: 'Close league' })).toBeEnabled()
+  await expect(page.getByRole('button', { name: 'Close league' })).toHaveCSS('background-image', /linear-gradient/)
+  const closeBounds = await page.getByRole('button', { name: 'Close league' }).boundingBox()
+  const helpBounds = await page.locator('#close-league-help').boundingBox()
+  if (!closeBounds || !helpBounds) throw new Error('Close controls must be visible')
+  expect(closeBounds.x).toBeGreaterThanOrEqual(helpBounds.x + helpBounds.width)
+  const lifecycleGaps = await page.getByRole('region', { name: 'Season lifecycle' }).evaluate((card) => {
+    const previous = card.previousElementSibling
+    const next = card.nextElementSibling
+    if (!previous || !next) throw new Error('Expected surrounding admin sections')
+    return {
+      above: card.getBoundingClientRect().top - previous.getBoundingClientRect().bottom,
+      below: next.getBoundingClientRect().top - card.getBoundingClientRect().bottom,
+    }
+  })
+  expect(lifecycleGaps.below).toBeGreaterThan(0)
+  expect(lifecycleGaps.above).toBeCloseTo(lifecycleGaps.below)
   page.once('dialog', (dialog) => dialog.dismiss())
   await page.getByRole('button', { name: 'Close league' }).click()
   await expect(page.getByRole('button', { name: 'Close league' })).toBeEnabled()
@@ -195,6 +224,11 @@ test('register, assign divisions, start season, enter result, and view division 
   await expect(page.getByRole('heading', { name: 'League completed' })).toBeVisible()
   for (const width of [375, 768, 1280]) {
     await page.setViewportSize({ width, height: 900 })
+    const nextName = await page.getByLabel('Next league name').boundingBox()
+    const openRegistration = await page.getByRole('button', { name: 'Open next season registration' }).boundingBox()
+    if (!nextName || !openRegistration) throw new Error('Next-season controls must be visible')
+    expect(Math.abs(openRegistration.height - nextName.height)).toBeLessThan(1)
+    expect(Math.abs(openRegistration.width - nextName.width)).toBeLessThan(1)
     await captureScreenshot(page, `admin-completed-${width}.png`)
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
   }
@@ -215,6 +249,8 @@ test('register, assign divisions, start season, enter result, and view division 
   }
   await page.goto('/')
   await expect(page.getByText('League completed. Final results remain available.')).toBeVisible()
+  await expect(page.getByRole('heading', { name: "View the previous league's scores here" })).toBeVisible()
+  await expect(page.getByText('Monday 09:00 unlocks')).toHaveCount(0)
   await page.goto('/admin')
   await page.getByLabel('Next league name').fill('Next League')
   page.once('dialog', (dialog) => dialog.accept())

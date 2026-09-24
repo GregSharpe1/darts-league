@@ -45,6 +45,26 @@ describe('Home page', () => {
     expect(screen.getByText(/voltage/i)).toBeInTheDocument()
   })
 
+  it.each([false, true])('shows previous-league boards after every match is played (closed: %s)', async (seasonCompleted) => {
+    vi.stubGlobal('fetch', createMockFetch({ authenticated: false, seasonStarted: true, seasonCompleted, remainingFixtures: 0, seasonName: 'Finished League' }))
+    renderApp('/')
+
+    expect(await screen.findByRole('heading', { name: "View the previous league's scores here" })).toBeInTheDocument()
+    expect(screen.queryByText('Monday 09:00 unlocks')).not.toBeInTheDocument()
+    expect(screen.queryByText('Final standings')).not.toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'Public division boards' })).not.toBeInTheDocument()
+    expect(screen.getAllByRole('link', { name: 'View standings' })).toHaveLength(2)
+  })
+
+  it('keeps the weekly unlock notice while matches remain', async () => {
+    vi.stubGlobal('fetch', createMockFetch({ authenticated: false, seasonStarted: true, remainingFixtures: 1, seasonName: 'Live League' }))
+    renderApp('/')
+
+    expect(await screen.findByText('season live across 2 divisions.')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Public division boards' })).toBeInTheDocument()
+    expect(screen.getByText('Monday 09:00 unlocks')).toBeInTheDocument()
+  })
+
   it('lets a player search their remaining unplayed fixtures inside a division', async () => {
     renderApp('/divisions/premier')
 

@@ -689,6 +689,27 @@
   margin-top: 1rem;
 }
 
+.admin-login button {
+  align-self: end;
+}
+
+.save-config-button {
+  grid-column: -2 / -1;
+}
+
+.season-start-button {
+  min-width: 12rem;
+}
+
+.division-actions {
+  grid-column: 1 / -1;
+}
+
+.division-actions > * {
+  flex: 1;
+  white-space: nowrap;
+}
+
 .admin-login button,
 .form-preview button,
 .score-form button,
@@ -745,6 +766,26 @@
   display: flex;
   gap: 0.75rem;
   flex-wrap: wrap;
+}
+
+.season-close-actions {
+  flex-shrink: 0;
+  align-self: center;
+}
+
+.season-close-button {
+  min-width: clamp(8rem, 20vw, 12rem);
+}
+
+.season-close-button:disabled {
+  color: var(--color-muted);
+  background: var(--color-surface-raised);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  cursor: not-allowed;
+}
+
+.season-lifecycle {
+  margin-top: 1.5rem;
 }
 
 .toolbar-actions .secondary-button {

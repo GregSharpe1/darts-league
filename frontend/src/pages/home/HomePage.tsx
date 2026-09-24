@@ -6,6 +6,8 @@ import { readError } from '../../lib/utils'
 export function HomePage() {
   const seasonQuery = useSeasonSummary()
   const divisionsQuery = useDivisions()
+  const season = seasonQuery.data
+  const leagueFinished = season?.status === 'completed' || (season?.status === 'started' && season.total_fixtures > 0 && season.remaining_fixtures === 0)
 
   return (
     <>
@@ -41,9 +43,9 @@ export function HomePage() {
         <div className="card-header">
           <div className="card-copy">
             <span className="section-eyebrow">Division list</span>
-            <h2>Public division boards</h2>
+            <h2>{leagueFinished ? "View the previous league's scores here" : 'Public division boards'}</h2>
           </div>
-          <span className="status-pill live">{seasonQuery.data?.status === 'completed' ? 'Final standings' : 'Monday 09:00 unlocks'}</span>
+          {!leagueFinished ? <span className="status-pill live">Monday 09:00 unlocks</span> : null}
         </div>
         {divisionsQuery.isLoading ? <StateNotice message="Loading divisions..." /> : null}
         {divisionsQuery.error ? <StateNotice tone="error" message={readError(divisionsQuery.error)} /> : null}

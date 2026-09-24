@@ -111,7 +111,7 @@ export function AdminPage() {
             </div>
             <div className="toolbar-actions">
               {seasonQuery.data?.can_start_season ? (
-                <button type="button" onClick={() => seasonStartMutation.mutate()} disabled={seasonStartMutation.isPending || (seasonQuery.data?.assigned_count ?? 0) < 2}>{seasonStartMutation.isPending ? 'Starting season...' : 'Start season'}</button>
+                <button className="season-start-button" type="button" onClick={() => seasonStartMutation.mutate()} disabled={seasonStartMutation.isPending || (seasonQuery.data?.assigned_count ?? 0) < 2}>{seasonStartMutation.isPending ? 'Starting season...' : 'Start season'}</button>
               ) : null}
             </div>
           </section>
@@ -161,7 +161,7 @@ export function AdminPage() {
                   </select>
                 </div>
                 {seasonQuery.data?.can_edit_settings ? (
-                  <button type="submit" disabled={updateSeasonMutation.isPending || updateConfigMutation.isPending}>{updateSeasonMutation.isPending || updateConfigMutation.isPending ? 'Saving...' : 'Save config'}</button>
+                  <button className="save-config-button" type="submit" disabled={updateSeasonMutation.isPending || updateConfigMutation.isPending}>{updateSeasonMutation.isPending || updateConfigMutation.isPending ? 'Saving...' : 'Save config'}</button>
                 ) : null}
               </form>
               {updateSeasonMutation.error ? <StateNotice tone="error" message={readError(updateSeasonMutation.error)} compact /> : null}
@@ -204,7 +204,7 @@ export function AdminPage() {
                       <label htmlFor={`division-slack-${division.id}`}>Slack public channel</label>
                       <input id={`division-slack-${division.id}`} name={`division-slack-${division.id}`} defaultValue={division.slack_public_channel_id ?? ''} disabled={!seasonQuery.data?.can_edit_division_channel} />
                     </div>
-                    <div className="toolbar-actions">
+                    <div className="toolbar-actions division-actions">
                      {seasonQuery.data?.can_edit_divisions ? (
                        <button type="submit" disabled={updateDivisionMutation.isPending}>{updateDivisionMutation.isPending ? 'Saving...' : 'Save division'}</button>
                      ) : null}
