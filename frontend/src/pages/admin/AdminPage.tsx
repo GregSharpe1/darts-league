@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import type { FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 import {
@@ -20,6 +20,7 @@ import {
 import { StateNotice } from '../../components/StateNotice'
 import { readError } from '../../lib/utils'
 import { PlayerRoster } from './PlayerRoster'
+import { SeasonLifecycle } from './SeasonLifecycle'
 
 export function AdminPage() {
   const seasonQuery = useSeasonSummary()
@@ -45,16 +46,15 @@ export function AdminPage() {
   const [gamesPerWeek, setGamesPerWeek] = useState('1')
   const [divisionCount, setDivisionCount] = useState('2')
 
-  useEffect(() => {
+  const settingsKey = JSON.stringify([seasonQuery.data?.id, seasonQuery.data?.name, seasonQuery.data?.game_variant, seasonQuery.data?.legs_to_win, seasonQuery.data?.games_per_week])
+  const [previousSettingsKey, setPreviousSettingsKey] = useState('')
+  if (settingsKey !== previousSettingsKey) {
+    setPreviousSettingsKey(settingsKey)
     setSeasonName(seasonQuery.data?.name ?? '')
-  }, [seasonQuery.data?.name])
-
-  useEffect(() => {
-    if (!seasonQuery.data) return
-    setGameVariant(seasonQuery.data.game_variant || '501')
-    setLegsToWin(String(seasonQuery.data.legs_to_win || 3))
-    setGamesPerWeek(String(seasonQuery.data.games_per_week || 1))
-  }, [seasonQuery.data?.game_variant, seasonQuery.data?.legs_to_win, seasonQuery.data?.games_per_week])
+    setGameVariant(seasonQuery.data?.game_variant ?? '501')
+    setLegsToWin(String(seasonQuery.data?.legs_to_win ?? 3))
+    setGamesPerWeek(String(seasonQuery.data?.games_per_week ?? 1))
+  }
 
   const handleLogin = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -107,7 +107,7 @@ export function AdminPage() {
           <section className="admin-toolbar">
             <div className="toolbar-block">
               <strong>{seasonQuery.data?.name ?? 'Active season'}</strong>
-              <span className="fixture-meta">{seasonQuery.data?.registration_open ? 'Registration open' : 'Season started'}</span>
+              <span className="fixture-meta">{seasonQuery.data?.status === 'completed' ? 'Season completed' : seasonQuery.data?.registration_open ? 'Registration open' : 'Season started'}</span>
             </div>
             <div className="toolbar-actions">
               {seasonQuery.data?.can_start_season ? (
@@ -117,8 +117,9 @@ export function AdminPage() {
           </section>
 
           {seasonStartMutation.error ? <StateNotice tone="error" message={readError(seasonStartMutation.error)} compact /> : null}
-          {seasonQuery.data?.season_started && !seasonQuery.data?.admin_locked ? <StateNotice message="Registration is locked. League settings and Slack channels stay editable until the first week is released." compact /> : null}
-          {seasonQuery.data?.admin_locked ? <StateNotice message="The first week is live. Central season setup is now locked and only division scoring pages remain editable." compact /> : null}
+          {seasonQuery.data?.status === 'started' && !seasonQuery.data?.admin_locked ? <StateNotice message="Registration is locked. League settings and Slack channels stay editable until the first week is released." compact /> : null}
+          {seasonQuery.data?.status === 'started' && seasonQuery.data?.admin_locked ? <StateNotice message="The first week is live. Central season setup is now locked and only division scoring pages remain editable." compact /> : null}
+          {seasonQuery.data ? <SeasonLifecycle key={seasonQuery.data.id} season={seasonQuery.data} /> : null}
 
           <section className="admin-grid admin-grid-wide">
             <article className="admin-card">

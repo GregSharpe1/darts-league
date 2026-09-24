@@ -27,7 +27,7 @@ export function HomePage() {
           <article className="metric-card">
             <span className="section-eyebrow">League pulse</span>
             <strong>{seasonQuery.data?.player_count ?? '-'}</strong>
-            <p>{seasonQuery.data?.registration_open ? 'registered players waiting for assignment.' : `season live across ${seasonQuery.data?.division_count ?? 0} divisions.`}</p>
+            <p>{seasonQuery.data?.status === 'completed' ? 'League completed. Final results remain available.' : seasonQuery.data?.registration_open ? 'registered players waiting for assignment.' : `season live across ${seasonQuery.data?.division_count ?? 0} divisions.`}</p>
           </article>
           <article className="metric-card">
             <span className="section-eyebrow">Assignments</span>
@@ -43,7 +43,7 @@ export function HomePage() {
             <span className="section-eyebrow">Division list</span>
             <h2>Public division boards</h2>
           </div>
-          <span className="status-pill live">Monday 09:00 unlocks</span>
+          <span className="status-pill live">{seasonQuery.data?.status === 'completed' ? 'Final standings' : 'Monday 09:00 unlocks'}</span>
         </div>
         {divisionsQuery.isLoading ? <StateNotice message="Loading divisions..." /> : null}
         {divisionsQuery.error ? <StateNotice tone="error" message={readError(divisionsQuery.error)} /> : null}

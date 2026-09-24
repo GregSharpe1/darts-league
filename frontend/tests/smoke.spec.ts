@@ -161,4 +161,87 @@ test('register, assign divisions, start season, enter result, and view division 
   await page.goto('/register')
   await expect(page.getByText(/registration closed/i)).toBeVisible()
   await expect(page.getByText(/the active season has already started/i)).toBeVisible()
+
+  await page.unroute('**/api/divisions/division-1/fixtures')
+  const standingsBefore: string[] = []
+  for (const division of ['division-1', 'division-2']) {
+    await page.goto(`/admin/divisions/${division}`)
+    await expect(page.locator('.admin-fixture-card')).toHaveCount(6)
+    const remaining = page.locator('.admin-fixture-card:not(.recorded)')
+    while (await remaining.count() > 0) {
+      const count = await remaining.count()
+      await remaining.first().locator('input[id^="p1-"]').fill('3')
+      await remaining.first().locator('input[id^="p2-"]').fill('1')
+      await remaining.first().getByRole('button', { name: 'Save score' }).click()
+      await expect(remaining).toHaveCount(count - 1)
+    }
+    await page.goto(`/divisions/${division}/standings`)
+    await expect(page.locator('tbody tr')).toHaveCount(4)
+    standingsBefore.push(await page.locator('tbody').innerText())
+    if (division === 'division-1') {
+      await page.goto('/admin')
+      await expect(page.getByRole('button', { name: 'Close league' })).toBeDisabled()
+    }
+  }
+  await page.goto('/admin')
+  await expect(page.getByRole('button', { name: 'Close league' })).toBeEnabled()
+  page.once('dialog', (dialog) => dialog.dismiss())
+  await page.getByRole('button', { name: 'Close league' }).click()
+  await expect(page.getByRole('button', { name: 'Close league' })).toBeEnabled()
+  page.once('dialog', (dialog) => dialog.accept())
+  await page.getByRole('button', { name: 'Close league' }).click()
+  await expect(page.getByRole('heading', { name: 'League completed' })).toBeVisible()
+  await page.reload()
+  await expect(page.getByRole('heading', { name: 'League completed' })).toBeVisible()
+  for (const width of [375, 768, 1280]) {
+    await page.setViewportSize({ width, height: 900 })
+    await captureScreenshot(page, `admin-completed-${width}.png`)
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
+  }
+  for (const [index, division] of ['division-1', 'division-2'].entries()) {
+    await page.goto(`/admin/divisions/${division}`)
+    await expect(page.locator('.admin-fixture-card')).toHaveCount(6)
+    await expect(page.getByRole('button', { name: 'Save score' })).toHaveCount(0)
+    await expect(page.getByRole('button', { name: 'Undo result' })).toHaveCount(0)
+    await expect(page.locator('input[id^="p1-"]').first()).toHaveAttribute('readonly', '')
+    await page.goto(`/divisions/${division}/standings`)
+    await expect(page.locator('tbody')).toHaveText(standingsBefore[index].replace(/\s+/g, ' ').trim(), { useInnerText: true })
+    if (index === 0) {
+      for (const width of [375, 768, 1280]) {
+        await page.setViewportSize({ width, height: 900 })
+        await captureScreenshot(page, `standings-completed-${width}.png`)
+      }
+    }
+  }
+  await page.goto('/')
+  await expect(page.getByText('League completed. Final results remain available.')).toBeVisible()
+  await page.goto('/admin')
+  await page.getByLabel('Next league name').fill('Next League')
+  page.once('dialog', (dialog) => dialog.accept())
+  await page.getByRole('button', { name: 'Open next season registration' }).click()
+  await expect(page.getByRole('button', { name: 'Start season' })).toBeVisible()
+  await expect(page.getByRole('link', { name: 'Open scoring page' })).toHaveCount(0)
+  await page.goto('/register')
+  await page.getByLabel('Display name').fill('Luke Humphries')
+  await page.getByRole('button', { name: 'Register for the league' }).click()
+  await expect(page.getByText('Luke Humphries is registered and waiting for division assignment.')).toBeVisible()
+  await page.goto('/')
+  await expect(page.getByText(/no divisions have been created yet/i)).toBeVisible()
+  await page.goto('/register')
+  await page.getByLabel('Display name').fill('Michael Smith')
+  await page.getByRole('button', { name: 'Register for the league' }).click()
+  await expect(page.getByText('Michael Smith is registered and waiting for division assignment.')).toBeVisible()
+  await page.goto('/admin')
+  await page.getByLabel('Division count').fill('1')
+  await page.getByRole('button', { name: 'Create divisions' }).click()
+  await expect(page.getByLabel('Division name')).toHaveValue('Division 1')
+  const newAssignments = page.locator('select[aria-label$=" division"]')
+  await expect(newAssignments).toHaveCount(2)
+  for (let index = 0; index < 2; index++) await newAssignments.nth(index).selectOption({ label: 'Division 1' })
+  await page.getByRole('button', { name: 'Start season' }).click()
+  await expect(page.getByRole('button', { name: 'Close league' })).toBeDisabled()
+  await page.goto('/admin/divisions/division-1')
+  await expect(page.locator('.admin-fixture-card')).toHaveCount(1)
+  await expect(page.locator('.admin-fixture-card.recorded')).toHaveCount(0)
+  await expect(page.locator('input[id^="p1-"]')).toHaveValue('')
 })
