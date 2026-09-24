@@ -136,6 +136,12 @@ func toPlayerResponse(player league.Player) playerResponse {
 
 func writeDomainError(w http.ResponseWriter, err error) {
 	switch {
+	case errors.Is(err, league.ErrSeasonCompleted):
+		writeError(w, http.StatusConflict, "season_completed", "This completed league is read-only.")
+	case errors.Is(err, league.ErrSeasonIncomplete):
+		writeError(w, http.StatusConflict, "season_incomplete", "Every fixture across all divisions must have a result before closing.")
+	case errors.Is(err, league.ErrSeasonTransition):
+		writeError(w, http.StatusConflict, "season_transition", "The season has changed or does not allow this action. Refresh and try again.")
 	case errors.Is(err, league.ErrDisplayNameRequired):
 		writeError(w, http.StatusBadRequest, "display_name_required", "Display name is required.")
 	case errors.Is(err, league.ErrSeasonNameRequired):
@@ -143,7 +149,7 @@ func writeDomainError(w http.ResponseWriter, err error) {
 	case errors.Is(err, league.ErrSeasonNameLength):
 		writeError(w, http.StatusBadRequest, "season_name_length", "League name must be between 2 and 60 characters.")
 	case errors.Is(err, league.ErrDuplicatePlayerName):
-		writeError(w, http.StatusConflict, "duplicate_display_name", "Display name is reserved and cannot be reused.")
+		writeError(w, http.StatusConflict, "duplicate_display_name", "Display name is already registered in this season.")
 	case errors.Is(err, league.ErrRegistrationClosed):
 		writeError(w, http.StatusConflict, "registration_closed", "Registration is closed for the active season.")
 	case errors.Is(err, league.ErrSeasonRenameLocked):

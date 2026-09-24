@@ -44,6 +44,8 @@ type Store interface {
 	CreateAuditLog(ctx context.Context, entry AuditLogEntry) (AuditLogEntry, error)
 	DeletePlayer(ctx context.Context, seasonID, playerID int64) error
 	UpsertSeason(ctx context.Context, season Season) (Season, error)
+	CloseSeason(ctx context.Context, seasonID int64) error
+	CreateNextSeason(ctx context.Context, seasonID int64, season Season) error
 }
 
 type RegistrationService struct {
@@ -248,28 +250,31 @@ func normalizeSpacing(value string) string {
 }
 
 type SeasonSummary struct {
-	ID               int64
-	Name             string
-	Status           SeasonStatus
-	Timezone         string
-	StartedAt        *time.Time
-	RegistrationOpen bool
-	SeasonStarted    bool
-	AdminLocked      bool
-	CanStartSeason   bool
-	CanEditSettings  bool
+	ID                     int64
+	Name                   string
+	Status                 SeasonStatus
+	Timezone               string
+	StartedAt              *time.Time
+	RegistrationOpen       bool
+	SeasonStarted          bool
+	AdminLocked            bool
+	CanStartSeason         bool
+	CanCloseSeason         bool
+	CanCreateNextSeason    bool
+	RemainingFixtures      int
+	CanEditSettings        bool
 	CanEditDivisionChannel bool
-	CanEditDivisions bool
-	CanAssignPlayers bool
-	PlayerCount      int
-	WeekCount        int
-	GameVariant      string
-	LegsToWin        int
-	GamesPerWeek     int
-	TotalFixtures    int
-	DivisionCount    int
-	AssignedCount    int
-	WaitlistCount    int
+	CanEditDivisions       bool
+	CanAssignPlayers       bool
+	PlayerCount            int
+	WeekCount              int
+	GameVariant            string
+	LegsToWin              int
+	GamesPerWeek           int
+	TotalFixtures          int
+	DivisionCount          int
+	AssignedCount          int
+	WaitlistCount          int
 }
 
 type SeasonService struct {
@@ -326,33 +331,44 @@ func (s SeasonService) Summary(ctx context.Context) (SeasonSummary, error) {
 		waitlistCount++
 	}
 
+	results, err := s.store.ListResultsBySeason(ctx, season.ID)
+	if err != nil {
+		return SeasonSummary{}, err
+	}
+	remaining := remainingFixtures(fixtures, results)
 	return SeasonSummary{
-		ID:               season.ID,
-		Name:             season.Name,
-		Status:           season.Status,
-		Timezone:         season.Timezone,
-		StartedAt:        season.StartedAt,
-		RegistrationOpen: season.RegistrationOpen(),
-		SeasonStarted:    !season.RegistrationOpen(),
-		AdminLocked:      adminLocked,
-		CanStartSeason:   season.RegistrationOpen(),
-		CanEditSettings:  !adminLocked,
+		ID:                     season.ID,
+		Name:                   season.Name,
+		Status:                 season.Status,
+		Timezone:               season.Timezone,
+		StartedAt:              season.StartedAt,
+		RegistrationOpen:       season.RegistrationOpen(),
+		SeasonStarted:          !season.RegistrationOpen(),
+		AdminLocked:            adminLocked,
+		CanStartSeason:         season.RegistrationOpen(),
+		CanCloseSeason:         season.Status == SeasonStatusStarted && len(fixtures) > 0 && remaining == 0,
+		CanCreateNextSeason:    season.Status == SeasonStatusCompleted,
+		RemainingFixtures:      remaining,
+		CanEditSettings:        !adminLocked,
 		CanEditDivisionChannel: !adminLocked,
-		CanEditDivisions: !adminLocked,
-		CanAssignPlayers: !adminLocked,
-		PlayerCount:      len(players),
-		WeekCount:        weekCount,
-		GameVariant:      season.GameVariant,
-		LegsToWin:        season.LegsToWin,
-		GamesPerWeek:     season.GamesPerWeek,
-		TotalFixtures:    len(fixtures),
-		DivisionCount:    len(divisions),
-		AssignedCount:    assignedCount,
-		WaitlistCount:    waitlistCount,
+		CanEditDivisions:       !adminLocked,
+		CanAssignPlayers:       !adminLocked,
+		PlayerCount:            len(players),
+		WeekCount:              weekCount,
+		GameVariant:            season.GameVariant,
+		LegsToWin:              season.LegsToWin,
+		GamesPerWeek:           season.GamesPerWeek,
+		TotalFixtures:          len(fixtures),
+		DivisionCount:          len(divisions),
+		AssignedCount:          assignedCount,
+		WaitlistCount:          waitlistCount,
 	}, nil
 }
 
 func (s SeasonService) adminLockedForSeason(season Season, fixtures []Fixture) (bool, error) {
+	if season.Status == SeasonStatusCompleted {
+		return true, nil
+	}
 	if season.RegistrationOpen() {
 		return false, nil
 	}
@@ -858,6 +874,9 @@ func NewResultServiceWithNow(store Store, now func() time.Time) ResultService {
 }
 
 func (s ResultService) RecordResult(ctx context.Context, fixtureID int64, playerOneLegs, playerTwoLegs int, playerOneAverage, playerTwoAverage *float64) (Result, error) {
+	if err := s.requireWritableFixture(ctx, fixtureID); err != nil {
+		return Result{}, err
+	}
 	fixture, err := s.store.GetFixture(ctx, fixtureID)
 	if err != nil {
 		return Result{}, err
@@ -892,6 +911,9 @@ func (s ResultService) RecordResult(ctx context.Context, fixtureID int64, player
 }
 
 func (s ResultService) EditResult(ctx context.Context, fixtureID int64, playerOneLegs, playerTwoLegs int, playerOneAverage, playerTwoAverage *float64, actor string) (Result, error) {
+	if err := s.requireWritableFixture(ctx, fixtureID); err != nil {
+		return Result{}, err
+	}
 	fixture, err := s.store.GetFixture(ctx, fixtureID)
 	if err != nil {
 		return Result{}, err
@@ -936,6 +958,9 @@ func (s ResultService) EditResult(ctx context.Context, fixtureID int64, playerOn
 }
 
 func (s ResultService) DeleteResult(ctx context.Context, fixtureID int64, actor string) error {
+	if err := s.requireWritableFixture(ctx, fixtureID); err != nil {
+		return err
+	}
 	existing, err := s.store.GetResultByFixture(ctx, fixtureID)
 	if err != nil {
 		return err

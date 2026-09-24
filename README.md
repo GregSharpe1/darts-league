@@ -23,6 +23,8 @@
 - Admin player deletion before season start
 - Admin player assignment and reassignment across divisions until week one is released
 - Admin result entry, editing, undo, and audit history
+- Admin league closure once every division's fixtures have results, with read-only final boards
+- New-season registration without deleting historical players, divisions, results, or audits
 - Fixed match format: `501`, first to `3` legs
 - Frontend and backend version reporting sourced from container image builds
 - Slack app notifications for admin signups and weekly league updates
@@ -140,6 +142,14 @@ Admin workflow notes:
 - After season start and before the first Monday `09:00 Europe/London` release, admins can still edit league settings, rename divisions, change division count, move players between divisions, and update Slack channel IDs
 - Recreating divisions in that pre-release window resets player assignments back to the waitlist and regenerates fixtures
 - After the first weekly release, central season setup locks and only division scoring remains editable
+
+### Closing a league and opening the next season
+
+1. Record every scheduled match result in every division. The admin page shows the remaining match count and enables **Close league** once all results are recorded.
+2. Confirm **Close league**. All divisions and scores become read-only; closure cannot be undone. Final standings and revealed match results stay on the public division boards, and admins can still read scores and audit history. Weekly Slack posts stop. Existing future-week reveal rules still apply.
+3. When ready, enter the **Next league name** and confirm **Open next season registration**. Public boards switch immediately to the new season, before its fixtures start. Its roster and divisions start empty; returning players can register again. Configure divisions and assignments, then use the existing **Start season** action.
+
+Historical data stays stored after the switch; there is no archive browser or automatic player carry-over. Restarting the backend does not replace a completed season. Persistent retention requires Postgres; the development in-memory fallback does not survive process restarts.
 
 ## Instance Naming
 
@@ -263,7 +273,7 @@ Some important locked rules in the current MVP:
 - One season can contain multiple admin-managed divisions
 - Match scoring is win `2`, loss `0`
 - Match format is fixed to `501`, first to `3` legs
-- Display names are globally reserved, case-insensitive
+- Display names are unique within each season, case-insensitive; returning players may reuse their names in a new season
 - Public views prefer nickname when available
 - Admins can edit and undo results, and all changes are audited
 

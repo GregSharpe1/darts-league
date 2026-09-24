@@ -19,7 +19,8 @@ division. A division's `SlackPublicChannelID` takes precedence over
 separate messages, each with its division name in the header.
 
 Weekly content uses the latest unlocked week for that division, not the next
-week. Divisions with no fixtures or no unlocked week are skipped. Missing channel
+week. Completed seasons and divisions outside the active season are skipped,
+as are divisions with no fixtures or no unlocked week. Missing channel
 configuration or a missing bot token also prevents delivery. The summary still
 posts when there are no results: it says `No results recorded yet` and lists
 unplayed fixtures under `Awaiting result`. That section is omitted when all
@@ -219,7 +220,8 @@ Compose does not schedule the weekly commands.
 - **Duplicate or stale messages:** There is no delivery ledger or deduplication.
   Manual reruns, job retries or ambiguous network failures can duplicate posts.
   Weekly selection remains on the last unlocked week after the final fixture
-  week; scheduled jobs do not automatically stop at season end.
+  week until an admin closes the season. CronJobs continue running after closure,
+  but completed seasons do not produce messages.
 - **Division standings bug:** Fixtures/results are division-scoped, but the
   summary currently builds standings from all season players. Other divisions'
   players can appear with zero statistics and can affect the displayed leader
