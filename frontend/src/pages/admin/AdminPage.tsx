@@ -63,6 +63,7 @@ export function AdminPage() {
   }
 
   const unauthenticated = playersQuery.error instanceof ApiError && playersQuery.error.status === 401
+  const needsPlayers = seasonQuery.data?.registration_open === true && seasonQuery.data.player_count === 0
 
   return (
     <>
@@ -108,10 +109,11 @@ export function AdminPage() {
             <div className="toolbar-block">
               <strong>{seasonQuery.data?.name ?? 'Active season'}</strong>
               <span className="fixture-meta">{seasonQuery.data?.status === 'completed' ? 'Season completed' : seasonQuery.data?.registration_open ? 'Registration open' : 'Season started'}</span>
+              {needsPlayers ? <p id="season-start-help" className="fixture-meta">No players registered yet. Register at least two players and assign them to the same division before starting the season.</p> : null}
             </div>
             <div className="toolbar-actions">
               {seasonQuery.data?.can_start_season ? (
-                <button className="season-start-button" type="button" onClick={() => seasonStartMutation.mutate()} disabled={seasonStartMutation.isPending || (seasonQuery.data?.assigned_count ?? 0) < 2}>{seasonStartMutation.isPending ? 'Starting season...' : 'Start season'}</button>
+                <button className="season-start-button" type="button" aria-describedby={needsPlayers ? 'season-start-help' : undefined} onClick={() => seasonStartMutation.mutate()} disabled={seasonStartMutation.isPending || (seasonQuery.data?.assigned_count ?? 0) < 2}>{seasonStartMutation.isPending ? 'Starting season...' : 'Start season'}</button>
               ) : null}
             </div>
           </section>

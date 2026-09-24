@@ -21,7 +21,7 @@ export function HomePage() {
             standings, and weekly reveal schedule.
           </p>
           <div className="hero-actions">
-            {seasonQuery.data?.registration_open ? <NavLink to="/register">Join the waitlist</NavLink> : null}
+            {seasonQuery.data?.registration_open ? <NavLink to="/register">Register</NavLink> : null}
           </div>
         </div>
 

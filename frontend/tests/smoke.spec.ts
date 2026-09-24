@@ -44,6 +44,10 @@ async function captureScreenshot(page: Page, fileName: string) {
 
 test('register, assign divisions, start season, enter result, and view division standings', async ({ page }) => {
   const leagueName = 'Cardiff Premier League'
+  await page.goto('/')
+  const registerAction = page.locator('.hero-actions').first().getByRole('link', { name: 'Register', exact: true })
+  await expect(registerAction).toHaveAttribute('href', '/register')
+  await expect(registerAction).toHaveCSS('background-image', /linear-gradient/)
   const players = [
     ['Luke Humphries', 'The Freeze'],
     ['Michael Smith', 'Bully Boy'],
@@ -256,6 +260,10 @@ test('register, assign divisions, start season, enter result, and view division 
   page.once('dialog', (dialog) => dialog.accept())
   await page.getByRole('button', { name: 'Open next season registration' }).click()
   await expect(page.getByRole('button', { name: 'Start season' })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Start season' })).toBeDisabled()
+  await expect(page.getByRole('button', { name: 'Start season' })).toHaveCSS('background-image', 'none')
+  await expect(page.getByRole('button', { name: 'Start season' })).toHaveCSS('cursor', 'not-allowed')
+  await expect(page.getByText(/no players registered yet/i)).toBeVisible()
   await expect(page.getByRole('link', { name: 'Open scoring page' })).toHaveCount(0)
   await page.goto('/register')
   await page.getByLabel('Display name').fill('Luke Humphries')

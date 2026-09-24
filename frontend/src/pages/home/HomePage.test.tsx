@@ -21,6 +21,8 @@ describe('Home page', () => {
     expect(screen.getByText(/challenger division/i)).toBeInTheDocument()
     expect(screen.getAllByRole('link', { name: /view fixtures/i }).length).toBe(2)
     expect(screen.getByText(/registered players waiting for assignment/i)).toBeInTheDocument()
+    expect(screen.getAllByRole('link', { name: 'Register' })).toHaveLength(2)
+    expect(screen.queryByRole('link', { name: 'Join the waitlist' })).not.toBeInTheDocument()
     expect(await screen.findByText(/backend v0.0.6/i)).toBeInTheDocument()
     expect(screen.getByText(/frontend dev/i)).toBeInTheDocument()
     await waitFor(() => {

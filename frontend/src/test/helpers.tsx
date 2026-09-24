@@ -31,6 +31,8 @@ export type AppState = {
   lifecycleError?: boolean
   firstWeekReleased?: boolean
   seasonName: string
+  playerCount?: number
+  assignedCount?: number
 }
 
 export function createMockFetch(state: AppState) {
@@ -56,14 +58,14 @@ export function createMockFetch(state: AppState) {
         can_edit_division_channel: !state.firstWeekReleased && !state.seasonCompleted,
         can_edit_divisions: !state.firstWeekReleased && !state.seasonCompleted,
         can_assign_players: !state.firstWeekReleased && !state.seasonCompleted,
-        player_count: 4,
+        player_count: state.playerCount ?? (state.seasonId === 2 ? 0 : 4),
         week_count: state.seasonStarted ? 3 : 0,
         game_variant: '501',
         legs_to_win: 3,
         games_per_week: 1,
         total_fixtures: state.seasonStarted ? 6 : 0,
         division_count: 2,
-        assigned_count: state.seasonStarted ? 4 : 2,
+        assigned_count: state.assignedCount ?? (state.seasonId === 2 ? 0 : state.seasonStarted ? 4 : 2),
         waitlist_count: state.seasonStarted ? 0 : 2,
       })
     }
@@ -136,7 +138,7 @@ export function createMockFetch(state: AppState) {
       if (!state.authenticated) {
         return response({ error: { code: 'unauthorized', message: 'Admin login is required.' } }, 401)
       }
-      if (state.seasonId === 2) return response({ players: [] })
+      if (state.seasonId === 2 || state.playerCount === 0) return response({ players: [] })
       return response({
         players: [
           { id: 1, display_name: 'Luke Humphries', preferred_name: 'The Freeze', admin_label: 'The Freeze (Luke Humphries)', status: 'waitlist', registered_at: 'Mon, 16 Mar 2026 19:00:00 GMT' },

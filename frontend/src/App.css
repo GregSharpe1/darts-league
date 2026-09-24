@@ -187,7 +187,7 @@
   box-shadow: 0 1rem 2rem rgba(203, 46, 34, 0.32);
 }
 
-.hero-actions a:last-child {
+.hero-actions a:last-child:not(:first-child) {
   color: var(--color-text);
   border: 1px solid rgba(255, 255, 255, 0.12);
   background: rgba(255, 255, 255, 0.04);
@@ -777,6 +777,7 @@
   min-width: clamp(8rem, 20vw, 12rem);
 }
 
+.season-start-button:disabled,
 .season-close-button:disabled {
   color: var(--color-muted);
   background: var(--color-surface-raised);
