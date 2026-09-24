@@ -81,12 +81,10 @@ test('register, assign divisions, start season, enter result, and view division 
   const divisionNameInputs = page.getByLabel('Division name')
   await expect(divisionNameInputs.first()).toBeVisible()
   await divisionNameInputs.nth(0).fill('Premier Division')
-  await page.getByLabel('Division slug').nth(0).fill('premier')
   await page.getByLabel('Slack public channel').nth(0).fill('CPREMIER')
   await page.getByRole('button', { name: /save division/i }).nth(0).click()
 
   await divisionNameInputs.nth(1).fill('Challenger Division')
-  await page.getByLabel('Division slug').nth(1).fill('challenger')
   await page.getByLabel('Slack public channel').nth(1).fill('CCHALLENGER')
   await page.getByRole('button', { name: /save division/i }).nth(1).click()
 
@@ -101,11 +99,11 @@ test('register, assign divisions, start season, enter result, and view division 
   await captureScreenshot(page, 'admin-pre-start.png')
 
   await page.getByRole('button', { name: /start season/i }).click()
-  await expect(page.getByText(/registration is locked, division names are frozen/i)).toBeVisible()
-  await expect(page.getByRole('button', { name: /start season/i })).toBeDisabled()
+  await expect(page.getByText(/registration is locked/i)).toBeVisible()
+  await expect(page.getByRole('button', { name: /start season/i })).toHaveCount(0)
   await captureScreenshot(page, 'admin-post-start.png')
 
-  await page.goto('/admin/divisions/premier')
+  await page.goto('/admin/divisions/division-1')
   await expect(page.getByRole('heading', { name: /premier division/i })).toBeVisible()
   const editedFixture = page.locator('#p1-1').locator('xpath=ancestor::article[1]')
   await page.locator('#p1-1').fill('3')
@@ -115,7 +113,7 @@ test('register, assign divisions, start season, enter result, and view division 
   await editedFixture.getByRole('button', { name: /save score/i }).click()
   await expect(page.getByText(/score saved/i)).toBeVisible()
 
-  await page.route('**/api/divisions/premier/fixtures', async (route) => {
+  await page.route('**/api/divisions/division-1/fixtures', async (route) => {
     await route.fulfill({
       contentType: 'application/json',
       body: JSON.stringify({
@@ -148,12 +146,12 @@ test('register, assign divisions, start season, enter result, and view division 
     })
   })
 
-  await page.goto('/divisions/premier')
-  await expect(page.getByText(/premier division/i)).toBeVisible()
+  await page.goto('/divisions/division-1')
+  await expect(page.getByRole('heading', { name: 'Premier Division' })).toBeVisible()
   await expect(page.getByText(/every unlocked fixture in this division has been played so far/i)).toBeVisible()
   await captureScreenshot(page, 'public-post-start.png')
 
-  await page.goto('/divisions/premier/standings')
+  await page.goto('/divisions/division-1/standings')
   await expect(page.getByText('The Freeze')).toBeVisible()
   await expect(page.getByText('Luke Humphries')).toBeVisible()
   await expect(page.getByRole('columnheader', { name: 'LW' })).toBeVisible()
