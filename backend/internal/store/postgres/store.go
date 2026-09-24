@@ -105,7 +105,12 @@ func (s *Store) ListPlayersBySeason(ctx context.Context, seasonID int64) ([]leag
 }
 
 func (s *Store) AssignPlayer(ctx context.Context, seasonID, playerID int64, divisionID *int64, status league.PlayerStatus) (league.Player, error) {
-	row := s.pool.QueryRow(ctx, `
+	tx, err := s.beginSeasonWrite(ctx, seasonID)
+	if err != nil {
+		return league.Player{}, err
+	}
+	defer tx.Rollback(ctx)
+	row := tx.QueryRow(ctx, `
 		UPDATE players
 		SET division_id = $3, status = $4
 		WHERE season_id = $1 AND id = $2
@@ -122,7 +127,7 @@ func (s *Store) AssignPlayer(ctx context.Context, seasonID, playerID int64, divi
 	}
 	player.DivisionID = returnedDivisionID
 	player.Nickname = valueOrBlank(nickname)
-	return player, nil
+	return player, tx.Commit(ctx)
 }
 
 func (s *Store) ListDivisionsBySeason(ctx context.Context, seasonID int64) ([]league.Division, error) {
@@ -164,7 +169,7 @@ func (s *Store) GetDivisionBySlug(ctx context.Context, seasonID int64, slug stri
 }
 
 func (s *Store) ReplaceDivisions(ctx context.Context, seasonID int64, divisions []league.Division) ([]league.Division, error) {
-	tx, err := s.pool.Begin(ctx)
+	tx, err := s.beginSeasonWrite(ctx, seasonID)
 	if err != nil {
 		return nil, err
 	}
@@ -198,7 +203,12 @@ func (s *Store) ReplaceDivisions(ctx context.Context, seasonID int64, divisions 
 }
 
 func (s *Store) UpdateDivision(ctx context.Context, division league.Division) (league.Division, error) {
-	row := s.pool.QueryRow(ctx, `
+	tx, err := s.beginSeasonWrite(ctx, division.SeasonID)
+	if err != nil {
+		return league.Division{}, err
+	}
+	defer tx.Rollback(ctx)
+	row := tx.QueryRow(ctx, `
 		UPDATE divisions
 		SET name = $2, slug = $3, position = $4, slack_public_channel_id = $5
 		WHERE id = $1
@@ -213,7 +223,7 @@ func (s *Store) UpdateDivision(ctx context.Context, division league.Division) (l
 		}
 		return league.Division{}, err
 	}
-	return division, nil
+	return division, tx.Commit(ctx)
 }
 
 func (s *Store) ListFixturesBySeason(ctx context.Context, seasonID int64) ([]league.Fixture, error) {
@@ -428,7 +438,12 @@ func (s *Store) ListAuditLogsByDivision(ctx context.Context, divisionID int64) (
 }
 
 func (s *Store) CreatePlayer(ctx context.Context, player league.Player) (league.Player, error) {
-	row := s.pool.QueryRow(ctx, `
+	tx, err := s.beginSeasonWrite(ctx, player.SeasonID)
+	if err != nil {
+		return league.Player{}, err
+	}
+	defer tx.Rollback(ctx)
+	row := tx.QueryRow(ctx, `
 		INSERT INTO players (season_id, division_id, display_name, display_name_normalized, nickname, status, registered_at)
 		VALUES ($1, $2, $3, $4, $5, $6, $7)
 		RETURNING id, season_id, division_id, display_name, nickname, status, registered_at
@@ -444,7 +459,7 @@ func (s *Store) CreatePlayer(ctx context.Context, player league.Player) (league.
 	}
 	created.DivisionID = divisionID
 	created.Nickname = valueOrBlank(nickname)
-	return created, nil
+	return created, tx.Commit(ctx)
 }
 
 func (s *Store) CreateFixtures(ctx context.Context, fixtures []league.Fixture) ([]league.Fixture, error) {
@@ -456,6 +471,13 @@ func (s *Store) CreateFixtures(ctx context.Context, fixtures []league.Fixture) (
 
 	created := make([]league.Fixture, 0, len(fixtures))
 	for _, fixture := range fixtures {
+		status, err := lockSeason(ctx, tx, fixture.SeasonID)
+		if err != nil {
+			return nil, err
+		}
+		if status == league.SeasonStatusCompleted {
+			return nil, league.ErrSeasonCompleted
+		}
 		row := tx.QueryRow(ctx, `
 			INSERT INTO fixtures (season_id, division_id, week_number, scheduled_at, player_one_id, player_two_id, game_variant, legs_to_win, status)
 			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
@@ -474,7 +496,7 @@ func (s *Store) CreateFixtures(ctx context.Context, fixtures []league.Fixture) (
 }
 
 func (s *Store) ReplaceFixturesBySeason(ctx context.Context, seasonID int64, fixtures []league.Fixture) ([]league.Fixture, error) {
-	tx, err := s.pool.Begin(ctx)
+	tx, err := s.beginSeasonWrite(ctx, seasonID)
 	if err != nil {
 		return nil, err
 	}
@@ -502,7 +524,12 @@ func (s *Store) ReplaceFixturesBySeason(ctx context.Context, seasonID int64, fix
 }
 
 func (s *Store) CreateResult(ctx context.Context, result league.Result) (league.Result, error) {
-	row := s.pool.QueryRow(ctx, `
+	tx, err := s.beginResultWrite(ctx, result.FixtureID)
+	if err != nil {
+		return league.Result{}, err
+	}
+	defer tx.Rollback(ctx)
+	row := tx.QueryRow(ctx, `
 		INSERT INTO results (fixture_id, player_one_legs, player_two_legs, player_one_average, player_two_average, winner_id, entered_at, updated_at)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
 		RETURNING id, fixture_id, player_one_legs, player_two_legs, player_one_average, player_two_average, winner_id, entered_at, updated_at
@@ -518,11 +545,16 @@ func (s *Store) CreateResult(ctx context.Context, result league.Result) (league.
 	}
 	created.PlayerOneAverage = playerOneAverage
 	created.PlayerTwoAverage = playerTwoAverage
-	return created, nil
+	return created, tx.Commit(ctx)
 }
 
 func (s *Store) UpdateResult(ctx context.Context, result league.Result) (league.Result, error) {
-	row := s.pool.QueryRow(ctx, `
+	tx, err := s.beginResultWrite(ctx, result.FixtureID)
+	if err != nil {
+		return league.Result{}, err
+	}
+	defer tx.Rollback(ctx)
+	row := tx.QueryRow(ctx, `
 		UPDATE results
 		SET player_one_legs = $2, player_two_legs = $3, player_one_average = $4, player_two_average = $5, winner_id = $6, updated_at = $7
 		WHERE id = $1
@@ -539,18 +571,23 @@ func (s *Store) UpdateResult(ctx context.Context, result league.Result) (league.
 	}
 	updated.PlayerOneAverage = playerOneAverage
 	updated.PlayerTwoAverage = playerTwoAverage
-	return updated, nil
+	return updated, tx.Commit(ctx)
 }
 
 func (s *Store) DeleteResultByFixture(ctx context.Context, fixtureID int64) error {
-	commandTag, err := s.pool.Exec(ctx, `DELETE FROM results WHERE fixture_id = $1`, fixtureID)
+	tx, err := s.beginResultWrite(ctx, fixtureID)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx)
+	commandTag, err := tx.Exec(ctx, `DELETE FROM results WHERE fixture_id = $1`, fixtureID)
 	if err != nil {
 		return err
 	}
 	if commandTag.RowsAffected() == 0 {
 		return league.ErrResultNotFound
 	}
-	return nil
+	return tx.Commit(ctx)
 }
 
 func (s *Store) CreateAuditLog(ctx context.Context, entry league.AuditLogEntry) (league.AuditLogEntry, error) {
@@ -584,14 +621,19 @@ func (s *Store) CreateAuditLog(ctx context.Context, entry league.AuditLogEntry) 
 }
 
 func (s *Store) DeletePlayer(ctx context.Context, seasonID, playerID int64) error {
-	commandTag, err := s.pool.Exec(ctx, `DELETE FROM players WHERE season_id = $1 AND id = $2`, seasonID, playerID)
+	tx, err := s.beginSeasonWrite(ctx, seasonID)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx)
+	commandTag, err := tx.Exec(ctx, `DELETE FROM players WHERE season_id = $1 AND id = $2`, seasonID, playerID)
 	if err != nil {
 		return err
 	}
 	if commandTag.RowsAffected() == 0 {
 		return league.ErrPlayerNotFound
 	}
-	return nil
+	return tx.Commit(ctx)
 }
 
 func (s *Store) UpsertSeason(ctx context.Context, season league.Season) (league.Season, error) {
@@ -610,10 +652,13 @@ func (s *Store) UpsertSeason(ctx context.Context, season league.Season) (league.
 	row := s.pool.QueryRow(ctx, `
 		UPDATE seasons
 		SET name = $2, status = $3, timezone = $4, started_at = $5, game_variant = $6, legs_to_win = $7, games_per_week = $8
-		WHERE id = $1
+		WHERE id = $1 AND status <> 'completed'
 		RETURNING id, name, status, timezone, started_at, game_variant, legs_to_win, games_per_week
 	`, season.ID, season.Name, season.Status, season.Timezone, season.StartedAt, season.GameVariant, season.LegsToWin, season.GamesPerWeek)
 	if err := row.Scan(&season.ID, &season.Name, &season.Status, &season.Timezone, &season.StartedAt, &season.GameVariant, &season.LegsToWin, &season.GamesPerWeek); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return league.Season{}, league.ErrSeasonCompleted
+		}
 		return league.Season{}, err
 	}
 	return season, nil

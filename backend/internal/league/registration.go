@@ -43,6 +43,7 @@ type SeasonStatus string
 const (
 	SeasonStatusRegistrationOpen SeasonStatus = "registration_open"
 	SeasonStatusStarted          SeasonStatus = "started"
+	SeasonStatusCompleted        SeasonStatus = "completed"
 )
 
 type Season struct {

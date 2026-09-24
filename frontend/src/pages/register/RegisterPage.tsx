@@ -30,15 +30,15 @@ export function RegisterPage() {
         <span className="eyebrow">Public registration</span>
         <h1>Enter the league</h1>
         <p className="fixture-meta">{seasonQuery.data?.name ?? 'Active season'}</p>
-        <p>Registration stays open until the admin starts the season. Display names stay reserved forever and nicknames remain optional.</p>
+        <p>Registration stays open until the admin starts the season. Display names must be unique within this season and nicknames remain optional.</p>
       </section>
 
       {seasonQuery.data && !seasonQuery.data.registration_open ? (
         <section className="register-grid">
           <article className="register-card">
             <h2>Registration closed</h2>
-            <p>The active season has already started, so new entries are locked out until the next registration window opens.</p>
-            <StateNotice message="Check fixtures and standings to follow the season in progress." compact />
+            <p>{seasonQuery.data.status === 'completed' ? 'This league is completed. Registration will reopen when the admin creates the next season.' : 'The active season has already started, so new entries are locked out until the next registration window opens.'}</p>
+            <StateNotice message={seasonQuery.data.status === 'completed' ? 'Final results and standings remain available on the division boards.' : 'Check fixtures and standings to follow the season in progress.'} compact />
           </article>
 
           <article className="register-card">

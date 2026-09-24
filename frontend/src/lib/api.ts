@@ -23,6 +23,9 @@ export type SeasonSummary = {
   season_started: boolean
   admin_locked: boolean
   can_start_season: boolean
+  can_close_season: boolean
+  can_create_next_season: boolean
+  remaining_fixtures: number
   can_edit_settings: boolean
   can_edit_division_channel: boolean
   can_edit_divisions: boolean
@@ -345,6 +348,16 @@ export function useUpdateSeason() {
   })
 }
 
+export function useSeasonLifecycle(action: 'close' | 'next') {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (payload: { season_id: number; name?: string }) => request<SeasonSummary>(`/api/admin/season/${action}`, { method: 'POST', body: JSON.stringify(payload) }),
+    onSuccess: async () => {
+      await Promise.all(['season', 'divisions', 'division', 'admin'].map((key) => queryClient.invalidateQueries({ queryKey: [key] })))
+    },
+  })
+}
+
 export function useUpdateSeasonConfig() {
   const queryClient = useQueryClient()
   return useMutation({
@@ -447,6 +460,7 @@ export function useSaveResult() {
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['division'] })
       await queryClient.invalidateQueries({ queryKey: ['admin', 'division'] })
+      await queryClient.invalidateQueries({ queryKey: ['season'] })
     },
   })
 }
@@ -456,6 +470,7 @@ export function useUndoResult() {
   return useMutation({
     mutationFn: (fixtureId: number) => request<void>(`/api/admin/fixtures/${fixtureId}/result`, { method: 'DELETE' }),
     onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['season'] })
       await queryClient.invalidateQueries({ queryKey: ['division'] })
       await queryClient.invalidateQueries({ queryKey: ['admin', 'division'] })
     },

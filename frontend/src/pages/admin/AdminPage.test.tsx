@@ -44,6 +44,26 @@ describe('Admin page', () => {
     })
   })
 
+  it('explains that players are required and disables starting an empty season', async () => {
+    const fetch = createMockFetch({ authenticated: true, seasonStarted: false, seasonName: 'New League', playerCount: 0, assignedCount: 0 })
+    vi.stubGlobal('fetch', fetch)
+    renderApp('/admin')
+
+    const start = await screen.findByRole('button', { name: 'Start season' })
+    expect(start).toBeDisabled()
+    expect(start).toHaveAccessibleDescription(/no players registered yet.*at least two players.*same division/i)
+    fireEvent.click(start)
+    expect(fetch.mock.calls.some(([path]) => path === '/api/admin/season/start')).toBe(false)
+  })
+
+  it('enables starting with assigned players without the empty-roster message', async () => {
+    vi.stubGlobal('fetch', createMockFetch({ authenticated: true, seasonStarted: false, seasonName: 'Ready League', playerCount: 2, assignedCount: 2 }))
+    renderApp('/admin')
+
+    expect(await screen.findByRole('button', { name: 'Start season' })).toBeEnabled()
+    expect(screen.queryByText(/no players registered yet/i)).not.toBeInTheDocument()
+  })
+
   it('keeps settings editable after season start until the first week is released', async () => {
     renderApp('/admin')
 

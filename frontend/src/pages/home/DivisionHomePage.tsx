@@ -3,6 +3,7 @@ import { NavLink, useParams } from 'react-router-dom'
 import { useDivisions, useDivisionFixtures, useDivisionStandings, useSeasonSummary, formatWhen } from '../../lib/api'
 import { StateNotice } from '../../components/StateNotice'
 import { readError } from '../../lib/utils'
+import { CompletedResults } from './CompletedResults'
 
 export function DivisionHomePage() {
   const { slug = '' } = useParams()
@@ -81,7 +82,7 @@ export function DivisionHomePage() {
           <article className="metric-card">
             <span className="section-eyebrow">Division pulse</span>
             <strong>{standingsQuery.data?.length ?? '-'}</strong>
-            <p>{seasonQuery.data?.registration_open ? 'assigned players will appear here once divisions are set.' : `season live across ${fixturesQuery.data?.weeks.length ?? 0} weeks.`}</p>
+            <p>{seasonQuery.data?.status === 'completed' ? 'League completed. Final results and standings remain available.' : seasonQuery.data?.registration_open ? 'assigned players will appear here once divisions are set.' : `season live across ${fixturesQuery.data?.weeks.length ?? 0} weeks.`}</p>
           </article>
           {seasonQuery.data && !seasonQuery.data.registration_open ? (
             <article className="metric-card">
@@ -93,7 +94,7 @@ export function DivisionHomePage() {
         </div>
       </section>
 
-      <section className="content-panel">
+      {seasonQuery.data?.status === 'completed' ? <CompletedResults weeks={fixturesQuery.data?.weeks ?? []} /> : <section className="content-panel">
         <div className="card-header">
           <div className="card-copy">
             <span className="section-eyebrow">This division</span>
@@ -207,10 +208,10 @@ export function DivisionHomePage() {
             })}
           </div>
         ) : null}
-      </section>
+      </section>}
 
       <section className="week-grid" aria-label="Visible season weeks">
-        {futureWeeks.length === 0 && !fixturesQuery.isLoading ? (
+        {futureWeeks.length === 0 && !fixturesQuery.isLoading && seasonQuery.data?.status !== 'completed' ? (
           <article className="week-card empty-card">
             <header>
               <div>
