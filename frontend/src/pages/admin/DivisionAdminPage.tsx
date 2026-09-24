@@ -24,6 +24,8 @@ export function DivisionAdminPage() {
         <p>Scores, audit history, and weekly progress on this page affect only the selected division.</p>
       </section>
 
+      {seasonQuery.data?.status === 'completed' ? <StateNotice message="League completed. Results are read-only; scores and audit history remain available." compact /> : null}
+      {saveResultMutation.error || undoResultMutation.error ? <StateNotice tone="error" message={readError(saveResultMutation.error ?? undoResultMutation.error)} compact /> : null}
       <section className="admin-grid admin-grid-wide">
         <article className="admin-card">
           <h2>Fixtures</h2>
@@ -47,6 +49,7 @@ export function DivisionAdminPage() {
                     onUndo={(fixtureId) => undoResultMutation.mutateAsync(fixtureId)}
                     isSaving={saveResultMutation.isPending}
                     isUndoing={undoResultMutation.isPending}
+                    readOnly={seasonQuery.data?.status !== 'started'}
                   />
                 ))}
               </div>

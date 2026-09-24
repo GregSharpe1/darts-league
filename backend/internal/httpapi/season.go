@@ -25,6 +25,8 @@ func (h SeasonHandler) RegisterRoutes(mux *http.ServeMux, requireAdmin func(http
 	mux.HandleFunc("PUT /api/admin/season", requireAdmin(h.handleSeasonUpdate))
 	mux.HandleFunc("PUT /api/admin/season/config", requireAdmin(h.handleSeasonUpdateConfig))
 	mux.HandleFunc("POST /api/admin/season/start", requireAdmin(h.handleSeasonStart))
+	mux.HandleFunc("POST /api/admin/season/close", requireAdmin(h.handleSeasonClose))
+	mux.HandleFunc("POST /api/admin/season/next", requireAdmin(h.handleNextSeason))
 	mux.HandleFunc("GET /api/admin/season/preview", requireAdmin(h.handleSchedulePreview))
 	mux.HandleFunc("GET /api/admin/season/presets", requireAdmin(h.handleGamesPerWeekPresets))
 	mux.HandleFunc("GET /api/admin/divisions", requireAdmin(h.handleAdminDivisions))
@@ -234,29 +236,32 @@ func (h SeasonHandler) handleUpdateDivision(w http.ResponseWriter, r *http.Reque
 }
 
 type seasonSummaryResponse struct {
-	ID               int64  `json:"id"`
-	InstanceName     string `json:"instance_name"`
-	Name             string `json:"name"`
-	Status           string `json:"status"`
-	Timezone         string `json:"timezone"`
-	StartedAt        string `json:"started_at,omitempty"`
-	RegistrationOpen bool   `json:"registration_open"`
-	SeasonStarted    bool   `json:"season_started"`
-	AdminLocked      bool   `json:"admin_locked"`
-	CanStartSeason   bool   `json:"can_start_season"`
-	CanEditSettings  bool   `json:"can_edit_settings"`
-	CanEditDivisionChannel bool `json:"can_edit_division_channel"`
-	CanEditDivisions bool   `json:"can_edit_divisions"`
-	CanAssignPlayers bool   `json:"can_assign_players"`
-	PlayerCount      int    `json:"player_count"`
-	WeekCount        int    `json:"week_count"`
-	GameVariant      string `json:"game_variant"`
-	LegsToWin        int    `json:"legs_to_win"`
-	GamesPerWeek     int    `json:"games_per_week"`
-	TotalFixtures    int    `json:"total_fixtures"`
-	DivisionCount    int    `json:"division_count"`
-	AssignedCount    int    `json:"assigned_count"`
-	WaitlistCount    int    `json:"waitlist_count"`
+	ID                     int64  `json:"id"`
+	InstanceName           string `json:"instance_name"`
+	Name                   string `json:"name"`
+	Status                 string `json:"status"`
+	Timezone               string `json:"timezone"`
+	StartedAt              string `json:"started_at,omitempty"`
+	RegistrationOpen       bool   `json:"registration_open"`
+	SeasonStarted          bool   `json:"season_started"`
+	AdminLocked            bool   `json:"admin_locked"`
+	CanStartSeason         bool   `json:"can_start_season"`
+	CanCloseSeason         bool   `json:"can_close_season"`
+	CanCreateNextSeason    bool   `json:"can_create_next_season"`
+	RemainingFixtures      int    `json:"remaining_fixtures"`
+	CanEditSettings        bool   `json:"can_edit_settings"`
+	CanEditDivisionChannel bool   `json:"can_edit_division_channel"`
+	CanEditDivisions       bool   `json:"can_edit_divisions"`
+	CanAssignPlayers       bool   `json:"can_assign_players"`
+	PlayerCount            int    `json:"player_count"`
+	WeekCount              int    `json:"week_count"`
+	GameVariant            string `json:"game_variant"`
+	LegsToWin              int    `json:"legs_to_win"`
+	GamesPerWeek           int    `json:"games_per_week"`
+	TotalFixtures          int    `json:"total_fixtures"`
+	DivisionCount          int    `json:"division_count"`
+	AssignedCount          int    `json:"assigned_count"`
+	WaitlistCount          int    `json:"waitlist_count"`
 }
 
 type divisionResponse struct {
@@ -286,28 +291,31 @@ type publicFixtureResponse struct {
 
 func (h SeasonHandler) toSeasonSummaryResponse(summary league.SeasonSummary) seasonSummaryResponse {
 	response := seasonSummaryResponse{
-		ID:               summary.ID,
-		InstanceName:     h.instanceName,
-		Name:             summary.Name,
-		Status:           string(summary.Status),
-		Timezone:         summary.Timezone,
-		RegistrationOpen: summary.RegistrationOpen,
-		SeasonStarted:    summary.SeasonStarted,
-		AdminLocked:      summary.AdminLocked,
-		CanStartSeason:   summary.CanStartSeason,
-		CanEditSettings:  summary.CanEditSettings,
+		ID:                     summary.ID,
+		InstanceName:           h.instanceName,
+		Name:                   summary.Name,
+		Status:                 string(summary.Status),
+		Timezone:               summary.Timezone,
+		RegistrationOpen:       summary.RegistrationOpen,
+		SeasonStarted:          summary.SeasonStarted,
+		AdminLocked:            summary.AdminLocked,
+		CanStartSeason:         summary.CanStartSeason,
+		CanCloseSeason:         summary.CanCloseSeason,
+		CanCreateNextSeason:    summary.CanCreateNextSeason,
+		RemainingFixtures:      summary.RemainingFixtures,
+		CanEditSettings:        summary.CanEditSettings,
 		CanEditDivisionChannel: summary.CanEditDivisionChannel,
-		CanEditDivisions: summary.CanEditDivisions,
-		CanAssignPlayers: summary.CanAssignPlayers,
-		PlayerCount:      summary.PlayerCount,
-		WeekCount:        summary.WeekCount,
-		GameVariant:      summary.GameVariant,
-		LegsToWin:        summary.LegsToWin,
-		GamesPerWeek:     summary.GamesPerWeek,
-		TotalFixtures:    summary.TotalFixtures,
-		DivisionCount:    summary.DivisionCount,
-		AssignedCount:    summary.AssignedCount,
-		WaitlistCount:    summary.WaitlistCount,
+		CanEditDivisions:       summary.CanEditDivisions,
+		CanAssignPlayers:       summary.CanAssignPlayers,
+		PlayerCount:            summary.PlayerCount,
+		WeekCount:              summary.WeekCount,
+		GameVariant:            summary.GameVariant,
+		LegsToWin:              summary.LegsToWin,
+		GamesPerWeek:           summary.GamesPerWeek,
+		TotalFixtures:          summary.TotalFixtures,
+		DivisionCount:          summary.DivisionCount,
+		AssignedCount:          summary.AssignedCount,
+		WaitlistCount:          summary.WaitlistCount,
 	}
 	if summary.StartedAt != nil {
 		response.StartedAt = summary.StartedAt.UTC().Format(http.TimeFormat)

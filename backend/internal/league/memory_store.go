@@ -13,6 +13,7 @@ var ErrResultNotFound = errors.New("result not found")
 type MemoryStore struct {
 	mu             sync.RWMutex
 	activeSeason   Season
+	seasonsByID    map[int64]Season
 	divisionsByID  map[int64]Division
 	playersByID    map[int64]Player
 	fixturesByID   map[int64]Fixture
@@ -32,6 +33,7 @@ func NewMemoryStore() *MemoryStore {
 
 	return &MemoryStore{
 		activeSeason:   season,
+		seasonsByID:    map[int64]Season{season.ID: season},
 		divisionsByID:  make(map[int64]Division),
 		playersByID:    make(map[int64]Player),
 		fixturesByID:   make(map[int64]Fixture),
@@ -57,6 +59,7 @@ func (s *MemoryStore) EnsureActiveSeason(_ context.Context, season Season) (Seas
 		s.nextSeasonID++
 	}
 	s.activeSeason = season
+	s.seasonsByID[season.ID] = season
 	return season, nil
 }
 
@@ -88,6 +91,9 @@ func (s *MemoryStore) ListPlayersBySeason(_ context.Context, seasonID int64) ([]
 func (s *MemoryStore) AssignPlayer(_ context.Context, seasonID, playerID int64, divisionID *int64, status PlayerStatus) (Player, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	if s.seasonsByID[seasonID].Status == SeasonStatusCompleted {
+		return Player{}, ErrSeasonCompleted
+	}
 	player, ok := s.playersByID[playerID]
 	if !ok || player.SeasonID != seasonID {
 		return Player{}, ErrPlayerNotFound
@@ -125,6 +131,9 @@ func (s *MemoryStore) GetDivisionBySlug(_ context.Context, seasonID int64, slug 
 func (s *MemoryStore) ReplaceDivisions(_ context.Context, seasonID int64, divisions []Division) ([]Division, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	if s.seasonsByID[seasonID].Status == SeasonStatusCompleted {
+		return nil, ErrSeasonCompleted
+	}
 	for fixtureID, fixture := range s.fixturesByID {
 		if fixture.SeasonID != seasonID {
 			continue
@@ -167,6 +176,9 @@ func (s *MemoryStore) ReplaceDivisions(_ context.Context, seasonID int64, divisi
 func (s *MemoryStore) UpdateDivision(_ context.Context, division Division) (Division, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	if s.seasonsByID[division.SeasonID].Status == SeasonStatusCompleted {
+		return Division{}, ErrSeasonCompleted
+	}
 	if _, ok := s.divisionsByID[division.ID]; !ok {
 		return Division{}, ErrDivisionNotFound
 	}
@@ -177,8 +189,11 @@ func (s *MemoryStore) UpdateDivision(_ context.Context, division Division) (Divi
 func (s *MemoryStore) CreatePlayer(_ context.Context, player Player) (Player, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	if s.seasonsByID[player.SeasonID].Status == SeasonStatusCompleted {
+		return Player{}, ErrSeasonCompleted
+	}
 	for _, existing := range s.playersByID {
-		if NormalizeDisplayName(existing.DisplayName) == NormalizeDisplayName(player.DisplayName) {
+		if existing.SeasonID == player.SeasonID && NormalizeDisplayName(existing.DisplayName) == NormalizeDisplayName(player.DisplayName) {
 			return Player{}, ErrDuplicatePlayerName
 		}
 	}
@@ -219,6 +234,11 @@ func (s *MemoryStore) ListFixturesByDivision(_ context.Context, divisionID int64
 func (s *MemoryStore) CreateFixtures(_ context.Context, fixtures []Fixture) ([]Fixture, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	for _, fixture := range fixtures {
+		if s.seasonsByID[fixture.SeasonID].Status == SeasonStatusCompleted {
+			return nil, ErrSeasonCompleted
+		}
+	}
 
 	created := make([]Fixture, len(fixtures))
 	for i, fixture := range fixtures {
@@ -234,6 +254,9 @@ func (s *MemoryStore) CreateFixtures(_ context.Context, fixtures []Fixture) ([]F
 func (s *MemoryStore) ReplaceFixturesBySeason(_ context.Context, seasonID int64, fixtures []Fixture) ([]Fixture, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	if s.seasonsByID[seasonID].Status == SeasonStatusCompleted {
+		return nil, ErrSeasonCompleted
+	}
 	for fixtureID, fixture := range s.fixturesByID {
 		if fixture.SeasonID != seasonID {
 			continue
@@ -299,6 +322,9 @@ func (s *MemoryStore) ListResultsByDivision(_ context.Context, divisionID int64)
 func (s *MemoryStore) CreateResult(_ context.Context, result Result) (Result, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	if err := s.writableFixture(result.FixtureID); err != nil {
+		return Result{}, err
+	}
 	result.ID = s.nextResultID
 	s.nextResultID++
 	s.resultsByID[result.ID] = result
@@ -319,6 +345,9 @@ func (s *MemoryStore) GetResultByFixture(_ context.Context, fixtureID int64) (Re
 func (s *MemoryStore) UpdateResult(_ context.Context, result Result) (Result, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	if err := s.writableFixture(result.FixtureID); err != nil {
+		return Result{}, err
+	}
 	if _, ok := s.resultsByID[result.ID]; !ok {
 		return Result{}, ErrResultNotFound
 	}
@@ -329,6 +358,9 @@ func (s *MemoryStore) UpdateResult(_ context.Context, result Result) (Result, er
 func (s *MemoryStore) DeleteResultByFixture(_ context.Context, fixtureID int64) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	if err := s.writableFixture(fixtureID); err != nil {
+		return err
+	}
 	for id, result := range s.resultsByID {
 		if result.FixtureID == fixtureID {
 			delete(s.resultsByID, id)
@@ -376,6 +408,9 @@ func (s *MemoryStore) ListAuditLogsByDivision(_ context.Context, divisionID int6
 func (s *MemoryStore) DeletePlayer(_ context.Context, seasonID, playerID int64) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	if s.seasonsByID[seasonID].Status == SeasonStatusCompleted {
+		return ErrSeasonCompleted
+	}
 
 	player, ok := s.playersByID[playerID]
 	if !ok || player.SeasonID != seasonID {
@@ -389,6 +424,9 @@ func (s *MemoryStore) DeletePlayer(_ context.Context, seasonID, playerID int64) 
 func (s *MemoryStore) UpsertSeason(_ context.Context, season Season) (Season, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	if s.seasonsByID[season.ID].Status == SeasonStatusCompleted {
+		return Season{}, ErrSeasonCompleted
+	}
 
 	if season.ID == 0 {
 		season.ID = s.nextSeasonID
@@ -396,5 +434,6 @@ func (s *MemoryStore) UpsertSeason(_ context.Context, season Season) (Season, er
 	}
 
 	s.activeSeason = season
+	s.seasonsByID[season.ID] = season
 	return season, nil
 }

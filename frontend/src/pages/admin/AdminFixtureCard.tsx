@@ -1,9 +1,9 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import type { FormEvent } from 'react'
 import type { AdminFixture } from '../../lib/api'
 import { formatAverage } from '../../lib/api'
 
-export function AdminFixtureCard({ fixture, onSave, onUndo, isSaving, isUndoing, isLocked = false, isPastWeek = false }: {
+export function AdminFixtureCard({ fixture, onSave, onUndo, isSaving, isUndoing, isLocked = false, isPastWeek = false, readOnly = false }: {
   fixture: AdminFixture
   onSave: (payload: { fixtureId: number; playerOneLegs: number; playerTwoLegs: number; playerOneAverage?: number; playerTwoAverage?: number }) => Promise<unknown>
   onUndo: (fixtureId: number) => Promise<unknown>
@@ -11,6 +11,7 @@ export function AdminFixtureCard({ fixture, onSave, onUndo, isSaving, isUndoing,
   isUndoing: boolean
   isLocked?: boolean
   isPastWeek?: boolean
+  readOnly?: boolean
 }) {
   const [playerOneLegs, setPlayerOneLegs] = useState(String(fixture.result?.player_one_legs ?? ''))
   const [playerTwoLegs, setPlayerTwoLegs] = useState(String(fixture.result?.player_two_legs ?? ''))
@@ -18,12 +19,14 @@ export function AdminFixtureCard({ fixture, onSave, onUndo, isSaving, isUndoing,
   const [playerTwoAverage, setPlayerTwoAverage] = useState(formatAverage(fixture.result?.player_two_average))
   const [statusMessage, setStatusMessage] = useState('')
 
-  useEffect(() => {
+  const [previousFixture, setPreviousFixture] = useState(fixture)
+  if (fixture !== previousFixture) {
+    setPreviousFixture(fixture)
     setPlayerOneLegs(String(fixture.result?.player_one_legs ?? ''))
     setPlayerTwoLegs(String(fixture.result?.player_two_legs ?? ''))
     setPlayerOneAverage(formatAverage(fixture.result?.player_one_average))
     setPlayerTwoAverage(formatAverage(fixture.result?.player_two_average))
-  }, [fixture.id, fixture.result])
+  }
 
   const playerOneLegsValue = Number(playerOneLegs)
   const playerTwoLegsValue = Number(playerTwoLegs)
@@ -43,25 +46,35 @@ export function AdminFixtureCard({ fixture, onSave, onUndo, isSaving, isUndoing,
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
+    if (readOnly) return
     setStatusMessage('')
     if (!isValidScoreline) {
       setStatusMessage(`Enter a valid first-to-${legsToWin} score. ${scorelineHint}`)
       return
     }
-    await onSave({
+    try {
+      await onSave({
       fixtureId: fixture.id,
       playerOneLegs: playerOneLegsValue,
       playerTwoLegs: playerTwoLegsValue,
       playerOneAverage: playerOneAverage === '' ? undefined : Number(playerOneAverage),
       playerTwoAverage: playerTwoAverage === '' ? undefined : Number(playerTwoAverage),
-    })
-    setStatusMessage('Score saved.')
+      })
+      setStatusMessage('Score saved.')
+    } catch (error) {
+      setStatusMessage(error instanceof Error ? error.message : 'Score could not be saved.')
+    }
   }
 
   const handleUndo = async () => {
+    if (readOnly) return
     setStatusMessage('')
-    await onUndo(fixture.id)
-    setStatusMessage('Recorded result removed.')
+    try {
+      await onUndo(fixture.id)
+      setStatusMessage('Recorded result removed.')
+    } catch (error) {
+      setStatusMessage(error instanceof Error ? error.message : 'Result could not be removed.')
+    }
   }
 
   const isOverdue = isPastWeek && !fixture.result
@@ -82,25 +95,25 @@ export function AdminFixtureCard({ fixture, onSave, onUndo, isSaving, isUndoing,
               {playerOne.nickname}
               {playerOne.realName ? <span className="score-player-realname">{playerOne.realName}</span> : null}
             </span>
-            <input id={`p1-${fixture.id}`} type="number" min={0} max={legsToWin} step={1} value={playerOneLegs} onChange={(event) => setPlayerOneLegs(event.target.value)} inputMode="numeric" aria-label={`${fixture.player_one} legs`} />
-            <input id={`a1-${fixture.id}`} value={playerOneAverage} onChange={(event) => setPlayerOneAverage(event.target.value)} inputMode="decimal" aria-label={`${fixture.player_one} average`} />
+            <input readOnly={readOnly} id={`p1-${fixture.id}`} type="number" min={0} max={legsToWin} step={1} value={playerOneLegs} onChange={(event) => setPlayerOneLegs(event.target.value)} inputMode="numeric" aria-label={`${fixture.player_one} legs`} />
+            <input readOnly={readOnly} id={`a1-${fixture.id}`} value={playerOneAverage} onChange={(event) => setPlayerOneAverage(event.target.value)} inputMode="decimal" aria-label={`${fixture.player_one} average`} />
           </div>
           <div className="score-col">
             <span className="score-player-name">
               {playerTwo.nickname}
               {playerTwo.realName ? <span className="score-player-realname">{playerTwo.realName}</span> : null}
             </span>
-            <input id={`p2-${fixture.id}`} type="number" min={0} max={legsToWin} step={1} value={playerTwoLegs} onChange={(event) => setPlayerTwoLegs(event.target.value)} inputMode="numeric" aria-label={`${fixture.player_two} legs`} />
-            <input id={`a2-${fixture.id}`} value={playerTwoAverage} onChange={(event) => setPlayerTwoAverage(event.target.value)} inputMode="decimal" aria-label={`${fixture.player_two} average`} />
+            <input readOnly={readOnly} id={`p2-${fixture.id}`} type="number" min={0} max={legsToWin} step={1} value={playerTwoLegs} onChange={(event) => setPlayerTwoLegs(event.target.value)} inputMode="numeric" aria-label={`${fixture.player_two} legs`} />
+            <input readOnly={readOnly} id={`a2-${fixture.id}`} value={playerTwoAverage} onChange={(event) => setPlayerTwoAverage(event.target.value)} inputMode="decimal" aria-label={`${fixture.player_two} average`} />
           </div>
         </div>
-        <div className="score-actions">
+        {!readOnly ? <div className="score-actions">
           <button type="submit" disabled={isSaving || !isValidScoreline}>{isSaving ? 'Saving...' : 'Save score'}</button>
           {fixture.result ? <button className="secondary-button" type="button" onClick={handleUndo} disabled={isUndoing}>{isUndoing ? 'Undoing...' : 'Undo result'}</button> : null}
-        </div>
+        </div> : null}
       </form>
       <div className="score-feedback">
-        {!isValidScoreline ? <p className="fixture-meta">{scorelineHint}</p> : statusMessage ? <p className="fixture-meta">{statusMessage}</p> : null}
+        {!readOnly && !isValidScoreline ? <p className="fixture-meta">{scorelineHint}</p> : statusMessage ? <p className="fixture-meta" role="status">{statusMessage}</p> : null}
       </div>
     </article>
   )

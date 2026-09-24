@@ -25,8 +25,14 @@ export function response(body: unknown, status = 200) {
 export type AppState = {
   authenticated: boolean
   seasonStarted: boolean
+  seasonCompleted?: boolean
+  remainingFixtures?: number
+  seasonId?: number
+  lifecycleError?: boolean
   firstWeekReleased?: boolean
   seasonName: string
+  playerCount?: number
+  assignedCount?: number
 }
 
 export function createMockFetch(state: AppState) {
@@ -36,32 +42,36 @@ export function createMockFetch(state: AppState) {
 
     if (path === '/api/season') {
       return response({
-        id: 1,
+        id: state.seasonId ?? 1,
         instance_name: 'Cardiff Office - Darts League',
         name: state.seasonName,
-        status: state.seasonStarted ? 'started' : 'registration_open',
+        status: state.seasonCompleted ? 'completed' : state.seasonStarted ? 'started' : 'registration_open',
         timezone: 'Europe/London',
         registration_open: !state.seasonStarted,
         season_started: state.seasonStarted,
-        admin_locked: Boolean(state.firstWeekReleased),
+        admin_locked: Boolean(state.firstWeekReleased || state.seasonCompleted),
+        can_close_season: state.seasonStarted && !state.seasonCompleted && state.remainingFixtures === 0,
+        can_create_next_season: Boolean(state.seasonCompleted),
+        remaining_fixtures: state.remainingFixtures ?? 5,
         can_start_season: !state.seasonStarted,
-        can_edit_settings: !state.firstWeekReleased,
-        can_edit_division_channel: !state.firstWeekReleased,
-        can_edit_divisions: !state.firstWeekReleased,
-        can_assign_players: !state.firstWeekReleased,
-        player_count: 4,
+        can_edit_settings: !state.firstWeekReleased && !state.seasonCompleted,
+        can_edit_division_channel: !state.firstWeekReleased && !state.seasonCompleted,
+        can_edit_divisions: !state.firstWeekReleased && !state.seasonCompleted,
+        can_assign_players: !state.firstWeekReleased && !state.seasonCompleted,
+        player_count: state.playerCount ?? (state.seasonId === 2 ? 0 : 4),
         week_count: state.seasonStarted ? 3 : 0,
         game_variant: '501',
         legs_to_win: 3,
         games_per_week: 1,
         total_fixtures: state.seasonStarted ? 6 : 0,
         division_count: 2,
-        assigned_count: state.seasonStarted ? 4 : 2,
+        assigned_count: state.assignedCount ?? (state.seasonId === 2 ? 0 : state.seasonStarted ? 4 : 2),
         waitlist_count: state.seasonStarted ? 0 : 2,
       })
     }
 
     if (path === '/api/divisions' || path === '/api/admin/divisions') {
+      if (state.seasonId === 2) return response({ divisions: [] })
       return response({
         divisions: [
           { id: 1, name: 'Premier Division', slug: 'premier', position: 1, slack_public_channel_id: 'CPREMIER' },
@@ -128,6 +138,7 @@ export function createMockFetch(state: AppState) {
       if (!state.authenticated) {
         return response({ error: { code: 'unauthorized', message: 'Admin login is required.' } }, 401)
       }
+      if (state.seasonId === 2 || state.playerCount === 0) return response({ players: [] })
       return response({
         players: [
           { id: 1, display_name: 'Luke Humphries', preferred_name: 'The Freeze', admin_label: 'The Freeze (Luke Humphries)', status: 'waitlist', registered_at: 'Mon, 16 Mar 2026 19:00:00 GMT' },
@@ -146,6 +157,23 @@ export function createMockFetch(state: AppState) {
 
     if (path === '/api/admin/divisions/premier/audit') {
       return response({ entries: [{ id: 1, fixture_id: 1, fixture_label: 'The Freeze (Luke Humphries) vs Bully Boy (Michael Smith)', action: 'result_edited', actor: 'admin', created_at: 'Mon, 23 Mar 2026 20:45:00 GMT', old_result: { player_one_legs: 3, player_two_legs: 0, winner_id: 1 }, new_result: { player_one_legs: 3, player_two_legs: 1, winner_id: 1 } }] })
+    }
+
+    if (path === '/api/admin/season/close' && method === 'POST') {
+      if (state.lifecycleError) return response({ error: { code: 'season_incomplete', message: 'Results are still missing.' } }, 409)
+      state.seasonCompleted = true
+      return response({})
+    }
+
+    if (path === '/api/admin/season/next' && method === 'POST') {
+      const body: unknown = JSON.parse(String(init?.body ?? '{}'))
+      if (typeof body !== 'object' || body === null || !('name' in body) || typeof body.name !== 'string') throw new TypeError('Expected season name')
+      state.seasonName = body.name
+      state.seasonId = 2
+      state.seasonCompleted = false
+      state.seasonStarted = false
+      state.firstWeekReleased = false
+      return response({}, 201)
     }
 
     if (path === '/api/admin/season/start' && method === 'POST') {
