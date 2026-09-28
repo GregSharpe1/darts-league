@@ -4,21 +4,36 @@ import { useSeasonSummary, useRegisterPlayer } from '../../lib/api'
 import { StateNotice } from '../../components/StateNotice'
 import { readError } from '../../lib/utils'
 
+function nameError(value: string, label: string, limit: number) {
+  if (/\p{Cc}/u.test(value)) return `${label} must not contain control characters.`
+  // Unicode White_Space matches Go strings.Fields; JS trim also removes U+FEFF.
+  const normalized = value.split(/\p{White_Space}+/u).filter(Boolean).join(' ')
+  if (label === 'Display name' && !normalized) return 'Display name is required.'
+  if (Array.from(normalized).length > limit) return `${label} must be at most ${limit} characters.`
+  return ''
+}
+
 export function RegisterPage() {
   const seasonQuery = useSeasonSummary()
   const registerMutation = useRegisterPlayer()
   const [displayName, setDisplayName] = useState('')
   const [nickname, setNickname] = useState('')
   const [successMessage, setSuccessMessage] = useState('')
+  const [submitted, setSubmitted] = useState(false)
+  const displayNameError = submitted ? nameError(displayName, 'Display name', 60) : ''
+  const nicknameError = submitted ? nameError(nickname, 'Nickname', 30) : ''
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     setSuccessMessage('')
+    setSubmitted(true)
+    if (nameError(displayName, 'Display name', 60) || nameError(nickname, 'Nickname', 30)) return
     try {
       const player = await registerMutation.mutateAsync({ display_name: displayName, nickname })
       setSuccessMessage(`${player.preferred_name} is registered and waiting for division assignment.`)
       setDisplayName('')
       setNickname('')
+      setSubmitted(false)
     } catch {
       // handled by mutation error state
     }
@@ -58,11 +73,15 @@ export function RegisterPage() {
             <form className="form-preview" onSubmit={handleSubmit}>
               <div className="field">
                 <label htmlFor="display-name">Display name</label>
-                <input id="display-name" name="display-name" value={displayName} onChange={(event) => setDisplayName(event.target.value)} placeholder="Luke Humphries" disabled={!seasonQuery.data?.registration_open || registerMutation.isPending} />
+                <input id="display-name" name="display-name" required aria-invalid={Boolean(displayNameError)} aria-describedby="display-name-help display-name-error" value={displayName} onChange={(event) => setDisplayName(event.target.value)} placeholder="Luke Humphries" disabled={!seasonQuery.data?.registration_open || registerMutation.isPending} />
+                <span id="display-name-help" className="fixture-meta">Required. Up to 60 characters.</span>
+                <span id="display-name-error" role="alert">{displayNameError}</span>
               </div>
               <div className="field">
                 <label htmlFor="nickname">Nickname</label>
-                <input id="nickname" name="nickname" value={nickname} onChange={(event) => setNickname(event.target.value)} placeholder="The Freeze" disabled={!seasonQuery.data?.registration_open || registerMutation.isPending} />
+                <input id="nickname" name="nickname" aria-invalid={Boolean(nicknameError)} aria-describedby="nickname-help nickname-error" value={nickname} onChange={(event) => setNickname(event.target.value)} placeholder="The Freeze" disabled={!seasonQuery.data?.registration_open || registerMutation.isPending} />
+                <span id="nickname-help" className="fixture-meta">Optional. Up to 30 characters.</span>
+                <span id="nickname-error" role="alert">{nicknameError}</span>
               </div>
               <button type="submit" disabled={!seasonQuery.data?.registration_open || registerMutation.isPending}>{registerMutation.isPending ? 'Registering...' : 'Register for the league'}</button>
             </form>

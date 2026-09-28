@@ -59,6 +59,19 @@ test('register, assign divisions, start season, enter result, and view division 
     ['Damon Heta', 'The Heat'],
   ]
 
+  await page.goto('/register')
+  const registrationRequests: string[] = []
+  page.on('request', (request) => {
+    if (request.url().endsWith('/api/players/register')) registrationRequests.push(request.url())
+  })
+  await expect(page.getByLabel('Display name')).toBeEnabled()
+  await page.getByLabel('Display name').fill('a'.repeat(61))
+  await page.getByLabel('Nickname').fill('b'.repeat(31))
+  await page.getByRole('button', { name: /register for the league/i }).click()
+  await expect(page.getByLabel('Display name')).toHaveAttribute('aria-invalid', 'true')
+  await expect(page.getByLabel('Nickname')).toHaveAttribute('aria-invalid', 'true')
+  expect(registrationRequests).toHaveLength(0)
+
   for (const [displayName, nickname] of players) {
     await page.goto('/register')
     await expect(page.getByLabel('Display name')).toBeEnabled()

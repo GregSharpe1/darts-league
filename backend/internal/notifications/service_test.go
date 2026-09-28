@@ -219,6 +219,51 @@ func seededWeeklyStore(t *testing.T) *league.MemoryStore {
 	return store
 }
 
+func TestPlayerLabelsAreEscapedForSlack(t *testing.T) {
+	ctx := context.Background()
+	store := league.NewMemoryStore()
+	now := time.Date(2026, 3, 18, 12, 0, 0, 0, time.UTC)
+	poster := &stubPoster{}
+	registration := league.NewRegistrationServiceWithNowAndNotifier(store, func() time.Time { return now }, NewRegistrationNotifier(poster, "TEST", time.UTC, nil))
+	season := league.NewSeasonServiceWithNow(store, func() time.Time { return now })
+	divisions, err := season.ProvisionDivisions(ctx, 1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, name := range []string{"<!channel>", "<@U123> & Co"} {
+		player, err := registration.RegisterPlayer(ctx, league.Player{DisplayName: name})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, err := registration.AssignPlayer(ctx, player.ID, &divisions[0].ID); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if _, err := season.StartSeason(ctx); err != nil {
+		t.Fatal(err)
+	}
+	weekly := NewWeeklyService(store, func() time.Time { return time.Date(2026, 3, 23, 10, 0, 0, 0, time.UTC) }, nil, "TEST", "https://example.com")
+	messages := []string{poster.messages[0].text, poster.messages[1].text}
+	for _, compose := range []func(context.Context, league.Division) (string, bool, error){weekly.ComposeWeeklyFixturesMessage, weekly.ComposeWeeklySummaryMessage} {
+		message, ok, err := compose(ctx, divisions[0])
+		if err != nil || !ok {
+			t.Fatalf("compose: %v %v", ok, err)
+		}
+		if !strings.Contains(message, "<https://example.com/divisions/division-1/standings|here>") {
+			t.Fatal("intentional link lost")
+		}
+		messages = append(messages, message)
+	}
+	for _, message := range messages {
+		if strings.Contains(message, "<!channel>") || strings.Contains(message, "<@U123>") || strings.Contains(message, " & Co") {
+			t.Fatalf("unescaped label: %s", message)
+		}
+		if !strings.Contains(message, "&lt;") {
+			t.Fatalf("missing escaped label: %s", message)
+		}
+	}
+}
+
 type postedMessage struct {
 	channelID string
 	text      string

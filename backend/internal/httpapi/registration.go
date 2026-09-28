@@ -3,6 +3,7 @@ package httpapi
 import (
 	"encoding/json"
 	"errors"
+	"io"
 	"net/http"
 	"strconv"
 	"strings"
@@ -46,9 +47,24 @@ type assignPlayerRequest struct {
 }
 
 func (h RegistrationHandler) handleRegisterPlayer(w http.ResponseWriter, r *http.Request) {
-	var req registerPlayerRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		writeError(w, http.StatusBadRequest, "invalid_json", "Request body must be valid JSON.")
+	var req *registerPlayerRequest
+	decoder := json.NewDecoder(http.MaxBytesReader(w, r.Body, 4096))
+	err := decoder.Decode(&req)
+	if err == nil {
+		err = decoder.Decode(new(json.RawMessage))
+		if err == io.EOF {
+			err = nil
+		} else if err == nil {
+			err = errors.New("extra JSON value")
+		}
+	}
+	if err != nil || req == nil {
+		var sizeError *http.MaxBytesError
+		if errors.As(err, &sizeError) {
+			writeError(w, http.StatusRequestEntityTooLarge, "request_too_large", "Request body must be at most 4096 bytes.")
+		} else {
+			writeError(w, http.StatusBadRequest, "invalid_json", "Request body must contain one valid JSON object.")
+		}
 		return
 	}
 
@@ -144,6 +160,14 @@ func writeDomainError(w http.ResponseWriter, err error) {
 		writeError(w, http.StatusConflict, "season_transition", "The season has changed or does not allow this action. Refresh and try again.")
 	case errors.Is(err, league.ErrDisplayNameRequired):
 		writeError(w, http.StatusBadRequest, "display_name_required", "Display name is required.")
+	case errors.Is(err, league.ErrDisplayNameLength):
+		writeError(w, http.StatusBadRequest, "display_name_length", "Display name must be at most 60 characters.")
+	case errors.Is(err, league.ErrNicknameLength):
+		writeError(w, http.StatusBadRequest, "nickname_length", "Nickname must be at most 30 characters.")
+	case errors.Is(err, league.ErrDisplayNameControl):
+		writeError(w, http.StatusBadRequest, "display_name_control", "Display name must not contain control characters.")
+	case errors.Is(err, league.ErrNicknameControl):
+		writeError(w, http.StatusBadRequest, "nickname_control", "Nickname must not contain control characters.")
 	case errors.Is(err, league.ErrSeasonNameRequired):
 		writeError(w, http.StatusBadRequest, "season_name_required", "League name is required.")
 	case errors.Is(err, league.ErrSeasonNameLength):
