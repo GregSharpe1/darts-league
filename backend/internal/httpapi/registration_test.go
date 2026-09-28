@@ -7,11 +7,46 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/greg/darts-league/backend/internal/league"
 )
+
+func TestRegistrationRejectsInvalidInput(t *testing.T) {
+	for _, tc := range []struct {
+		name, body, code string
+		status           int
+	}{
+		{"display length", `{"display_name":"` + strings.Repeat("a", 61) + `"}`, "display_name_length", 400},
+		{"nickname length", `{"display_name":"A","nickname":"` + strings.Repeat("a", 31) + `"}`, "nickname_length", 400},
+		{"display control", `{"display_name":"A\tB"}`, "display_name_control", 400},
+		{"nickname control", `{"display_name":"A","nickname":"B\u0000"}`, "nickname_control", 400},
+		{"malformed", `{`, "invalid_json", 400},
+		{"extra value", `{"display_name":"A"} {}`, "invalid_json", 400},
+		{"null", `null`, "invalid_json", 400},
+		{"large value", `{"display_name":"` + strings.Repeat("a", 4096) + `"}`, "request_too_large", 413},
+		{"large trailing space", `{"display_name":"A"}` + strings.Repeat(" ", 4096), "request_too_large", 413},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			_, handler := newTestHandler()
+			request := httptest.NewRequest(http.MethodPost, "/api/players/register", strings.NewReader(tc.body))
+			response := hitEndpoint(t, handler.handleRegisterPlayer, request, tc.status)
+			assertErrorCode(t, response.Body.Bytes(), tc.code)
+			players, err := handler.service.ListPlayers(context.Background())
+			if err != nil || len(players) != 0 {
+				t.Fatalf("unexpected registrations: %v, %v", players, err)
+			}
+		})
+	}
+}
+
+func TestRegistrationAcceptsUnicodeLimits(t *testing.T) {
+	_, handler := newTestHandler()
+	body := `{"display_name":"` + strings.Repeat("\U0001f3af", 60) + `","nickname":"` + strings.Repeat("\U0001f3af", 30) + `","extra":true}`
+	hitEndpoint(t, handler.handleRegisterPlayer, httptest.NewRequest(http.MethodPost, "/api/players/register", strings.NewReader(body)), http.StatusCreated)
+}
 
 func TestRegisterPlayerReturnsCreatedPlayer(t *testing.T) {
 	t.Parallel()

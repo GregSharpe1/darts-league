@@ -5,12 +5,17 @@ import (
 	"fmt"
 	"strings"
 	"time"
+	"unicode"
 	"unicode/utf8"
 )
 
 var (
 	ErrRegistrationClosed    = errors.New("registration is closed")
 	ErrDisplayNameRequired   = errors.New("display name is required")
+	ErrDisplayNameLength     = errors.New("display name must be at most 60 characters")
+	ErrNicknameLength        = errors.New("nickname must be at most 30 characters")
+	ErrDisplayNameControl    = errors.New("display name must not contain control characters")
+	ErrNicknameControl       = errors.New("nickname must not contain control characters")
 	ErrDuplicatePlayerName   = errors.New("display name already exists")
 	ErrPlayerDeleteLocked    = errors.New("players can only be deleted before the season starts")
 	ErrPlayerAssignLocked    = errors.New("players can only be assigned before the season starts")
@@ -32,6 +37,11 @@ var (
 )
 
 type PlayerStatus string
+
+const (
+	MaxDisplayNameLength = 60
+	MaxNicknameLength    = 30
+)
 
 const (
 	PlayerStatusWaitlist PlayerStatus = "waitlist"
@@ -144,8 +154,20 @@ func (b RegistrationBook) ValidateNewPlayer(season Season, player Player) error 
 		return ErrRegistrationClosed
 	}
 
+	if strings.ContainsFunc(player.DisplayName, unicode.IsControl) {
+		return ErrDisplayNameControl
+	}
+	if strings.ContainsFunc(player.Nickname, unicode.IsControl) {
+		return ErrNicknameControl
+	}
 	if NormalizeDisplayName(player.DisplayName) == "" {
 		return ErrDisplayNameRequired
+	}
+	if utf8.RuneCountInString(normalizeSpacing(player.DisplayName)) > MaxDisplayNameLength {
+		return ErrDisplayNameLength
+	}
+	if utf8.RuneCountInString(normalizeSpacing(player.Nickname)) > MaxNicknameLength {
+		return ErrNicknameLength
 	}
 
 	newName := NormalizeDisplayName(player.DisplayName)

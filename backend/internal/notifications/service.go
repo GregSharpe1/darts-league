@@ -16,6 +16,12 @@ type MessagePoster interface {
 	PostMessage(ctx context.Context, channelID, text string) error
 }
 
+var slackLabelEscaper = strings.NewReplacer("&", "&amp;", "<", "&lt;", ">", "&gt;")
+
+func escapePlayerLabel(label string) string {
+	return slackLabelEscaper.Replace(label)
+}
+
 type RegistrationNotifier struct {
 	poster    MessagePoster
 	channelID string
@@ -44,7 +50,7 @@ func (n RegistrationNotifier) NotifyPlayerRegistered(ctx context.Context, player
 		return
 	}
 
-	text := fmt.Sprintf("New player signup\n- Player: %s\n- Signed up: %s\n- Total registered: %d", player.AdminLabel(), player.RegisteredAt.In(n.location).Format("Mon 02 Jan 2006 15:04 MST"), totalRegistered)
+	text := fmt.Sprintf("New player signup\n- Player: %s\n- Signed up: %s\n- Total registered: %d", escapePlayerLabel(player.AdminLabel()), player.RegisteredAt.In(n.location).Format("Mon 02 Jan 2006 15:04 MST"), totalRegistered)
 	if err := n.poster.PostMessage(ctx, n.channelID, text); err != nil && !errorsIsDisabled(err) {
 		n.logger.Printf("slack signup notification failed: %v", err)
 	}
@@ -128,8 +134,8 @@ func (s WeeklyService) ComposeWeeklyFixturesMessage(ctx context.Context, divisio
 	builder.WriteString("\n")
 	for _, fixture := range data.week.Fixtures {
 		builder.WriteString(fmt.Sprintf("🏆 %s vs %s\n",
-			data.playersByID[fixture.PlayerOneID].FixtureLabel(),
-			data.playersByID[fixture.PlayerTwoID].FixtureLabel(),
+			escapePlayerLabel(data.playersByID[fixture.PlayerOneID].FixtureLabel()),
+			escapePlayerLabel(data.playersByID[fixture.PlayerTwoID].FixtureLabel()),
 		))
 	}
 
@@ -152,8 +158,8 @@ func (s WeeklyService) ComposeWeeklySummaryMessage(ctx context.Context, division
 	resultsPosted := 0
 	pendingResults := make([]string, 0)
 	for _, fixture := range data.week.Fixtures {
-		playerOne := data.playersByID[fixture.PlayerOneID].FixtureLabel()
-		playerTwo := data.playersByID[fixture.PlayerTwoID].FixtureLabel()
+		playerOne := escapePlayerLabel(data.playersByID[fixture.PlayerOneID].FixtureLabel())
+		playerTwo := escapePlayerLabel(data.playersByID[fixture.PlayerTwoID].FixtureLabel())
 		result, ok := data.resultsByFixtureID[fixture.ID]
 		if !ok {
 			pendingResults = append(pendingResults, fmt.Sprintf("- %s vs %s", playerOne, playerTwo))
@@ -169,7 +175,7 @@ func (s WeeklyService) ComposeWeeklySummaryMessage(ctx context.Context, division
 
 	standings := league.BuildStandings(data.players, data.fixtures, data.results)
 	if len(standings) > 0 {
-		builder.WriteString(fmt.Sprintf("\n👑 Leader: %s on %d pts\n", standings[0].PreferredName, standings[0].Points))
+		builder.WriteString(fmt.Sprintf("\n👑 Leader: %s on %d pts\n", escapePlayerLabel(standings[0].PreferredName), standings[0].Points))
 	}
 	if len(pendingResults) > 0 {
 		builder.WriteString("\n⏳ Awaiting result\n")
@@ -300,7 +306,7 @@ func formatStandingsTable(rows []league.StandingRow) string {
 		builder.WriteString(fmt.Sprintf("%-3d %-*s %2d %2d %2d %3d %3d %3s %3d\n",
 			index+1,
 			labelWidth,
-			row.PreferredName,
+			escapePlayerLabel(row.PreferredName),
 			row.Played,
 			row.Won,
 			row.Lost,

@@ -3,9 +3,53 @@ package league
 import (
 	"context"
 	"errors"
+	"strings"
 	"testing"
 	"time"
 )
+
+func TestRegistrationInputLimits(t *testing.T) {
+	for _, tc := range []struct {
+		name   string
+		player Player
+		valid  bool
+	}{
+		{"empty", Player{}, false},
+		{"blank", Player{DisplayName: "   "}, false},
+		{"one character", Player{DisplayName: "A"}, true},
+		{"display boundary", Player{DisplayName: strings.Repeat("\U0001f3af", 60)}, true},
+		{"display overflow", Player{DisplayName: strings.Repeat("a", 61)}, false},
+		{"nickname boundary", Player{DisplayName: "A", Nickname: strings.Repeat("\u00e9", 30)}, true},
+		{"nickname overflow", Player{DisplayName: "A", Nickname: strings.Repeat("\U0001f3af", 31)}, false},
+		{"spacing", Player{DisplayName: "  " + strings.Repeat("a", 58) + "   B  ", Nickname: "  "}, true},
+		{"international", Player{DisplayName: "\u674e O'Brien-\u00e9", Nickname: "The_Power!"}, true},
+		{"tab", Player{DisplayName: "A\tB"}, false},
+		{"newline", Player{DisplayName: "A", Nickname: "B\n"}, false},
+		{"nul", Player{DisplayName: "A\x00"}, false},
+		{"unicode control", Player{DisplayName: "A", Nickname: "B\u0085"}, false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			store := NewMemoryStore()
+			notifier := &stubRegistrationNotifier{}
+			service := NewRegistrationServiceWithNowAndNotifier(store, time.Now, notifier)
+			_, err := service.RegisterPlayer(context.Background(), tc.player)
+			if (err == nil) != tc.valid {
+				t.Fatalf("valid=%v, error=%v", tc.valid, err)
+			}
+			players, err := service.ListPlayers(context.Background())
+			if err != nil {
+				t.Fatal(err)
+			}
+			want := 0
+			if tc.valid {
+				want = 1
+			}
+			if len(players) != want || len(notifier.players) != want {
+				t.Fatalf("players=%d notifications=%d, want %d", len(players), len(notifier.players), want)
+			}
+		})
+	}
+}
 
 func TestNormalizeDisplayName(t *testing.T) {
 	t.Parallel()
