@@ -669,6 +669,102 @@ func isUniqueViolation(err error) bool {
 	return errors.As(err, &pgErr) && pgErr.Code == "23505"
 }
 
+func (s *Store) CreatePendingResult(ctx context.Context, pending league.PendingResult) (league.PendingResult, error) {
+	row := s.pool.QueryRow(ctx, `
+		INSERT INTO pending_results (external_match_id, player_one_name, player_one_legs, player_one_average, player_two_name, player_two_legs, player_two_average, status, received_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+		RETURNING id, external_match_id, player_one_name, player_one_legs, player_one_average, player_two_name, player_two_legs, player_two_average, status, received_at, confirmed_at, confirmed_by
+	`, nullIfBlank(pending.ExternalMatchID), pending.PlayerOneName, pending.PlayerOneLegs, nullableFloat(pending.PlayerOneAverage), pending.PlayerTwoName, pending.PlayerTwoLegs, nullableFloat(pending.PlayerTwoAverage), pending.Status, pending.ReceivedAt)
+	return scanPendingResult(row)
+}
+
+func (s *Store) ListPendingResults(ctx context.Context, status league.PendingResultStatus) ([]league.PendingResult, error) {
+	rows, err := s.pool.Query(ctx, `
+		SELECT id, external_match_id, player_one_name, player_one_legs, player_one_average, player_two_name, player_two_legs, player_two_average, status, received_at, confirmed_at, confirmed_by
+		FROM pending_results
+		WHERE status = $1
+		ORDER BY received_at ASC, id ASC
+	`, status)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	pending := []league.PendingResult{}
+	for rows.Next() {
+		entry, err := scanPendingResultRow(rows)
+		if err != nil {
+			return nil, err
+		}
+		pending = append(pending, entry)
+	}
+	return pending, rows.Err()
+}
+
+func (s *Store) GetPendingResult(ctx context.Context, pendingID int64) (league.PendingResult, error) {
+	row := s.pool.QueryRow(ctx, `
+		SELECT id, external_match_id, player_one_name, player_one_legs, player_one_average, player_two_name, player_two_legs, player_two_average, status, received_at, confirmed_at, confirmed_by
+		FROM pending_results
+		WHERE id = $1
+	`, pendingID)
+	pending, err := scanPendingResult(row)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return league.PendingResult{}, league.ErrPendingResultNotFound
+	}
+	return pending, err
+}
+
+func (s *Store) UpdatePendingResult(ctx context.Context, pending league.PendingResult) (league.PendingResult, error) {
+	row := s.pool.QueryRow(ctx, `
+		UPDATE pending_results
+		SET status = $2, confirmed_at = $3, confirmed_by = $4
+		WHERE id = $1
+		RETURNING id, external_match_id, player_one_name, player_one_legs, player_one_average, player_two_name, player_two_legs, player_two_average, status, received_at, confirmed_at, confirmed_by
+	`, pending.ID, pending.Status, pending.ConfirmedAt, nullIfBlank(pending.ConfirmedBy))
+	updated, err := scanPendingResult(row)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return league.PendingResult{}, league.ErrPendingResultNotFound
+	}
+	return updated, err
+}
+
+func (s *Store) PendingResultExistsForExternalMatch(ctx context.Context, externalMatchID string) (bool, error) {
+	if strings.TrimSpace(externalMatchID) == "" {
+		return false, nil
+	}
+	var exists bool
+	err := s.pool.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM pending_results WHERE external_match_id = $1)`, externalMatchID).Scan(&exists)
+	return exists, err
+}
+
+type pendingResultRow interface {
+	Scan(dest ...any) error
+}
+
+func scanPendingResult(row pendingResultRow) (league.PendingResult, error) {
+	return scanPendingResultRow(row)
+}
+
+func scanPendingResultRow(row pendingResultRow) (league.PendingResult, error) {
+	var pending league.PendingResult
+	var externalMatchID *string
+	var playerOneAverage *float64
+	var playerTwoAverage *float64
+	var confirmedBy *string
+	if err := row.Scan(
+		&pending.ID, &externalMatchID, &pending.PlayerOneName, &pending.PlayerOneLegs, &playerOneAverage,
+		&pending.PlayerTwoName, &pending.PlayerTwoLegs, &playerTwoAverage, &pending.Status, &pending.ReceivedAt,
+		&pending.ConfirmedAt, &confirmedBy,
+	); err != nil {
+		return league.PendingResult{}, err
+	}
+	pending.ExternalMatchID = valueOrBlank(externalMatchID)
+	pending.PlayerOneAverage = playerOneAverage
+	pending.PlayerTwoAverage = playerTwoAverage
+	pending.ConfirmedBy = valueOrBlank(confirmedBy)
+	return pending, nil
+}
+
 func nullIfBlank(value string) any {
 	if strings.TrimSpace(value) == "" {
 		return nil

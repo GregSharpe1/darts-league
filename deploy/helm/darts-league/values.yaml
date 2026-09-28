@@ -49,6 +49,9 @@ backend:
     appNow: ""
     slackPublicChannelId: ""
     slackAdminChannelId: ""
+    sqsQueueUrl: ""
+    awsRegion: "eu-west-1"
+    sqsPollInterval: "15m"
   auth:
     existingSecret: ""
     existingSecretKeys:

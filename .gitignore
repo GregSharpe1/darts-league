@@ -7,3 +7,4 @@ frontend/test-results/
 *.log
 .env
 .env.*
+.aws-sam/

@@ -477,6 +477,65 @@ export function useUndoResult() {
   })
 }
 
+export type PendingResult = {
+  id: number
+  external_match_id: string
+  player_one_name: string
+  player_one_legs: number
+  player_one_average?: number
+  player_two_name: string
+  player_two_legs: number
+  player_two_average?: number
+  status: 'pending' | 'confirmed' | 'rejected'
+  received_at: string
+}
+
+export function useAdminPendingResults(enabled: boolean) {
+  return useQuery({
+    queryKey: ['admin', 'pending-results'],
+    queryFn: async () => (await request<{ pending_results: PendingResult[] }>('/api/admin/pending-results')).pending_results,
+    enabled,
+    refetchInterval: enabled ? 60_000 : false,
+  })
+}
+
+export function usePollResults() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: () => request<void>('/api/admin/results/poll', { method: 'POST' }),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['admin', 'pending-results'] })
+    },
+  })
+}
+
+export function useConfirmPendingResult() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ pendingId, playerOneId, playerTwoId }: { pendingId: number; playerOneId: number; playerTwoId: number }) =>
+      request(`/api/admin/pending-results/${pendingId}/confirm`, {
+        method: 'POST',
+        body: JSON.stringify({ player_one_id: playerOneId, player_two_id: playerTwoId }),
+      }),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['admin', 'pending-results'] })
+      await queryClient.invalidateQueries({ queryKey: ['division'] })
+      await queryClient.invalidateQueries({ queryKey: ['admin', 'division'] })
+      await queryClient.invalidateQueries({ queryKey: ['season'] })
+    },
+  })
+}
+
+export function useRejectPendingResult() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (pendingId: number) => request<void>(`/api/admin/pending-results/${pendingId}/reject`, { method: 'POST' }),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['admin', 'pending-results'] })
+    },
+  })
+}
+
 export function formatAverage(value?: number) {
   if (value === undefined) {
     return ''

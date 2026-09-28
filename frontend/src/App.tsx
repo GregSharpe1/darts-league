@@ -9,11 +9,13 @@ import { StandingsPage } from './pages/standings/StandingsPage'
 import { RegisterPage } from './pages/register/RegisterPage'
 import { AdminPage } from './pages/admin/AdminPage'
 import { DivisionAdminPage } from './pages/admin/DivisionAdminPage'
+import { PendingResultsPage } from './pages/admin/PendingResultsPage'
 
 function App() {
   const location = useLocation()
   const navigate = useNavigate()
-  const onAdminPage = Boolean(matchPath('/admin', location.pathname) || matchPath('/admin/divisions/:slug', location.pathname))
+  const onAdminPage = Boolean(matchPath('/admin', location.pathname) || matchPath('/admin/divisions/:slug', location.pathname) || matchPath('/admin/pending-results', location.pathname))
+  const onAdminHome = Boolean(matchPath('/admin', location.pathname))
   const seasonQuery = useSeasonSummary()
   const divisionsQuery = useDivisions()
   const backendVersionQuery = useBackendVersion()
@@ -51,6 +53,8 @@ function App() {
             <>
               {!onAdminPage ? <NavLink to="/">Divisions</NavLink> : null}
               {!onAdminPage && seasonQuery.data?.registration_open ? <NavLink to="/register">Register</NavLink> : null}
+              {onAdminPage && !onAdminHome ? <NavLink to="/admin">Admin home</NavLink> : null}
+              {onAdminHome && adminAuthenticated ? <NavLink to="/admin/pending-results">Pending results</NavLink> : null}
               {onAdminPage && adminAuthenticated ? (
                 <button
                   type="button"
@@ -75,6 +79,7 @@ function App() {
           <Route path="/divisions/:slug/standings" element={<StandingsPage />} />
           <Route path="/register" element={<RegisterPage />} />
           <Route path="/admin" element={<AdminPage />} />
+          <Route path="/admin/pending-results" element={<PendingResultsPage />} />
           <Route path="/admin/divisions/:slug" element={<DivisionAdminPage />} />
         </Routes>
         <footer className="footer-note" aria-label="Application build details">

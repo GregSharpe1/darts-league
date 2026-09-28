@@ -46,6 +46,11 @@ type Store interface {
 	UpsertSeason(ctx context.Context, season Season) (Season, error)
 	CloseSeason(ctx context.Context, seasonID int64) error
 	CreateNextSeason(ctx context.Context, seasonID int64, season Season) error
+	CreatePendingResult(ctx context.Context, pending PendingResult) (PendingResult, error)
+	ListPendingResults(ctx context.Context, status PendingResultStatus) ([]PendingResult, error)
+	GetPendingResult(ctx context.Context, pendingID int64) (PendingResult, error)
+	UpdatePendingResult(ctx context.Context, pending PendingResult) (PendingResult, error)
+	PendingResultExistsForExternalMatch(ctx context.Context, externalMatchID string) (bool, error)
 }
 
 type RegistrationService struct {

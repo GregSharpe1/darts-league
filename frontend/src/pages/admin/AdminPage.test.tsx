@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, screen, waitFor } from '@testing-library/react'
+import { cleanup, fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createMockFetch, renderApp } from '../../test/helpers'
 
@@ -24,6 +24,7 @@ describe('Admin page', () => {
 
     expect(await screen.findByRole('heading', { name: /registered players/i })).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: /divisions/i })).toBeInTheDocument()
+    expect(within(screen.getByRole('navigation', { name: 'Primary' })).getByRole('link', { name: 'Pending results' })).toHaveAttribute('href', '/admin/pending-results')
     expect(screen.getByRole('button', { name: /create divisions/i })).toBeInTheDocument()
     expect(screen.getByLabelText(/the freeze \(luke humphries\) division/i)).toBeInTheDocument()
   })

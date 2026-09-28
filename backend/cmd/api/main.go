@@ -11,6 +11,7 @@ import (
 	"github.com/greg/darts-league/backend/internal/httpapi"
 	"github.com/greg/darts-league/backend/internal/league"
 	"github.com/greg/darts-league/backend/internal/notifications"
+	"github.com/greg/darts-league/backend/internal/resultsrelay"
 	"github.com/greg/darts-league/backend/internal/slack"
 	pgstore "github.com/greg/darts-league/backend/internal/store/postgres"
 )
@@ -37,17 +38,34 @@ func main() {
 	authHandler := httpapi.NewAuthHandler(cfg.AdminUser, cfg.AdminPass, cfg.AdminSessionSecret)
 	registrationHandler := httpapi.NewRegistrationHandler(league.NewRegistrationServiceWithNowAndNotifier(store, now, registrationNotifier))
 	seasonHandler := httpapi.NewSeasonHandler(league.NewSeasonServiceWithNow(store, now), league.NewFixtureServiceWithNow(store, now), cfg.InstanceName)
-	resultHandler := httpapi.NewResultHandler(league.NewResultServiceWithNow(store, now))
+	resultService := league.NewResultServiceWithNow(store, now)
+	resultHandler := httpapi.NewResultHandler(resultService)
+	pendingResultHandler := httpapi.NewPendingResultHandler(league.NewPendingResultServiceWithNow(store, resultService, now))
 	versionHandler := httpapi.NewVersionHandler(cfg.Version)
 	authHandler.RegisterRoutes(mux)
 	registrationHandler.RegisterRoutes(mux, authHandler.RequireAdmin)
 	seasonHandler.RegisterRoutes(mux, authHandler.RequireAdmin)
 	resultHandler.RegisterRoutes(mux, authHandler.RequireAdmin)
+	pendingResultHandler.RegisterRoutes(mux, authHandler.RequireAdmin)
 	versionHandler.RegisterRoutes(mux)
 	mux.HandleFunc("/healthz", func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write([]byte("ok"))
 	})
+
+	stopPoller, pollNow := startResultPoller(cfg, store, resultService, now)
+	defer stopPoller()
+	mux.HandleFunc("POST /api/admin/results/poll", authHandler.RequireAdmin(func(w http.ResponseWriter, r *http.Request) {
+		if pollNow == nil {
+			http.Error(w, "Results relay polling is not configured.", http.StatusServiceUnavailable)
+			return
+		}
+		if err := pollNow(r.Context()); err != nil {
+			http.Error(w, "Results relay poll failed.", http.StatusBadGateway)
+			return
+		}
+		w.WriteHeader(http.StatusNoContent)
+	}))
 
 	server := &http.Server{
 		Addr:              cfg.HTTPAddress,
@@ -101,6 +119,31 @@ func buildRegistrationNotifier(cfg config.Config) league.RegistrationNotifier {
 	}
 
 	return notifications.NewRegistrationNotifier(slack.NewClient(cfg.SlackBotToken), cfg.SlackAdminChannel, loc, log.Default())
+}
+
+func startResultPoller(cfg config.Config, store league.Store, resultService league.ResultService, now func() time.Time) (func(), func(context.Context) error) {
+	if cfg.ResultsEndpoint == "" {
+		return func() {}, nil
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	client, err := resultsrelay.NewClient(cfg.ResultsEndpoint)
+	if err != nil {
+		log.Printf("results relay: disabled, failed to build client: %v", err)
+		cancel()
+		return func() {}, nil
+	}
+
+	loc, err := time.LoadLocation(cfg.Timezone)
+	if err != nil {
+		loc = time.UTC
+	}
+
+	pendingResults := league.NewPendingResultServiceWithNow(store, resultService, now)
+	poller := resultsrelay.NewPoller(client, pendingResults, loc, cfg.ResultsPollInterval, log.Default())
+	go poller.Run(ctx)
+
+	return cancel, poller.PollNow
 }
 
 func buildStore(ctx context.Context, cfg config.Config) league.Store {

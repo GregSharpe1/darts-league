@@ -19,12 +19,14 @@ type MemoryStore struct {
 	fixturesByID   map[int64]Fixture
 	resultsByID    map[int64]Result
 	auditByID      map[int64]AuditLogEntry
+	pendingByID    map[int64]PendingResult
 	nextDivisionID int64
 	nextPlayerID   int64
 	nextFixtureID  int64
 	nextResultID   int64
 	nextAuditID    int64
 	nextSeasonID   int64
+	nextPendingID  int64
 }
 
 func NewMemoryStore() *MemoryStore {
@@ -39,12 +41,14 @@ func NewMemoryStore() *MemoryStore {
 		fixturesByID:   make(map[int64]Fixture),
 		resultsByID:    make(map[int64]Result),
 		auditByID:      make(map[int64]AuditLogEntry),
+		pendingByID:    make(map[int64]PendingResult),
 		nextDivisionID: 1,
 		nextPlayerID:   1,
 		nextFixtureID:  1,
 		nextResultID:   1,
 		nextAuditID:    1,
 		nextSeasonID:   2,
+		nextPendingID:  1,
 	}
 }
 
@@ -436,4 +440,65 @@ func (s *MemoryStore) UpsertSeason(_ context.Context, season Season) (Season, er
 	s.activeSeason = season
 	s.seasonsByID[season.ID] = season
 	return season, nil
+}
+
+func (s *MemoryStore) CreatePendingResult(_ context.Context, pending PendingResult) (PendingResult, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	pending.ID = s.nextPendingID
+	s.nextPendingID++
+	s.pendingByID[pending.ID] = pending
+	return pending, nil
+}
+
+func (s *MemoryStore) ListPendingResults(_ context.Context, status PendingResultStatus) ([]PendingResult, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	pending := make([]PendingResult, 0, len(s.pendingByID))
+	for _, entry := range s.pendingByID {
+		if entry.Status == status {
+			pending = append(pending, entry)
+		}
+	}
+	sort.Slice(pending, func(i, j int) bool { return pending[i].ReceivedAt.Before(pending[j].ReceivedAt) })
+	return pending, nil
+}
+
+func (s *MemoryStore) GetPendingResult(_ context.Context, pendingID int64) (PendingResult, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	pending, ok := s.pendingByID[pendingID]
+	if !ok {
+		return PendingResult{}, ErrPendingResultNotFound
+	}
+	return pending, nil
+}
+
+func (s *MemoryStore) UpdatePendingResult(_ context.Context, pending PendingResult) (PendingResult, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	if _, ok := s.pendingByID[pending.ID]; !ok {
+		return PendingResult{}, ErrPendingResultNotFound
+	}
+	s.pendingByID[pending.ID] = pending
+	return pending, nil
+}
+
+func (s *MemoryStore) PendingResultExistsForExternalMatch(_ context.Context, externalMatchID string) (bool, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	if externalMatchID == "" {
+		return false, nil
+	}
+	for _, entry := range s.pendingByID {
+		if entry.ExternalMatchID == externalMatchID {
+			return true, nil
+		}
+	}
+	return false, nil
 }
