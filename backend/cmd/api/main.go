@@ -139,7 +139,9 @@ func startResultPoller(cfg config.Config, store league.Store, resultService leag
 		loc = time.UTC
 	}
 
-	pendingResults := league.NewPendingResultServiceWithNow(store, resultService, now)
+	pendingResults := league.NewPendingResultServiceWithNow(store, resultService, now).WithNotifier(
+		notifications.NewPendingResultNotifier(slack.NewClient(cfg.SlackBotToken), cfg.SlackAdminChannel, cfg.PublicBaseURL),
+	)
 	poller := resultsrelay.NewPoller(client, pendingResults, loc, cfg.ResultsPollInterval, log.Default())
 	go poller.Run(ctx)
 

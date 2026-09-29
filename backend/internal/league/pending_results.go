@@ -42,6 +42,7 @@ type PendingResultService struct {
 	store   Store
 	results ResultService
 	now     func() time.Time
+	notify  func(context.Context, PendingResult)
 }
 
 func NewPendingResultService(store Store, results ResultService) PendingResultService {
@@ -50,6 +51,11 @@ func NewPendingResultService(store Store, results ResultService) PendingResultSe
 
 func NewPendingResultServiceWithNow(store Store, results ResultService, now func() time.Time) PendingResultService {
 	return PendingResultService{store: store, results: results, now: now}
+}
+
+func (s PendingResultService) WithNotifier(notify func(context.Context, PendingResult)) PendingResultService {
+	s.notify = notify
+	return s
 }
 
 // Ingest records a match reported by an external scoring source as pending
@@ -78,7 +84,14 @@ func (s PendingResultService) Ingest(ctx context.Context, externalMatchID, playe
 		ReceivedAt:       s.now().UTC(),
 	}
 
-	return s.store.CreatePendingResult(ctx, pending)
+	created, err := s.store.CreatePendingResult(ctx, pending)
+	if err != nil {
+		return PendingResult{}, err
+	}
+	if s.notify != nil {
+		s.notify(ctx, created)
+	}
+	return created, nil
 }
 
 func (s PendingResultService) List(ctx context.Context) ([]PendingResult, error) {

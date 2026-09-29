@@ -1,8 +1,8 @@
 # Slack notifications
 
-The backend sends signup notifications and weekly division updates through
-Slack's `chat.postMessage` API. There is no scheduler inside the API server:
-signup messages run during registration, while weekly messages are separate CLI
+The backend sends signup, pending-score notifications and weekly division updates through
+Slack's `chat.postMessage` API. Signup messages run during registration and pending-score
+messages run when the API's results relay poller saves a new result. Weekly messages are separate CLI
 commands scheduled by the [Helm chart](../deploy/helm/darts-league/README.md).
 
 ## What gets sent
@@ -10,6 +10,7 @@ commands scheduled by the [Helm chart](../deploy/helm/darts-league/README.md).
 | Message | Trigger | Destination | Content |
 | --- | --- | --- | --- |
 | New player signup | Successful player registration | Admin channel | Player label, registration time, total registered players |
+| New pending score | New result saved by scheduled or manual relay polling | Admin channel | Reported player names, leg scores, pending-results page link |
 | Weekly fixtures | Monday 09:00 by default | Each division's channel, or public fallback | Current public week's pairings and division standings link |
 | Weekly summary | Friday 09:00 by default | Each division's channel, or public fallback | Current week's results, leader, pending results, cumulative standings and link |
 
@@ -52,9 +53,9 @@ the additional `chat:write.public` scope.
 | Environment variable | Purpose |
 | --- | --- |
 | `SLACK_BOT_TOKEN` | Bot token; unset or blank disables Slack delivery |
-| `SLACK_ADMIN_CHANNEL_ID` | Signup destination; blank skips signup messages |
+| `SLACK_ADMIN_CHANNEL_ID` | Signup and pending-score destination; blank skips these messages |
 | `SLACK_PUBLIC_CHANNEL_ID` | Weekly fallback destination; optional when divisions have their own channels |
-| `PUBLIC_BASE_URL` | Public frontend URL, e.g. `https://darts.example.com`; blank omits standings links |
+| `PUBLIC_BASE_URL` | Public frontend URL, e.g. `https://darts.example.com`; blank omits standings and pending-results links |
 | `DATABASE_URL` | Same league database used by the API; required for weekly commands to see the real season |
 | `APP_TIMEZONE` | Signup timestamp timezone; defaults to `Europe/London` |
 | `APP_NOW` | Optional simulated clock for testing; leave unset in production |
@@ -62,6 +63,12 @@ the additional `chat:write.public` scope.
 Set division channel IDs in `/admin` before the first weekly release locks season
 setup. The weekly commands use the stored season timezone for week selection and
 message dates; changing the scheduler timezone does not change the season.
+
+Pending-score messages link to `/admin/pending-results` (admin login required).
+Set `PUBLIC_BASE_URL` to include the clickable review link. Repeated external match
+IDs do not send another notification. Delivery is best-effort, like signup
+notifications: Slack failures are logged without losing the saved pending score,
+and failed notifications are not retried.
 
 `PUBLIC_BASE_URL` must be an absolute frontend URL including `https://` (or
 `http://` for local testing), not the backend API address. Surrounding whitespace
