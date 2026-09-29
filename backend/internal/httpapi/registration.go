@@ -222,6 +222,14 @@ func writeDomainError(w http.ResponseWriter, err error) {
 		writeError(w, http.StatusConflict, "result_exists", "This fixture already has a recorded result.")
 	case errors.Is(err, league.ErrResultNotFound):
 		writeError(w, http.StatusNotFound, "result_not_found", "This fixture does not have a recorded result yet.")
+	case errors.Is(err, league.ErrPendingResultNotFound):
+		writeError(w, http.StatusNotFound, "pending_result_not_found", "Pending result was not found.")
+	case errors.Is(err, league.ErrPendingResultNotPending):
+		writeError(w, http.StatusConflict, "pending_result_processed", "This pending result has already been confirmed or rejected.")
+	case errors.Is(err, league.ErrDuplicateExternalMatch):
+		writeError(w, http.StatusConflict, "duplicate_external_match", "This match has already been received.")
+	case errors.Is(err, league.ErrNoFixtureForPlayers):
+		writeError(w, http.StatusNotFound, "no_fixture_for_players", "No fixture was found for the selected players.")
 	default:
 		writeError(w, http.StatusInternalServerError, "internal_error", "Something went wrong.")
 	}

@@ -112,6 +112,7 @@ export function AdminPage() {
               {needsPlayers ? <p id="season-start-help" className="fixture-meta">No players registered yet. Register at least two players and assign them to the same division before starting the season.</p> : null}
             </div>
             <div className="toolbar-actions">
+              <Link className="button-link secondary-button" to="/admin/pending-results">Pending results</Link>
               {seasonQuery.data?.can_start_season ? (
                 <button className="season-start-button" type="button" aria-describedby={needsPlayers ? 'season-start-help' : undefined} onClick={() => seasonStartMutation.mutate()} disabled={seasonStartMutation.isPending || (seasonQuery.data?.assigned_count ?? 0) < 2}>{seasonStartMutation.isPending ? 'Starting season...' : 'Start season'}</button>
               ) : null}

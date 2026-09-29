@@ -28,6 +28,8 @@ backend:
     appNow: "2026-04-30T10:00:00Z"
     slackPublicChannelId: "C0AN49NF666"
     slackAdminChannelId: "C0AMNRUQYLF"
+    # resultsEndpoint needs to be set in local helm-values file.
+    resultsPollInterval: "15m"
   resources:
     requests:
       cpu: 50m

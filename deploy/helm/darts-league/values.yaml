@@ -49,6 +49,8 @@ backend:
     appNow: ""
     slackPublicChannelId: ""
     slackAdminChannelId: ""
+    resultsEndpoint: ""
+    resultsPollInterval: "15m"
   auth:
     existingSecret: ""
     existingSecretKeys:

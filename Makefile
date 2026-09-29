@@ -37,6 +37,7 @@ db-up:
 
 up:
 	docker compose -f $(COMPOSE_FILE) up -d --build
+	@echo "UI available at http://localhost:4173"
 
 rebuild:
 	docker compose -f $(COMPOSE_FILE) up -d --build --force-recreate
