@@ -5,25 +5,184 @@
   }
 
   window.__scoreScrapeInstalled = true;
-  /* Backend endpoint that accepts a match summary and forwards it to the SQS queue */
-  const SQS_SUBMIT_ENDPOINT_URL = "https://cicoc33r4h.execute-api.eu-west-1.amazonaws.com/results";
-  const REQUIRED_BASE_SCORE = 501;
-  const REQUIRED_WINNING_LEGS = 2;
+
+  const SETTINGS_COOKIE_NAME = "autodarts_score_scrape_settings";
+  const SETTINGS_COOKIE_DAYS = 365;
+  const DEFAULT_SETTINGS = {
+    endpoint: "",
+    baseScore: 501,
+    winningLegs: 2
+  };
 
   const open = XMLHttpRequest.prototype.open;
   const send = XMLHttpRequest.prototype.send;
   const INSTALL_INDICATOR_ID = "autodarts-wrapper-installed-indicator";
   const log = (...args) => console.log("[SCORE-SCRAPE]", ...args);
-  const MATCH_VALIDATION_RULES = [
+  const buildMatchValidationRules = (settings) => [
     {
       name: `baseScore`,
-      test: (state) => state.settings?.baseScore === REQUIRED_BASE_SCORE
+      test: (state) => state.settings?.baseScore === settings.baseScore
     },
     {
       name: `winningLegs`,
-      test: (state) => Array.isArray(state.scores) && state.scores.some((score) => (score?.legs ?? 0) >= REQUIRED_WINNING_LEGS)
+      test: (state) => Array.isArray(state.scores) && state.scores.some((score) => (score?.legs ?? 0) >= settings.winningLegs)
     }
   ];
+
+  const getCookie = (name) => {
+    const match = document.cookie.match(new RegExp(`(?:^|; )${name}=([^;]*)`));
+    return match ? decodeURIComponent(match[1]) : null;
+  };
+
+  const setCookie = (name, value, days) => {
+    const expires = new Date(Date.now() + days * 24 * 60 * 60 * 1000).toUTCString();
+    document.cookie = `${name}=${encodeURIComponent(value)}; expires=${expires}; path=/; SameSite=Lax`;
+  };
+
+  const loadSettingsFromCookie = () => {
+    const raw = getCookie(SETTINGS_COOKIE_NAME);
+    if (!raw) {
+      return null;
+    }
+
+    try {
+      const parsed = JSON.parse(raw);
+      if (typeof parsed.endpoint === "string" && parsed.endpoint && Number.isFinite(parsed.baseScore) && Number.isFinite(parsed.winningLegs)) {
+        return parsed;
+      }
+    } catch {
+      /* fall through to null */
+    }
+
+    return null;
+  };
+
+  const createModalOverlay = () => {
+    const overlay = document.createElement("div");
+    Object.assign(overlay.style, {
+      position: "fixed",
+      inset: "0",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      backgroundColor: "rgba(0, 0, 0, 0.6)",
+      zIndex: "2147483647"
+    });
+
+    const dialog = document.createElement("form");
+    Object.assign(dialog.style, {
+      backgroundColor: "#fff",
+      color: "#111",
+      padding: "20px",
+      borderRadius: "8px",
+      minWidth: "320px",
+      fontFamily: "sans-serif",
+      display: "flex",
+      flexDirection: "column",
+      gap: "10px",
+      boxShadow: "0 10px 30px rgba(0, 0, 0, 0.4)"
+    });
+
+    overlay.appendChild(dialog);
+
+    const append = () => document.body.appendChild(overlay);
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", append, { once: true });
+    } else {
+      append();
+    }
+
+    return { overlay, dialog };
+  };
+
+  const showDialog = ({ title, contentHtml, buttons, onMount }) => new Promise((resolve) => {
+    const { overlay, dialog } = createModalOverlay();
+
+    const buttonsHtml = buttons
+      .map((button, index) => `<button type="${button.type ?? "button"}" data-index="${index}" style="padding: 8px; cursor: pointer;">${button.label}</button>`)
+      .join("");
+
+    dialog.innerHTML = `
+      <h2 style="margin: 0 0 4px; font-size: 16px;">${title}</h2>
+      ${contentHtml}
+      <div style="display: flex; gap: 8px; justify-content: flex-end; margin-top: 6px;">
+        ${buttonsHtml}
+      </div>
+    `;
+
+    onMount?.(dialog);
+
+    const close = (value) => {
+      overlay.remove();
+      resolve(value);
+    };
+
+    buttons.forEach((button, index) => {
+      if (button.type === "submit") {
+        return;
+      }
+
+      dialog.querySelector(`button[data-index="${index}"]`).addEventListener("click", () => close(button.onClick(dialog)));
+    });
+
+    dialog.addEventListener("submit", (event) => {
+      event.preventDefault();
+      const submitButton = buttons.find((button) => button.type === "submit");
+      close(submitButton.onClick(dialog));
+    });
+  });
+
+  const showSettingsDialog = (defaults) => showDialog({
+    title: "Score Scrape Settings",
+    contentHtml: `
+      <label style="display: flex; flex-direction: column; gap: 4px; font-size: 13px;">
+        Submit Endpoint URL
+        <input name="endpoint" type="url" required />
+      </label>
+      <label style="display: flex; flex-direction: column; gap: 4px; font-size: 13px;">
+        Required Base Score
+        <input name="baseScore" type="number" required />
+      </label>
+      <label style="display: flex; flex-direction: column; gap: 4px; font-size: 13px;">
+        Required Winning Legs
+        <input name="winningLegs" type="number" required />
+      </label>
+    `,
+    onMount: (dialog) => {
+      dialog.querySelector('[name="endpoint"]').value = defaults.endpoint;
+      dialog.querySelector('[name="baseScore"]').value = defaults.baseScore;
+      dialog.querySelector('[name="winningLegs"]').value = defaults.winningLegs;
+    },
+    buttons: [
+      {
+        label: "Save",
+        type: "submit",
+        onClick: (dialog) => {
+          const settings = {
+            endpoint: dialog.querySelector('[name="endpoint"]').value.trim(),
+            baseScore: Number(dialog.querySelector('[name="baseScore"]').value),
+            winningLegs: Number(dialog.querySelector('[name="winningLegs"]').value)
+          };
+          setCookie(SETTINGS_COOKIE_NAME, JSON.stringify(settings), SETTINGS_COOKIE_DAYS);
+          return settings;
+        }
+      }
+    ]
+  });
+
+  const showConfirmDialog = (message) => showDialog({
+    title: "Score Scrape",
+    contentHtml: `<p style="margin: 0; font-size: 13px; white-space: pre-line;"></p>`,
+    onMount: (dialog) => {
+      dialog.querySelector("p").textContent = message;
+    },
+    buttons: [
+      { label: "Cancel", type: "button", onClick: () => false },
+      { label: "Submit", type: "submit", onClick: () => true }
+    ]
+  });
+
+  const settingsPromise = Promise.resolve(loadSettingsFromCookie() ?? showSettingsDialog(DEFAULT_SETTINGS));
 
   const renderInstallIndicator = () => {
     if (typeof document === "undefined") {
@@ -123,8 +282,8 @@
     ].join("\n");
   };
 
-  const evaluateMatchValidation = (state) => {
-    const failedRules = MATCH_VALIDATION_RULES.filter((rule) => {
+  const evaluateMatchValidation = (state, settings) => {
+    const failedRules = buildMatchValidationRules(seattings).filter((rule) => {
       try {
         return !rule.test(state);
       } catch {
@@ -156,47 +315,50 @@
           return;
         }
 
-        const validation = evaluateMatchValidation(parsedResponse);
+        settingsPromise.then((settings) => {
+          const validation = evaluateMatchValidation(parsedResponse, settings);
 
-        if (!validation.isValid) {
-          log("Match ignored (failed validation):", {
-            matchId: parsedResponse.id ?? null,
-            failedRules: validation.failedRules
-          });
-          return;
-        }
+          if (!validation.isValid) {
+            log("Match ignored (failed validation):", {
+              matchId: parsedResponse.id ?? null,
+              failedRules: validation.failedRules
+            });
+            return;
+          }
 
-        const summary = buildFinishedSummary(parsedResponse);
-        const confirmationMessage = toConfirmationMessage(summary);
-        const shouldSubmit = window.confirm(confirmationMessage);
+          const summary = buildFinishedSummary(parsedResponse);
+          const confirmationMessage = toConfirmationMessage(summary);
 
-        if (!shouldSubmit) {
-          log("Valid match rejected by user confirmation:", {
-            matchId: summary.matchId
-          });
-          return;
-        }
-
-        log("Valid match confirmed for submission:", {
-          matchId: summary.matchId
-        });
-        log("Match summary:", summary);
-
-        fetch(SQS_SUBMIT_ENDPOINT_URL, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(summary)
-        })
-          .then((response) => {
-            if (!response.ok) {
-              throw new Error(`Submission endpoint responded with ${response.status}`);
+          showConfirmDialog(confirmationMessage).then((shouldSubmit) => {
+            if (!shouldSubmit) {
+              log("Valid match rejected by user confirmation:", {
+                matchId: summary.matchId
+              });
+              return;
             }
 
-            log("Match summary sent for queueing:", { matchId: summary.matchId });
-          })
-          .catch((error) => {
-            log("Failed to send match summary:", { matchId: summary.matchId, error: String(error) });
+            log("Valid match confirmed for submission:", {
+              matchId: summary.matchId
+            });
+            log("Match summary:", summary);
+
+            fetch(settings.endpoint, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(summary)
+            })
+              .then((response) => {
+                if (!response.ok) {
+                  throw new Error(`Submission endpoint responded with ${response.status}`);
+                }
+
+                log("Match summary sent for queueing:", { matchId: summary.matchId });
+              })
+              .catch((error) => {
+                log("Failed to send match summary:", { matchId: summary.matchId, error: String(error) });
+              });
           });
+        });
       });
     }
 

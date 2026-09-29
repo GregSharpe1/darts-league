@@ -11,10 +11,9 @@ data:
   APP_TIMEZONE: {{ .Values.backend.env.appTimezone | quote }}
   SLACK_PUBLIC_CHANNEL_ID: {{ .Values.backend.env.slackPublicChannelId | quote }}
   SLACK_ADMIN_CHANNEL_ID: {{ .Values.backend.env.slackAdminChannelId | quote }}
-  AWS_REGION: {{ .Values.backend.env.awsRegion | default "" | quote }}
-  SQS_POLL_INTERVAL: {{ .Values.backend.env.sqsPollInterval | default "15m" | quote }}
-  {{- if .Values.backend.env.sqsQueueUrl }}
-  SQS_QUEUE_URL: {{ .Values.backend.env.sqsQueueUrl | quote }}
+  RESULTS_POLL_INTERVAL: {{ .Values.backend.env.resultsPollInterval | default "15m" | quote }}
+  {{- if .Values.backend.env.resultsEndpoint }}
+  RESULTS_ENDPOINT: {{ .Values.backend.env.resultsEndpoint | quote }}
   {{- end }}
   {{- if .Values.backend.env.appNow }}
   APP_NOW: {{ .Values.backend.env.appNow | quote }}
