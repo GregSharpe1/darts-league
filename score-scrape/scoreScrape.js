@@ -283,7 +283,7 @@
   };
 
   const evaluateMatchValidation = (state, settings) => {
-    const failedRules = buildMatchValidationRules(seattings).filter((rule) => {
+    const failedRules = buildMatchValidationRules(settings).filter((rule) => {
       try {
         return !rule.test(state);
       } catch {
