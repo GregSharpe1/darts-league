@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Design concepts for reviewing imported Autodarts scores and dart-level statistics in Darts League.">
+  <title>Autodarts imports - Darts League concept</title>
+  <link rel="stylesheet" href="fonts/fonts.css">
+  <link rel="stylesheet" href="../../../frontend/src/index.css">
+  <link rel="stylesheet" href="../../../frontend/src/App.css">
+  <link rel="stylesheet" href="mockup.css">
+  <script src="mockup.js" defer></script>
+</head>
+<body class="app-shell concept">
+  <header class="topbar">
+    <div class="brand-mark"><div class="brand-badge" aria-hidden="true"></div><div class="brand-copy"><strong>Darts League</strong><span>Example office</span></div></div>
+    <div class="top-links"><span>Admin workspace</span><span class="nav-current">Pending results <b>1</b></span></div>
+  </header>
+  <main class="page-frame">
+    <div class="concept-strip"><span><b>DESIGN PREVIEW</b> &nbsp; Synthetic dart positions. Test-match stats. Illustrative league mapping.</span><button id="mapping-demo" type="button">Show unmatched state</button></div>
+    <section class="intro">
+      <div><span class="eyebrow">Match results inbox</span><h1>Pending results<span>.</span></h1><p>From the oche to the league. Review the match, map the players, then confirm.</p></div>
+      <div class="sync-status"><span class="status-dot"></span> Imported from Autodarts<small>Awaiting admin confirmation</small></div>
+    </section>
+    <div class="workspace">
+      <aside class="inbox" aria-label="Import summary">
+        <div class="rail-heading"><h2>Awaiting review</h2><span class="count">01</span></div>
+        <div class="receipt selected"><div class="tiny">AUTODARTS <span>501</span></div><h3>MORGAN EMBER <b>3</b></h3><h3 class="opponent">CASEY VALE <b>0</b></h3><div class="receipt-bottom"><span class="badge warning">Test match</span><span>3 legs</span></div></div>
+        <div class="receipt-notes"><h3>One import. Every dart.</h3><p>The original result stays separate from league standings until you confirm it.</p><ol><li><span class="step done">1</span><div>Match received<small>Score, stats &amp; 48 darts</small></div></li><li><span class="step current">2</span><div>Review &amp; match players<small>Admin approval required</small></div></li><li><span class="step">3</span><div>Record league result<small>Preview only in this concept</small></div></li></ol></div>
+        <div class="source-note"><span class="tiny">SOURCE PAYLOAD</span><p>Match totals, leg breakdowns and individual throw coordinates.</p><span class="mono">demo-match-001 / stats</span></div>
+      </aside>
+      <div class="detail">
+        <section class="match-panel panel" aria-labelledby="match-title">
+          <div class="panel-top"><span class="tiny">IMPORTED MATCH <span class="separator">/</span> 501 &middot; FIRST TO 3</span><span class="badge warning" id="review-status">Awaiting review</span></div>
+          <div class="score-hero"><div><span class="tiny accent">MATCH WINNER</span><h2 id="match-title">MORGAN EMBER</h2><p>Fictitious player name</p></div><div class="big-score" aria-label="3 to 0"><span>3</span><i>:</i><span class="losing">0</span></div><div class="away"><span class="tiny">OPPONENT</span><h2>CASEY<br>VALE</h2><p>Fictitious guest</p></div></div>
+          <div class="match-meta"><span>3 legs completed</span><span>Straight in / Double out</span><span>Manual scoring</span><span>27 + 21 darts</span></div>
+        </section>
+        <nav class="view-switch" aria-label="Match views"><button type="button" data-view="review" aria-pressed="true">01 <span>Review result</span></button><button type="button" data-view="analysis" aria-pressed="false">02 <span>Match analysis</span></button><span>Nothing published yet</span></nav>
+        <div id="review-view">
+          <section class="panel mapping-panel"><div class="section-heading"><div><span class="tiny accent">BEFORE YOU CONFIRM</span><h2>Match to your league</h2></div><span class="badge good" id="mapping-badge">Demo mapping ready</span></div>
+            <p class="muted">Reported names are not league identities. Check both players below.</p>
+            <div class="mapping-grid"><label>League<select id="division"><option value="premier">Example / Premier division (demo)</option><option value="">Select league...</option></select></label><label><span>MORGAN EMBER <span class="arrow">&rarr;</span> League player</span><select id="player-one"><option value="morgan">Morgan Ember (demo)</option><option value="">Select player...</option><option value="casey">Casey Vale (demo)</option></select></label><label><span>CASEY VALE <span class="arrow">&rarr;</span> League player</span><select id="player-two"><option value="casey">Casey Vale (demo)</option><option value="">Select player...</option><option value="morgan">Morgan Ember (demo)</option></select></label></div>
+            <div class="mapping-note" id="mapping-note">Sample mapping only. This test opponent is not a verified league player.</div>
+          </section>
+          <div class="review-grid"><section class="panel stats-panel"><div class="section-heading"><h2>At a glance</h2><span class="tiny">MORGAN EMBER</span></div><div class="headline-stats"><div><strong>167.0</strong><span>3-dart average</span></div><div><strong>100<span>%</span></strong><span>Checkouts &middot; 3 / 3</span></div></div><dl class="stat-list"><div><dt>180s</dt><dd>6</dd></div><div><dt>Best leg</dt><dd>9 darts</dd></div><div><dt>Highest finish</dt><dd>141</dd></div></dl><div class="data-note">Three nine-dart legs. Captured in an automated browser test using manual score entry, not a physical board.</div></section>
+            <section class="panel mini-map"><div class="section-heading"><h2>Where the darts landed</h2><span class="tiny">27 DARTS</span></div><svg class="dartboard compact" data-board="preview" viewBox="0 0 500 500" role="img" aria-label="Morgan Ember synthetic heatmap: 21 darts at T20, 3 at T19 and 3 at D12"></svg><div class="mini-map-footer"><span>Synthetic randomized coordinates</span><button type="button" id="open-analysis">Explore heatmap &rarr;</button></div></section></div>
+          <section class="approval panel"><div><h2>Ready for the score sheet?</h2><p>Confirm the mapping before recording the 3&ndash;0 result.</p></div><div class="approval-actions"><button type="button" class="quiet-button" id="reject">Reject preview</button><button type="button" class="primary-button" id="confirm">Confirm score <span aria-hidden="true">&rarr;</span></button></div></section>
+          <p role="status" id="action-status" class="action-status">Design preview only. No result or statistics will be saved.</p>
+        </div>
+        <div id="analysis-view" hidden>
+          <section class="panel analysis-panel"><div class="section-heading"><div><span class="tiny accent">DART-LEVEL DETAIL</span><h2>A closer look at the match</h2></div><label class="leg-filter">Scope<select id="leg-filter"><option value="all">Whole match</option><option value="1">Leg 1</option><option value="2">Leg 2</option><option value="3">Leg 3</option></select></label></div>
+            <div class="analysis-grid"><div class="heatmap-area"><div class="player-switch" aria-label="Heatmap player"><button type="button" data-player="winner" aria-pressed="true">MORGAN EMBER</button><button type="button" data-player="opponent" aria-pressed="false">CASEY VALE</button></div><svg class="dartboard" id="full-board" viewBox="0 0 500 500" role="img" aria-labelledby="board-title board-description"></svg><div class="legend"><span>Fewer darts</span><span class="legend-ramp"></span><span>More darts</span></div><p class="coordinate-note">Synthetic randomized positions, not measured accuracy.<br>Dots show individual darts; badges show segment totals.</p></div>
+              <div class="analysis-stats"><div class="scope-heading"><span class="tiny" id="scope-title">MORGAN EMBER / WHOLE MATCH</span><strong id="dart-count">27 <small>darts</small></strong></div><dl class="stat-list"><div><dt>3-dart average</dt><dd id="selected-average">167.0</dd></div><div><dt>First-nine average</dt><dd id="selected-first9">167.0</dd></div><div><dt>Checkout hits / attempts</dt><dd id="selected-checkout">3 / 3</dd></div><div><dt>180s</dt><dd id="selected-180">6</dd></div></dl><h3 class="distribution-title">Segment distribution</h3><div id="distribution"></div><div class="data-note">Counts come from individual throws, linked by player ID rather than display name.</div></div></div>
+          </section>
+          <section class="panel legs-panel"><div class="section-heading"><h2>The winning route</h2><span class="badge">3 nine-dart legs</span></div><div class="table-wrap" tabindex="0" role="region" aria-label="Winning route table, scroll horizontally for all columns"><table><caption>Morgan Ember &middot; complete match breakdown</caption><thead><tr><th>Leg</th><th>Visit 1</th><th>Visit 2</th><th>Checkout</th><th>Darts</th><th>Average</th></tr></thead><tbody><tr><th>01</th><td>180</td><td>180</td><td><b>141</b><small>T20 &middot; T19 &middot; D12</small></td><td>9</td><td>167.0</td></tr><tr><th>02</th><td>180</td><td>180</td><td><b>141</b><small>T20 &middot; T19 &middot; D12</small></td><td>9</td><td>167.0</td></tr><tr><th>03</th><td>180</td><td>180</td><td><b>141</b><small>T20 &middot; T19 &middot; D12</small></td><td>9</td><td>167.0</td></tr></tbody></table></div></section>
+        </div>
+      </div>
+    </div>
+    <footer class="concept-footer"><span>DARTS LEAGUE / AUTODARTS IMPORT CONCEPT</span><span>Review first. Publish with confidence.</span></footer>
+  </main>
+</body>
+</html>
