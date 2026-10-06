@@ -45,8 +45,7 @@ func (s *Store) pingAndMigrate(ctx context.Context) error {
 	if err := s.pool.Ping(ctx); err != nil {
 		return err
 	}
-	_, err := s.pool.Exec(ctx, initialSchema)
-	return err
+	return s.migrateImports(ctx)
 }
 
 func (s *Store) EnsureActiveSeason(ctx context.Context, season league.Season) (league.Season, error) {
