@@ -11,27 +11,109 @@
   const DEFAULT_SETTINGS = {
     endpoint: "",
     baseScore: 501,
-    winningLegs: 2
+    winningLegs: 3
   };
 
   const open = XMLHttpRequest.prototype.open;
   const send = XMLHttpRequest.prototype.send;
   const INSTALL_INDICATOR_ID = "autodarts-wrapper-installed-indicator";
   const log = (...args) => console.log("[SCORE-SCRAPE]", ...args);
-  const buildMatchValidationRules = (settings) => [
-    {
-      name: `baseScore`,
-      test: (state) => state.settings?.baseScore === settings.baseScore
-    },
-    {
-      name: `winningLegs`,
-      test: (state) => Array.isArray(state.scores) && state.scores.some((score) => (score?.legs ?? 0) >= settings.winningLegs)
+  const sandbox = window.__scoreScrapeSandbox !== false;
+  const requests = new WeakMap();
+  const pending = new Set();
+  const submitted = new Set();
+  let queue = Promise.resolve();
+  const requireValue = (condition) => { if (!condition) throw new Error("Unsupported or invalid match data"); };
+  const id = (value) => { requireValue(typeof value === "string" && /^[A-Za-z0-9_-]{1,128}$/.test(value)); return value; };
+  const count = (value, max) => { requireValue(Number.isInteger(value) && value >= 0 && value <= max); return value; };
+  const metric = (value, max, integer = true) => {
+    if (value == null) return null;
+    requireValue(Number.isFinite(value) && value >= 0 && value <= max && (!integer || Number.isInteger(value)));
+    return value;
+  };
+  const timestamp = (value) => {
+    if (value == null) return null;
+    requireValue(typeof value === "string" && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?(Z|[+-]\d{2}:\d{2})$/.test(value) && Number.isFinite(Date.parse(value)));
+    return value;
+  };
+  const matchURL = (value) => {
+    try {
+      const url = new URL(value, location.href);
+      if (!["https://api.autodarts.com", "https://api.autodarts.io"].includes(url.origin) || url.username || url.password || url.hash) return null;
+      return /^\/as\/v0\/matches\/([A-Za-z0-9_-]{1,128})\/stats$/.exec(url.pathname)?.[1] ?? null;
+    } catch { return null; }
+  };
+  const project = (state, matchId) => {
+    requireValue(state && state.id === matchId && state.variant === "X01" && state.settings?.baseScore === 501 && state.settings.outMode === "Double");
+    requireValue(state.targetLegs === 3 && (state.targetSets === null || state.targetSets === 0) && timestamp(state.finishedAt) !== null);
+    requireValue(Array.isArray(state.players) && state.players.length === 2 && Array.isArray(state.scores) && state.scores.length === 2);
+    const ids = state.players.map(player => id(player.id));
+    requireValue(new Set(ids).size === 2 && [0, 1].includes(state.winner));
+    const scores = state.scores.map(score => count(score.legs, 3));
+    requireValue(scores[state.winner] === 3 && scores[1 - state.winner] < 3);
+    const reference = value => { requireValue(ids.includes(value)); return value; };
+    const players = state.players.map((player, index) => {
+      requireValue(typeof player.name === "string" && [...player.name].length >= 1 && [...player.name].length <= 80 && !/[\u0000-\u001f\u007f-\u009f]/.test(player.name));
+      const rows = (state.matchStats ?? []).filter(row => row.playerId === player.id);
+      requireValue(rows.length <= 1);
+      const row = rows[0];
+      const stats = row ? {
+        match_average: metric(row.average, 180, false), points_scored: null,
+        darts_thrown: metric(row.dartsThrown, 3000), checkout_hits: metric(row.checkoutsHit, 3), checkout_attempts: metric(row.checkouts, 3000)
+      } : null;
+      if (stats) {
+        requireValue(stats.checkout_hits == null || stats.checkout_attempts == null || stats.checkout_hits <= stats.checkout_attempts);
+        requireValue(stats.checkout_attempts == null || stats.darts_thrown == null || stats.checkout_attempts <= stats.darts_thrown);
+        requireValue(stats.darts_thrown !== 0 || (stats.match_average === null && (stats.points_scored === null || stats.points_scored === 0)));
+      }
+      return { match_player_id: player.id, account_id: player.userId == null ? null : id(player.userId), display_name: player.name, legs_won: scores[index], stats };
+    });
+    let detail = null;
+    requireValue(state.games == null || Array.isArray(state.games));
+    if (state.games != null && state.games.length) {
+      requireValue(Array.isArray(state.games) && state.games.length <= 5);
+      const legs = state.games.map(game => {
+        requireValue(game.set === 0 && Array.isArray(game.turns) && game.turns.length <= 200);
+        const visits = [...game.turns].sort((a, b) => a.turn - b.turn).map(turn => {
+          requireValue(typeof turn.busted === "boolean" && Array.isArray(turn.throws) && turn.throws.length >= 1 && turn.throws.length <= 3);
+          const end = count(turn.score, 501);
+          const start = end + (turn.busted ? 0 : count(turn.points, 180));
+          requireValue(start >= 2 && start <= 501);
+          const throws = [...turn.throws].sort((a, b) => a.throw - b.throw).map((dart, index) => {
+            requireValue(dart.throw === index);
+            const beds = { Outside: "miss", Single: "single", Double: "double", Triple: "triple", OuterBull: "outer_bull", InnerBull: "inner_bull" };
+            let bed = beds[dart.segment?.bed];
+            if (dart.segment?.number === 25 && bed === "single") bed = "outer_bull";
+            if (dart.segment?.number === 25 && bed === "double") bed = "inner_bull";
+            requireValue(Boolean(bed));
+            const number = bed === "miss" ? 0 : dart.segment.number;
+            requireValue(bed === "miss" || (bed.endsWith("bull") ? number === 25 : Number.isInteger(number) && number >= 1 && number <= 20));
+            const entry = ({ manual_coords: "manual", manual: "manual", manual_segment: "manual", auto: "automatic", automatic: "automatic" })[dart.entry] ?? "unknown";
+            let position = null;
+            if (dart.coords?.x != null && dart.coords?.y != null) {
+              requireValue(Number.isFinite(dart.coords.x) && Number.isFinite(dart.coords.y));
+              position = { x: dart.coords.x, y: dart.coords.y, units: null, origin: null, axis_orientation: null, provenance: entry };
+            }
+            return { number: index + 1, segment: { bed, number }, entry_type: entry, position };
+          });
+          return { number: count(turn.turn, 199) + 1, player_id: reference(turn.playerId), start_remaining: start, end_remaining: end, bust: turn.busted, throws };
+        });
+        requireValue(new Set(visits.map(visit => visit.number)).size === visits.length);
+        const completed = timestamp(game.finishedAt) !== null;
+        return { number: count(game.leg, 4) + 1, completed, winner_id: completed ? reference(game.winnerPlayerId) : null, visits };
+      }).sort((a, b) => a.number - b.number);
+      requireValue(new Set(legs.map(leg => leg.number)).size === legs.length);
+      // Source history may be truncated; the backend checks scoring semantics.
+      detail = { coverage: "partial", legs };
     }
-  ];
+    const payload = { schema_version: "autodarts.import.v1", source: "autodarts", external_match_id: id(state.id), playedAt: timestamp(state.createdAt), settings: { base_score: 501, legs_to_win: 3, out: "double" }, completed: true, players, detail };
+    requireValue(new TextEncoder().encode(JSON.stringify(payload)).length <= 128 * 1024);
+    return payload;
+  };
 
   const getCookie = (name) => {
     const match = document.cookie.match(new RegExp(`(?:^|; )${name}=([^;]*)`));
-    return match ? decodeURIComponent(match[1]) : null;
+    try { return match ? decodeURIComponent(match[1]) : null; } catch { return null; }
   };
 
   const setCookie = (name, value, days) => {
@@ -48,7 +130,7 @@
     try {
       const parsed = JSON.parse(raw);
       if (typeof parsed.endpoint === "string" && parsed.endpoint && Number.isFinite(parsed.baseScore) && Number.isFinite(parsed.winningLegs)) {
-        return parsed;
+        return { endpoint: parsed.endpoint, baseScore: parsed.baseScore, winningLegs: parsed.winningLegs };
       }
     } catch {
       /* fall through to null */
@@ -70,6 +152,8 @@
     });
 
     const dialog = document.createElement("form");
+    dialog.setAttribute("role", "dialog");
+    dialog.setAttribute("aria-modal", "true");
     Object.assign(dialog.style, {
       backgroundColor: "#fff",
       color: "#111",
@@ -110,7 +194,9 @@
       </div>
     `;
 
+    dialog.setAttribute("aria-label", title);
     onMount?.(dialog);
+    dialog.querySelector("input, button")?.focus();
 
     const close = (value) => {
       overlay.remove();
@@ -128,7 +214,7 @@
     dialog.addEventListener("submit", (event) => {
       event.preventDefault();
       const submitButton = buttons.find((button) => button.type === "submit");
-      close(submitButton.onClick(dialog));
+      if (submitButton) close(submitButton.onClick(dialog));
     });
   });
 
@@ -141,11 +227,11 @@
       </label>
       <label style="display: flex; flex-direction: column; gap: 4px; font-size: 13px;">
         Required Base Score
-        <input name="baseScore" type="number" required />
+        <input name="baseScore" type="number" value="501" readonly required />
       </label>
       <label style="display: flex; flex-direction: column; gap: 4px; font-size: 13px;">
         Required Winning Legs
-        <input name="winningLegs" type="number" required />
+        <input name="winningLegs" type="number" value="3" readonly required />
       </label>
     `,
     onMount: (dialog) => {
@@ -182,7 +268,9 @@
     ]
   });
 
-  const settingsPromise = Promise.resolve(loadSettingsFromCookie() ?? showSettingsDialog(DEFAULT_SETTINGS));
+   const savedSettings = loadSettingsFromCookie();
+   const settingsPromise = Promise.resolve(savedSettings?.baseScore === 501 && savedSettings?.winningLegs === 3
+     ? savedSettings : showSettingsDialog({ ...DEFAULT_SETTINGS, endpoint: savedSettings?.endpoint ?? "" }));
 
   const renderInstallIndicator = () => {
     if (typeof document === "undefined") {
@@ -239,127 +327,64 @@
     }
   };
 
-  const toPlayerSummary = (state, index) => ({
-    name: state.players?.[index]?.name ?? null,
-    legsWon: state.scores?.[index]?.legs ?? null,
-    matchAverage:
-      state.stats?.[index]?.matchStats?.average ??
-      state.matchStats?.find((entry) => entry.playerId === state.players?.[index]?.id)?.average ??
-      state.matchStats?.[index]?.average ??
-      null
+  const notice = (message, retry = false) => showDialog({
+    title: "Score Scrape", contentHtml: "<p role='status' style='white-space:pre-line'></p>",
+    onMount: dialog => { dialog.querySelector("p").textContent = message; },
+    buttons: [{ label: "Close", onClick: () => false }, ...(retry ? [{ label: "Retry", onClick: () => true }] : [])]
   });
-
-  const buildFinishedSummary = (state) => ({
-    matchId: state.id ?? null,
-    player1: toPlayerSummary(state, 0),
-    player2: toPlayerSummary(state, 1)
-  });
-
-  const formatAverage = (value) => {
-    if (typeof value !== "number" || !Number.isFinite(value)) {
-      return "n/a";
+  const submit = async (payload, synthetic) => {
+    const settings = await settingsPromise;
+    let endpoint;
+    try {
+      endpoint = new URL(settings.endpoint);
+      requireValue(endpoint.protocol === "https:" && !endpoint.username && !endpoint.password);
+    } catch { await notice("Invalid endpoint: configure an HTTPS relay URL and reload."); return; }
+    const summary = payload.players.map(player => `${player.display_name}: ${player.legs_won} legs (avg ${player.stats?.match_average ?? "n/a"})`).join("\n");
+    if (!await showConfirmDialog(`${sandbox ? "SANDBOX: no data will be posted.\n" : ""}501, first to 3, double out\n${summary}\nPlayed: ${payload.playedAt ?? "unknown"}\nMatch: ${payload.external_match_id}\nSend detailed result to ${endpoint.href}?`)) return;
+    if (sandbox || synthetic) {
+      await notice(synthetic ? "Synthetic source blocked: no data posted." : "Sandbox preview complete: no data posted.");
+      return;
     }
-
-    return value.toFixed(2);
-  };
-
-  const toConfirmationMessage = (summary) => {
-    const player1Name = summary.player1?.name ?? "Player 1";
-    const player2Name = summary.player2?.name ?? "Player 2";
-    const player1Legs = summary.player1?.legsWon ?? "n/a";
-    const player2Legs = summary.player2?.legsWon ?? "n/a";
-    const player1Average = formatAverage(summary.player1?.matchAverage);
-    const player2Average = formatAverage(summary.player2?.matchAverage);
-
-    return [
-      "This game meets league match criteria.",
-      "",
-      `Match ID: ${summary.matchId ?? "n/a"}`,
-      `${player1Name}: ${player1Legs} legs (avg ${player1Average})`,
-      `${player2Name}: ${player2Legs} legs (avg ${player2Average})`,
-      "",
-      "Is this correct, and should the scores be submitted?"
-    ].join("\n");
-  };
-
-  const evaluateMatchValidation = (state, settings) => {
-    const failedRules = buildMatchValidationRules(settings).filter((rule) => {
+    const key = JSON.stringify(payload);
+    do {
       try {
-        return !rule.test(state);
+        const response = await fetch(endpoint.href, {
+          method: "POST", headers: { "Content-Type": "application/json" }, body: key,
+          credentials: "omit", referrerPolicy: "no-referrer", redirect: "error", signal: AbortSignal.timeout(30000)
+        });
+        if (!response.ok) throw new Error("Relay rejected submission");
+        submitted.add(key);
+        await notice("Accepted for delivery. Not yet approved or published by the league.");
+        return;
       } catch {
-        return true;
+        if (!await notice("Submission failed or delivery is uncertain. Retry sends the identical result; league ingestion deduplicates it.", true)) return;
       }
-    }).map((rule) => rule.name);
-
-    return {
-      isValid: failedRules.length === 0,
-      failedRules
-    };
+    } while (true);
   };
 
   XMLHttpRequest.prototype.open = function (method, url, ...rest) {
-    this._trackedUrl = url;
-    this._trackedMethod = method;
+    const previous = requests.get(this);
+    if (previous?.listener) this.removeEventListener("load", previous.listener);
+    requests.set(this, { method: String(method).toUpperCase(), matchId: matchURL(url) });
     return open.call(this, method, url, ...rest);
   };
 
   XMLHttpRequest.prototype.send = function (body) {
-    const url = this._trackedUrl || "";
-    const match = /\/as\/v0\/matches\/[^/]+\/stats(?:\?|$)/.test(url);
-
-    if (match) {
-      this.addEventListener("load", function () {
-        const parsedResponse = safeParseJson(this.responseText);
-
-        if (!parsedResponse || typeof parsedResponse !== "object") {
-          return;
-        }
-
-        settingsPromise.then((settings) => {
-          const validation = evaluateMatchValidation(parsedResponse, settings);
-
-          if (!validation.isValid) {
-            log("Match ignored (failed validation):", {
-              matchId: parsedResponse.id ?? null,
-              failedRules: validation.failedRules
-            });
-            return;
-          }
-
-          const summary = buildFinishedSummary(parsedResponse);
-          const confirmationMessage = toConfirmationMessage(summary);
-
-          showConfirmDialog(confirmationMessage).then((shouldSubmit) => {
-            if (!shouldSubmit) {
-              log("Valid match rejected by user confirmation:", {
-                matchId: summary.matchId
-              });
-              return;
-            }
-
-            log("Valid match confirmed for submission:", {
-              matchId: summary.matchId
-            });
-            log("Match summary:", summary);
-
-            fetch(settings.endpoint, {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify(summary)
-            })
-              .then((response) => {
-                if (!response.ok) {
-                  throw new Error(`Submission endpoint responded with ${response.status}`);
-                }
-
-                log("Match summary sent for queueing:", { matchId: summary.matchId });
-              })
-              .catch((error) => {
-                log("Failed to send match summary:", { matchId: summary.matchId, error: String(error) });
-              });
-          });
-        });
-      });
+    const request = requests.get(this);
+    if (request?.method === "GET" && request.matchId) {
+      request.listener = function () {
+        try {
+          if (this.status < 200 || this.status >= 300 || matchURL(this.responseURL) !== request.matchId) return;
+          const state = this.responseType === "json" ? this.response : safeParseJson(this.responseText);
+          const payload = project(state, request.matchId);
+          const key = JSON.stringify(payload);
+          if (pending.has(key) || submitted.has(key)) return;
+          pending.add(key);
+          const synthetic = state.synthetic === true || typeof state.provenance === "string" && /synthetic|fictitious|test-only/i.test(state.provenance);
+          queue = queue.then(() => submit(payload, synthetic)).catch(() => log("Capture submission unavailable")).finally(() => pending.delete(key));
+        } catch { log("Match ignored: unsupported or invalid data"); }
+      };
+      this.addEventListener("load", request.listener, { once: true });
     }
 
     return send.call(this, body);
