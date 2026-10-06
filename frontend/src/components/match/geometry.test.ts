@@ -12,6 +12,9 @@ describe('declared geometry', () => {
   it('keeps genuine zero coordinates when recorded', () => {
     expect(boardPoint({ ...position, x: 0, y: 0 })).toEqual({ x: 250, y: 250 })
   })
+  it('returns unavailable when finite raw coordinates overflow during projection', () => {
+    expect(boardPoint({ ...position, x: Number.MAX_VALUE })).toBeNull()
+  })
   it.each([null, { ...position, units: null }, { ...position, origin: null },
     { ...position, axis_orientation: 'unknown' }, { ...position, x: NaN }])(
     'refuses to guess geometry for %j', (value) => { expect(boardPoint(value)).toBeNull() })

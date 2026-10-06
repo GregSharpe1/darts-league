@@ -5,7 +5,8 @@ export function boardPoint(position: Position | null) {
   if (position?.units !== 'board-radius' || position.origin !== 'bull' ||
     position.axis_orientation !== 'x-right-y-up' ||
     !Number.isFinite(position.x) || !Number.isFinite(position.y)) return null
-  return { x: 250 + position.x * 191, y: 250 - position.y * 191 }
+  const point = { x: 250 + position.x * 191, y: 250 - position.y * 191 }
+  return Number.isFinite(point.x) && Number.isFinite(point.y) ? point : null
 }
 
 export function segmentLabel(segment: Segment): string {
