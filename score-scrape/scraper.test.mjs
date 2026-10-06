@@ -43,7 +43,7 @@ const expected = state => ({
   detail: { coverage: 'partial', legs: state.games.map(g => ({ number: g.leg + 1, completed: true, winner_id: g.winnerPlayerId,
     visits: g.turns.map(t => ({ number: t.turn + 1, player_id: t.playerId, start_remaining: t.score + t.points, end_remaining: t.score, bust: false,
       throws: t.throws.map(d => ({ number: d.throw + 1, segment: { bed: { Triple: 'triple', Double: 'double', Outside: 'miss', Single: 'single' }[d.segment.bed], number: d.segment.bed === 'Outside' ? 0 : d.segment.number }, entry_type: 'manual',
-        position: d.coords ? { x: d.coords.x, y: d.coords.y, units: null, origin: null, axis_orientation: null, provenance: 'manual' } : null })) })) })) }
+        position: d.coords ? { x: d.coords.x, y: d.coords.y, units: 'board-radius', origin: 'bull', axis_orientation: 'x-right-y-up', provenance: 'manual' } : null })) })) })) }
 });
 
 test('offline intercepted XHR: exact detail, privacy, retries and filtering', async () => {

@@ -92,7 +92,8 @@
             let position = null;
             if (dart.coords?.x != null && dart.coords?.y != null) {
               requireValue(Number.isFinite(dart.coords.x) && Number.isFinite(dart.coords.y));
-              position = { x: dart.coords.x, y: dart.coords.y, units: null, origin: null, axis_orientation: null, provenance: entry };
+              const manualCoordinates = dart.entry === "manual_coords";
+              position = { x: dart.coords.x, y: dart.coords.y, units: manualCoordinates ? "board-radius" : null, origin: manualCoordinates ? "bull" : null, axis_orientation: manualCoordinates ? "x-right-y-up" : null, provenance: entry };
             }
             return { number: index + 1, segment: { bed, number }, entry_type: entry, position };
           });

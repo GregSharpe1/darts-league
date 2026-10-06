@@ -50,8 +50,13 @@ responses must have the matching ID, X01/501/Double, targetLegs=3, no sets
   to automatic; other entry values remain unknown. The capture specifically
   observed `manual_coords`; physical automatic entry names remain unverified.
 - `coords.x/y` are unchanged. Missing/incomplete pairs become null, never (0,0).
-  Geometry metadata stays null conservatively, including manual positions;
-  entry provenance does not assert physical accuracy or verified geometry.
+  The observed `manual_coords` browser input uses the outer double-ring radius
+  as one unit, the bull as origin, x right and y up. Declare that supported
+  `board-radius` geometry so the recorded browser clicks can be plotted.
+  The captured T20 radius is about 0.60; the D12 radius is about 0.97;
+  misses may exceed 1. No values are rescaled or inferred from the segment.
+  Automatic and other entry modes retain unknown geometry until separately
+  verified; manual plotting is not evidence of physical throwing accuracy.
 - Detail coverage is conservatively partial even when all source games appear
   present. The producer does not claim total reconciliation; backend #39 owns
   semantic conflict detection. Invalid structure rejects; detail is not truncated.
