@@ -66,6 +66,11 @@ try {
     const file = `opponent-leg3-${width}.png`
     await page.screenshot({ path: `${screenshots}/${file}`, fullPage: true })
     artifacts.push({ file, sha256: createHash('sha256').update(await readFile(`${screenshots}/${file}`)).digest('hex') })
+    const coordinates = page.getByText('Recorded coordinates & provenance (text)', { exact: true })
+    await coordinates.focus()
+    await page.keyboard.press('Enter')
+    assert.equal(await page.locator('details[open] li').count(), 6)
+    assert(await page.locator('details[open]').getByText(/units=board-radius, origin=bull, axes=x-right-y-up/).first().isVisible())
     await page.goto(`${base}?state=error`)
     await page.getByRole('button', { name: 'Try again' }).click()
     await page.getByRole('region', { name: 'Match summary' }).waitFor()
