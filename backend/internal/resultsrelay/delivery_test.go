@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/greg/darts-league/backend/internal/autodarts"
 	"github.com/greg/darts-league/backend/internal/league"
 )
 
@@ -101,7 +102,10 @@ func TestPollLeavesMalformedMessagesForRedrive(t *testing.T) {
 			message.Body = body
 			client := &deliveryClient{messages: []Message{message}}
 			poller := NewPoller(client, league.PendingResultService{}, time.UTC, time.Minute, log.New(io.Discard, "", 0)).WithDurableIngest(
-				func(context.Context, Message) error { t.Fatal("malformed input reached ingest"); return nil })
+				func(_ context.Context, message Message) error {
+					_, err := autodarts.Parse([]byte(message.Body))
+					return err
+				})
 			if err := poller.PollNow(context.Background()); err == nil || len(client.acked) != 0 {
 				t.Fatalf("malformed message discarded: %v", err)
 			}

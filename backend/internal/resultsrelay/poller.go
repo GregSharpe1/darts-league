@@ -2,29 +2,13 @@ package resultsrelay
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"log"
-	"strings"
 	"time"
 
+	"github.com/greg/darts-league/backend/internal/autodarts"
 	"github.com/greg/darts-league/backend/internal/league"
 )
-
-// resultMessage mirrors the JSON payload produced by the score-scrape relay:
-//
-//	{"matchId":"...","player1":{"name":"TERRY","legsWon":2,"matchAverage":143.1},...}
-type resultMessage struct {
-	MatchID string        `json:"matchId"`
-	Player1 playerMessage `json:"player1"`
-	Player2 playerMessage `json:"player2"`
-}
-
-type playerMessage struct {
-	Name         string  `json:"name"`
-	LegsWon      int     `json:"legsWon"`
-	MatchAverage float64 `json:"matchAverage"`
-}
 
 // Poller periodically checks the queue for new results and stores each one
 // as a pending result awaiting admin confirmation.
@@ -135,13 +119,6 @@ func (p *Poller) processMessage(ctx context.Context, message Message) error {
 	if message.Rejection != "" || len(message.Body) > 256*1024 {
 		return ErrInvalidDelivery
 	}
-	var parsed resultMessage
-	if err := json.Unmarshal([]byte(message.Body), &parsed); err != nil {
-		return ErrInvalidDelivery
-	}
-	if strings.TrimSpace(parsed.MatchID) == "" || strings.TrimSpace(parsed.Player1.Name) == "" || strings.TrimSpace(parsed.Player2.Name) == "" {
-		return ErrInvalidDelivery
-	}
 	if message.MessageID != "" || message.ReceiptHandle != "" {
 		if !message.validReceipt() {
 			return ErrInvalidDelivery
@@ -157,9 +134,15 @@ func (p *Poller) processMessage(ctx context.Context, message Message) error {
 	}
 
 	// Legacy responses have no receipt and cannot be acknowledged by this poller.
-	playerOneAverage := parsed.Player1.MatchAverage
-	playerTwoAverage := parsed.Player2.MatchAverage
-	_, err := p.ingest.Ingest(ctx, parsed.MatchID, parsed.Player1.Name, parsed.Player1.LegsWon, &playerOneAverage, parsed.Player2.Name, parsed.Player2.LegsWon, &playerTwoAverage)
+	if p.durableIngest != nil {
+		return p.durableIngest(ctx, message)
+	}
+	parsed, err := autodarts.Parse([]byte(message.Body))
+	if err != nil {
+		return err
+	}
+	a, b := parsed.Players[0], parsed.Players[1]
+	_, err = p.ingest.Ingest(ctx, parsed.ExternalMatchID, a.DisplayName, a.LegsWon, a.Average(), b.DisplayName, b.LegsWon, b.Average())
 	if err != nil && !errors.Is(err, league.ErrDuplicateExternalMatch) {
 		return err
 	}
