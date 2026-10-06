@@ -1,0 +1,686 @@
+{
+  "provenance": "Synthetic ordering variant of randomized fixture; all IDs and positions unchanged.",
+  "matchId": "demo-match-001",
+  "winnerId": "demo-player-1",
+  "players": [
+    {
+      "id": "demo-player-2",
+      "name": "Casey Vale",
+      "legsWon": 0
+    },
+    {
+      "id": "demo-player-1",
+      "name": "Morgan Ember",
+      "legsWon": 3
+    }
+  ],
+  "matchStats": [
+    {
+      "playerId": "demo-player-2",
+      "average": 0,
+      "first9Average": 0,
+      "checkouts": 0,
+      "checkoutsHit": 0,
+      "total180": 0,
+      "dartsThrown": 21
+    },
+    {
+      "playerId": "demo-player-1",
+      "average": 167,
+      "first9Average": 167,
+      "checkouts": 3,
+      "checkoutsHit": 3,
+      "total180": 6,
+      "dartsThrown": 27
+    }
+  ],
+  "legStats": [
+    {
+      "leg": 3,
+      "stats": [
+        {
+          "playerId": "demo-player-2",
+          "average": 0,
+          "first9Average": 0,
+          "checkouts": 0,
+          "checkoutsHit": 0,
+          "total180": 0,
+          "dartsThrown": 6
+        },
+        {
+          "playerId": "demo-player-1",
+          "average": 167,
+          "first9Average": 167,
+          "checkouts": 1,
+          "checkoutsHit": 1,
+          "total180": 2,
+          "dartsThrown": 9
+        }
+      ]
+    },
+    {
+      "leg": 2,
+      "stats": [
+        {
+          "playerId": "demo-player-1",
+          "average": 167,
+          "first9Average": 167,
+          "checkouts": 1,
+          "checkoutsHit": 1,
+          "total180": 2,
+          "dartsThrown": 9
+        },
+        {
+          "playerId": "demo-player-2",
+          "average": 0,
+          "first9Average": 0,
+          "checkouts": 0,
+          "checkoutsHit": 0,
+          "total180": 0,
+          "dartsThrown": 9
+        }
+      ]
+    },
+    {
+      "leg": 1,
+      "stats": [
+        {
+          "playerId": "demo-player-2",
+          "average": 0,
+          "first9Average": 0,
+          "checkouts": 0,
+          "checkoutsHit": 0,
+          "total180": 0,
+          "dartsThrown": 6
+        },
+        {
+          "playerId": "demo-player-1",
+          "average": 167,
+          "first9Average": 167,
+          "checkouts": 1,
+          "checkoutsHit": 1,
+          "total180": 2,
+          "dartsThrown": 9
+        }
+      ]
+    }
+  ],
+  "darts": [
+    {
+      "id": "demo-leg-3-visit-4-dart-2",
+      "gameId": "demo-leg-3",
+      "visitId": "demo-leg-3-visit-4",
+      "playerId": "demo-player-1",
+      "leg": 3,
+      "visit": 4,
+      "dart": 2,
+      "segment": "D12",
+      "x": -0.5420746404202644,
+      "y": 0.7956501767458863
+    },
+    {
+      "id": "demo-leg-3-visit-4-dart-1",
+      "gameId": "demo-leg-3",
+      "visitId": "demo-leg-3-visit-4",
+      "playerId": "demo-player-1",
+      "leg": 3,
+      "visit": 4,
+      "dart": 1,
+      "segment": "T19",
+      "x": -0.14327036097325452,
+      "y": -0.5776474725690717
+    },
+    {
+      "id": "demo-leg-3-visit-4-dart-0",
+      "gameId": "demo-leg-3",
+      "visitId": "demo-leg-3-visit-4",
+      "playerId": "demo-player-1",
+      "leg": 3,
+      "visit": 4,
+      "dart": 0,
+      "segment": "T20",
+      "x": 0.021905052375736173,
+      "y": 0.6016717851796567
+    },
+    {
+      "id": "demo-leg-3-visit-3-dart-2",
+      "gameId": "demo-leg-3",
+      "visitId": "demo-leg-3-visit-3",
+      "playerId": "demo-player-2",
+      "leg": 3,
+      "visit": 3,
+      "dart": 2,
+      "segment": "M20",
+      "x": 0.036322032892909466,
+      "y": 1.1634817832228357
+    },
+    {
+      "id": "demo-leg-3-visit-3-dart-1",
+      "gameId": "demo-leg-3",
+      "visitId": "demo-leg-3-visit-3",
+      "playerId": "demo-player-2",
+      "leg": 3,
+      "visit": 3,
+      "dart": 1,
+      "segment": "M20",
+      "x": -0.02664656413733611,
+      "y": 1.2001924139809126
+    },
+    {
+      "id": "demo-leg-3-visit-3-dart-0",
+      "gameId": "demo-leg-3",
+      "visitId": "demo-leg-3-visit-3",
+      "playerId": "demo-player-2",
+      "leg": 3,
+      "visit": 3,
+      "dart": 0,
+      "segment": "M20",
+      "x": 0.049336447942859525,
+      "y": 1.1120479360864404
+    },
+    {
+      "id": "demo-leg-3-visit-2-dart-2",
+      "gameId": "demo-leg-3",
+      "visitId": "demo-leg-3-visit-2",
+      "playerId": "demo-player-1",
+      "leg": 3,
+      "visit": 2,
+      "dart": 2,
+      "segment": "T20",
+      "x": -0.02641220318279802,
+      "y": 0.6068812023368584
+    },
+    {
+      "id": "demo-leg-3-visit-2-dart-1",
+      "gameId": "demo-leg-3",
+      "visitId": "demo-leg-3-visit-2",
+      "playerId": "demo-player-1",
+      "leg": 3,
+      "visit": 2,
+      "dart": 1,
+      "segment": "T20",
+      "x": -0.057167972687386076,
+      "y": 0.5979436501544364
+    },
+    {
+      "id": "demo-leg-3-visit-2-dart-0",
+      "gameId": "demo-leg-3",
+      "visitId": "demo-leg-3-visit-2",
+      "playerId": "demo-player-1",
+      "leg": 3,
+      "visit": 2,
+      "dart": 0,
+      "segment": "T20",
+      "x": 0.012119707273685785,
+      "y": 0.6084359999998673
+    },
+    {
+      "id": "demo-leg-3-visit-1-dart-2",
+      "gameId": "demo-leg-3",
+      "visitId": "demo-leg-3-visit-1",
+      "playerId": "demo-player-2",
+      "leg": 3,
+      "visit": 1,
+      "dart": 2,
+      "segment": "M20",
+      "x": 0.12523023752494505,
+      "y": 1.110711090501074
+    },
+    {
+      "id": "demo-leg-3-visit-1-dart-1",
+      "gameId": "demo-leg-3",
+      "visitId": "demo-leg-3-visit-1",
+      "playerId": "demo-player-2",
+      "leg": 3,
+      "visit": 1,
+      "dart": 1,
+      "segment": "M20",
+      "x": -0.07191874380900386,
+      "y": 1.1031624806240814
+    },
+    {
+      "id": "demo-leg-3-visit-1-dart-0",
+      "gameId": "demo-leg-3",
+      "visitId": "demo-leg-3-visit-1",
+      "playerId": "demo-player-2",
+      "leg": 3,
+      "visit": 1,
+      "dart": 0,
+      "segment": "M20",
+      "x": 0.14124700061739318,
+      "y": 1.215215063550883
+    },
+    {
+      "id": "demo-leg-3-visit-0-dart-2",
+      "gameId": "demo-leg-3",
+      "visitId": "demo-leg-3-visit-0",
+      "playerId": "demo-player-1",
+      "leg": 3,
+      "visit": 0,
+      "dart": 2,
+      "segment": "T20",
+      "x": -0.0657045774302455,
+      "y": 0.6014898721039714
+    },
+    {
+      "id": "demo-leg-3-visit-0-dart-1",
+      "gameId": "demo-leg-3",
+      "visitId": "demo-leg-3-visit-0",
+      "playerId": "demo-player-1",
+      "leg": 3,
+      "visit": 0,
+      "dart": 1,
+      "segment": "T20",
+      "x": -0.06890531903139581,
+      "y": 0.5887310681991084
+    },
+    {
+      "id": "demo-leg-3-visit-0-dart-0",
+      "gameId": "demo-leg-3",
+      "visitId": "demo-leg-3-visit-0",
+      "playerId": "demo-player-1",
+      "leg": 3,
+      "visit": 0,
+      "dart": 0,
+      "segment": "T20",
+      "x": 0.059612567161455896,
+      "y": 0.595304616119234
+    },
+    {
+      "id": "demo-leg-2-visit-5-dart-2",
+      "gameId": "demo-leg-2",
+      "visitId": "demo-leg-2-visit-5",
+      "playerId": "demo-player-1",
+      "leg": 2,
+      "visit": 5,
+      "dart": 2,
+      "segment": "D12",
+      "x": -0.5630816543366491,
+      "y": 0.7715901680152158
+    },
+    {
+      "id": "demo-leg-2-visit-5-dart-1",
+      "gameId": "demo-leg-2",
+      "visitId": "demo-leg-2-visit-5",
+      "playerId": "demo-player-1",
+      "leg": 2,
+      "visit": 5,
+      "dart": 1,
+      "segment": "T19",
+      "x": -0.1877429490249738,
+      "y": -0.576563301554842
+    },
+    {
+      "id": "demo-leg-2-visit-5-dart-0",
+      "gameId": "demo-leg-2",
+      "visitId": "demo-leg-2-visit-5",
+      "playerId": "demo-player-1",
+      "leg": 2,
+      "visit": 5,
+      "dart": 0,
+      "segment": "T20",
+      "x": -0.023569991592210186,
+      "y": 0.6133873121060964
+    },
+    {
+      "id": "demo-leg-2-visit-4-dart-2",
+      "gameId": "demo-leg-2",
+      "visitId": "demo-leg-2-visit-4",
+      "playerId": "demo-player-2",
+      "leg": 2,
+      "visit": 4,
+      "dart": 2,
+      "segment": "M20",
+      "x": 0.009444687360899217,
+      "y": 1.1950746355434294
+    },
+    {
+      "id": "demo-leg-2-visit-4-dart-1",
+      "gameId": "demo-leg-2",
+      "visitId": "demo-leg-2-visit-4",
+      "playerId": "demo-player-2",
+      "leg": 2,
+      "visit": 4,
+      "dart": 1,
+      "segment": "M20",
+      "x": -0.036997905758730444,
+      "y": 1.1377096794480923
+    },
+    {
+      "id": "demo-leg-2-visit-4-dart-0",
+      "gameId": "demo-leg-2",
+      "visitId": "demo-leg-2-visit-4",
+      "playerId": "demo-player-2",
+      "leg": 2,
+      "visit": 4,
+      "dart": 0,
+      "segment": "M20",
+      "x": 0.05454608042146252,
+      "y": 1.1062041862114749
+    },
+    {
+      "id": "demo-leg-2-visit-3-dart-2",
+      "gameId": "demo-leg-2",
+      "visitId": "demo-leg-2-visit-3",
+      "playerId": "demo-player-1",
+      "leg": 2,
+      "visit": 3,
+      "dart": 2,
+      "segment": "T20",
+      "x": -0.032661413713294146,
+      "y": 0.6126143565479385
+    },
+    {
+      "id": "demo-leg-2-visit-3-dart-1",
+      "gameId": "demo-leg-2",
+      "visitId": "demo-leg-2-visit-3",
+      "playerId": "demo-player-1",
+      "leg": 2,
+      "visit": 3,
+      "dart": 1,
+      "segment": "T20",
+      "x": 0.02963043096498515,
+      "y": 0.6087810080374002
+    },
+    {
+      "id": "demo-leg-2-visit-3-dart-0",
+      "gameId": "demo-leg-2",
+      "visitId": "demo-leg-2-visit-3",
+      "playerId": "demo-player-1",
+      "leg": 2,
+      "visit": 3,
+      "dart": 0,
+      "segment": "T20",
+      "x": -0.03942266721148422,
+      "y": 0.6004093394719563
+    },
+    {
+      "id": "demo-leg-2-visit-2-dart-2",
+      "gameId": "demo-leg-2",
+      "visitId": "demo-leg-2-visit-2",
+      "playerId": "demo-player-2",
+      "leg": 2,
+      "visit": 2,
+      "dart": 2,
+      "segment": "M20",
+      "x": -0.06631531530578126,
+      "y": 1.0865278622830694
+    },
+    {
+      "id": "demo-leg-2-visit-2-dart-1",
+      "gameId": "demo-leg-2",
+      "visitId": "demo-leg-2-visit-2",
+      "playerId": "demo-player-2",
+      "leg": 2,
+      "visit": 2,
+      "dart": 1,
+      "segment": "M20",
+      "x": 0.062402119958479746,
+      "y": 1.1838354493136747
+    },
+    {
+      "id": "demo-leg-2-visit-2-dart-0",
+      "gameId": "demo-leg-2",
+      "visitId": "demo-leg-2-visit-2",
+      "playerId": "demo-player-2",
+      "leg": 2,
+      "visit": 2,
+      "dart": 0,
+      "segment": "M20",
+      "x": -0.08452112188430473,
+      "y": 1.1006510472750626
+    },
+    {
+      "id": "demo-leg-2-visit-1-dart-2",
+      "gameId": "demo-leg-2",
+      "visitId": "demo-leg-2-visit-1",
+      "playerId": "demo-player-1",
+      "leg": 2,
+      "visit": 1,
+      "dart": 2,
+      "segment": "T20",
+      "x": 0.040087681414517566,
+      "y": 0.61461511537725
+    },
+    {
+      "id": "demo-leg-2-visit-1-dart-1",
+      "gameId": "demo-leg-2",
+      "visitId": "demo-leg-2-visit-1",
+      "playerId": "demo-player-1",
+      "leg": 2,
+      "visit": 1,
+      "dart": 1,
+      "segment": "T20",
+      "x": 0.06901049931963674,
+      "y": 0.6023456201064374
+    },
+    {
+      "id": "demo-leg-2-visit-1-dart-0",
+      "gameId": "demo-leg-2",
+      "visitId": "demo-leg-2-visit-1",
+      "playerId": "demo-player-1",
+      "leg": 2,
+      "visit": 1,
+      "dart": 0,
+      "segment": "T20",
+      "x": -0.04958996455519469,
+      "y": 0.6072160642147343
+    },
+    {
+      "id": "demo-leg-2-visit-0-dart-2",
+      "gameId": "demo-leg-2",
+      "visitId": "demo-leg-2-visit-0",
+      "playerId": "demo-player-2",
+      "leg": 2,
+      "visit": 0,
+      "dart": 2,
+      "segment": "M20",
+      "x": 0.12372768267853161,
+      "y": 1.199767009133052
+    },
+    {
+      "id": "demo-leg-2-visit-0-dart-1",
+      "gameId": "demo-leg-2",
+      "visitId": "demo-leg-2-visit-0",
+      "playerId": "demo-player-2",
+      "leg": 2,
+      "visit": 0,
+      "dart": 1,
+      "segment": "M20",
+      "x": 0.08892399535260946,
+      "y": 1.236927176176757
+    },
+    {
+      "id": "demo-leg-2-visit-0-dart-0",
+      "gameId": "demo-leg-2",
+      "visitId": "demo-leg-2-visit-0",
+      "playerId": "demo-player-2",
+      "leg": 2,
+      "visit": 0,
+      "dart": 0,
+      "segment": "M20",
+      "x": 0.11668460234197656,
+      "y": 1.0802123786207145
+    },
+    {
+      "id": "demo-leg-1-visit-4-dart-2",
+      "gameId": "demo-leg-1",
+      "visitId": "demo-leg-1-visit-4",
+      "playerId": "demo-player-1",
+      "leg": 1,
+      "visit": 4,
+      "dart": 2,
+      "segment": "D12",
+      "x": -0.6079639615915663,
+      "y": 0.762093878435626
+    },
+    {
+      "id": "demo-leg-1-visit-4-dart-1",
+      "gameId": "demo-leg-1",
+      "visitId": "demo-leg-1-visit-4",
+      "playerId": "demo-player-1",
+      "leg": 1,
+      "visit": 4,
+      "dart": 1,
+      "segment": "T19",
+      "x": -0.12196482958971736,
+      "y": -0.6035698194018535
+    },
+    {
+      "id": "demo-leg-1-visit-4-dart-0",
+      "gameId": "demo-leg-1",
+      "visitId": "demo-leg-1-visit-4",
+      "playerId": "demo-player-1",
+      "leg": 1,
+      "visit": 4,
+      "dart": 0,
+      "segment": "T20",
+      "x": 0.04848199430594288,
+      "y": 0.594340100447689
+    },
+    {
+      "id": "demo-leg-1-visit-3-dart-2",
+      "gameId": "demo-leg-1",
+      "visitId": "demo-leg-1-visit-3",
+      "playerId": "demo-player-2",
+      "leg": 1,
+      "visit": 3,
+      "dart": 2,
+      "segment": "M20",
+      "x": -0.011258804223783926,
+      "y": 1.175153460627315
+    },
+    {
+      "id": "demo-leg-1-visit-3-dart-1",
+      "gameId": "demo-leg-1",
+      "visitId": "demo-leg-1-visit-3",
+      "playerId": "demo-player-2",
+      "leg": 1,
+      "visit": 3,
+      "dart": 1,
+      "segment": "M20",
+      "x": 0.09354464141053738,
+      "y": 1.1841317654173569
+    },
+    {
+      "id": "demo-leg-1-visit-3-dart-0",
+      "gameId": "demo-leg-1",
+      "visitId": "demo-leg-1-visit-3",
+      "playerId": "demo-player-2",
+      "leg": 1,
+      "visit": 3,
+      "dart": 0,
+      "segment": "M20",
+      "x": -0.11662625637843825,
+      "y": 1.1788058629388678
+    },
+    {
+      "id": "demo-leg-1-visit-2-dart-2",
+      "gameId": "demo-leg-1",
+      "visitId": "demo-leg-1-visit-2",
+      "playerId": "demo-player-1",
+      "leg": 1,
+      "visit": 2,
+      "dart": 2,
+      "segment": "T20",
+      "x": -0.06142318649195098,
+      "y": 0.5998930429428245
+    },
+    {
+      "id": "demo-leg-1-visit-2-dart-1",
+      "gameId": "demo-leg-1",
+      "visitId": "demo-leg-1-visit-2",
+      "playerId": "demo-player-1",
+      "leg": 1,
+      "visit": 2,
+      "dart": 1,
+      "segment": "T20",
+      "x": -0.059673674893448096,
+      "y": 0.591829875966161
+    },
+    {
+      "id": "demo-leg-1-visit-2-dart-0",
+      "gameId": "demo-leg-1",
+      "visitId": "demo-leg-1-visit-2",
+      "playerId": "demo-player-1",
+      "leg": 1,
+      "visit": 2,
+      "dart": 0,
+      "segment": "T20",
+      "x": -0.06356188408778825,
+      "y": 0.6075757489100333
+    },
+    {
+      "id": "demo-leg-1-visit-1-dart-2",
+      "gameId": "demo-leg-1",
+      "visitId": "demo-leg-1-visit-1",
+      "playerId": "demo-player-2",
+      "leg": 1,
+      "visit": 1,
+      "dart": 2,
+      "segment": "M20",
+      "x": -0.08532441186864216,
+      "y": 1.0853786451510508
+    },
+    {
+      "id": "demo-leg-1-visit-1-dart-1",
+      "gameId": "demo-leg-1",
+      "visitId": "demo-leg-1-visit-1",
+      "playerId": "demo-player-2",
+      "leg": 1,
+      "visit": 1,
+      "dart": 1,
+      "segment": "M20",
+      "x": 0.07405195363123418,
+      "y": 1.2340131110067138
+    },
+    {
+      "id": "demo-leg-1-visit-1-dart-0",
+      "gameId": "demo-leg-1",
+      "visitId": "demo-leg-1-visit-1",
+      "playerId": "demo-player-2",
+      "leg": 1,
+      "visit": 1,
+      "dart": 0,
+      "segment": "M20",
+      "x": -0.04868285634773514,
+      "y": 1.243714394392402
+    },
+    {
+      "id": "demo-leg-1-visit-0-dart-2",
+      "gameId": "demo-leg-1",
+      "visitId": "demo-leg-1-visit-0",
+      "playerId": "demo-player-1",
+      "leg": 1,
+      "visit": 0,
+      "dart": 2,
+      "segment": "T20",
+      "x": 0.027421115932638813,
+      "y": 0.6143677469265381
+    },
+    {
+      "id": "demo-leg-1-visit-0-dart-1",
+      "gameId": "demo-leg-1",
+      "visitId": "demo-leg-1-visit-0",
+      "playerId": "demo-player-1",
+      "leg": 1,
+      "visit": 0,
+      "dart": 1,
+      "segment": "T20",
+      "x": -0.0013284654446509365,
+      "y": 0.6086262465766682
+    },
+    {
+      "id": "demo-leg-1-visit-0-dart-0",
+      "gameId": "demo-leg-1",
+      "visitId": "demo-leg-1-visit-0",
+      "playerId": "demo-player-1",
+      "leg": 1,
+      "visit": 0,
+      "dart": 0,
+      "segment": "T20",
+      "x": 0.018837295541650444,
+      "y": 0.5933456743751498
+    }
+  ]
+}
