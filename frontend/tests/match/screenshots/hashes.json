@@ -1,0 +1,98 @@
+[
+  {
+    "file": "analysis-375.png",
+    "sha256": "e97934229c1b5416c59baa3bed07dd221fe6091cba8360e2da15a4458cffb663"
+  },
+  {
+    "file": "unknown-375.png",
+    "sha256": "2204ac7b252f876a7112d9a8bd95ff9181974448959078c52ec2b285a416ac6a"
+  },
+  {
+    "file": "summary-375.png",
+    "sha256": "a0ba2784c3e371e45c784318d7a232e4876e1451013f13cf1559b2538936503c"
+  },
+  {
+    "file": "partial-375.png",
+    "sha256": "13817cc5d17856f6fd8647eddf02db903013b4b12a86eefd2f36f2dba9c3f0db"
+  },
+  {
+    "file": "long-375.png",
+    "sha256": "960dfa505c974866db18ddb3a510dcce123c1282802f1eb405c11e4780b877d3"
+  },
+  {
+    "file": "loading-375.png",
+    "sha256": "a6f98c0705c7a74f2add3876dfe8e066c253384026844beb100c95bd42f61c86"
+  },
+  {
+    "file": "error-375.png",
+    "sha256": "5106b91a4e3e40ef48e15f590706ecdb23ee0ee4d6c295550d40f00264be11fc"
+  },
+  {
+    "file": "opponent-leg3-375.png",
+    "sha256": "50df623664b043691df70d504b2256d055fca5c5ac71daf40870d02eef7273ca"
+  },
+  {
+    "file": "analysis-768.png",
+    "sha256": "226aa5208985c49921a8f934d68f7c89b4f778a40ae9caab50dad73f3e8f07a1"
+  },
+  {
+    "file": "unknown-768.png",
+    "sha256": "92a9b561ec3c07df160305dc5afd76e82eea8a05aaccd3b04f4b97429dba6fed"
+  },
+  {
+    "file": "summary-768.png",
+    "sha256": "b9e19eeb7e747ed879f1d7c15deaa9dc82081e555f226a57cd806c4d3a559bee"
+  },
+  {
+    "file": "partial-768.png",
+    "sha256": "5a3a1196a1093c64957f6b22bc38b09d6cae8a09d0734fa20453b0298a02c75a"
+  },
+  {
+    "file": "long-768.png",
+    "sha256": "6e10463701c443e7e6cef7bd665a602e63733c1005d0bd3b4b7352631fd85067"
+  },
+  {
+    "file": "loading-768.png",
+    "sha256": "27c4c9133b7bcdd0cd890f64dc034d8096284b34a9c97ddea4c6e62055ecabde"
+  },
+  {
+    "file": "error-768.png",
+    "sha256": "ceb67c1fb855799d9069d77f4dd54c31ef57a457ea7406941cebe72c7e31c45e"
+  },
+  {
+    "file": "opponent-leg3-768.png",
+    "sha256": "f01886e9e6b255ad4526be35cd56c6364c762ef11763ede5ab31d620db3d2029"
+  },
+  {
+    "file": "analysis-1280.png",
+    "sha256": "c3a41ec28126ce7ea2776d39d45b8b24c8d0d50b55ccbab5bb2d132aee729807"
+  },
+  {
+    "file": "unknown-1280.png",
+    "sha256": "90773191f82b02e3da0cdf51220dfc3795ff4343098ec45c33eceb9f89fb1e2f"
+  },
+  {
+    "file": "summary-1280.png",
+    "sha256": "7f483da58e1eb6805a40ed907e69fa5158b320d810fa3eaeb29c3f14ca277090"
+  },
+  {
+    "file": "partial-1280.png",
+    "sha256": "519f039ab8ebffcee9f2935e5ed79a0d82e19d6d39043bf38c4d4b3bbdcff342"
+  },
+  {
+    "file": "long-1280.png",
+    "sha256": "34e6b0d3a512dd2b7f3c2a9ebbe1cb24ecdf61a2328a8b84e43da2970ec1af26"
+  },
+  {
+    "file": "loading-1280.png",
+    "sha256": "a4c41403ceefdc4fe3f5ba2132eef80d79e4f7f9cbc5b6cbb81357725c3c3f51"
+  },
+  {
+    "file": "error-1280.png",
+    "sha256": "4855dd99351112ff99ac61ef45a3b61e353c80f270664342d33e6b6fa141c9a2"
+  },
+  {
+    "file": "opponent-leg3-1280.png",
+    "sha256": "848172d77a71e9cf18932d659f0a9c99774b79594d128679d40fc845b707fb71"
+  }
+]
