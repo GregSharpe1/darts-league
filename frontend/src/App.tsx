@@ -10,11 +10,12 @@ import { RegisterPage } from './pages/register/RegisterPage'
 import { AdminPage } from './pages/admin/AdminPage'
 import { DivisionAdminPage } from './pages/admin/DivisionAdminPage'
 import { PendingResultsPage } from './pages/admin/PendingResultsPage'
+import { MatchPage } from './pages/matches/MatchPage'
 
 function App() {
   const location = useLocation()
   const navigate = useNavigate()
-  const onAdminPage = Boolean(matchPath('/admin', location.pathname) || matchPath('/admin/divisions/:slug', location.pathname) || matchPath('/admin/pending-results', location.pathname))
+  const onAdminPage = Boolean(matchPath('/admin/*', location.pathname))
   const onAdminHome = Boolean(matchPath('/admin', location.pathname))
   const seasonQuery = useSeasonSummary()
   const divisionsQuery = useDivisions()
@@ -78,6 +79,8 @@ function App() {
           <Route path="/divisions/:slug" element={<DivisionHomePage />} />
           <Route path="/divisions/:slug/standings" element={<StandingsPage />} />
           <Route path="/register" element={<RegisterPage />} />
+          <Route path="/matches/:fixtureId" element={<MatchPage />} />
+          <Route path="/admin/matches/:fixtureId" element={<MatchPage admin />} />
           <Route path="/admin" element={<AdminPage />} />
           <Route path="/admin/pending-results" element={<PendingResultsPage />} />
           <Route path="/admin/divisions/:slug" element={<DivisionAdminPage />} />
