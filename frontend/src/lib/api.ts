@@ -1,4 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import type { ConfirmPendingRequest, ExpectedResult } from './pendingReview'
+import { parsePendingDetail } from './pendingDetail'
 
 export class ApiError extends Error {
   status: number
@@ -103,6 +105,9 @@ export type Player = {
 
 export type AdminFixture = {
   id: number
+  player_one_id?: number
+  player_two_id?: number
+  expected_result?: ExpectedResult | null
   player_one: string
   player_two: string
   scheduled_at: string
@@ -486,7 +491,7 @@ export type PendingResult = {
   player_two_name: string
   player_two_legs: number
   player_two_average?: number
-  status: 'pending' | 'confirmed' | 'rejected'
+  status: 'pending' | 'review_blocked' | 'confirmed' | 'rejected'
   received_at: string
 }
 
@@ -495,7 +500,17 @@ export function useAdminPendingResults(enabled: boolean) {
     queryKey: ['admin', 'pending-results'],
     queryFn: async () => (await request<{ pending_results: PendingResult[] }>('/api/admin/pending-results')).pending_results,
     enabled,
-    refetchInterval: enabled ? 60_000 : false,
+    refetchOnWindowFocus: false,
+  })
+}
+
+export function usePendingDetail(pendingId: number | undefined) {
+  return useQuery({
+    queryKey: ['admin', 'pending-results', pendingId],
+    queryFn: async () => parsePendingDetail(await request<unknown>(`/api/admin/pending-results/${pendingId}`)),
+    enabled: pendingId !== undefined,
+    retry: false,
+    refetchOnWindowFocus: false,
   })
 }
 
@@ -512,10 +527,10 @@ export function usePollResults() {
 export function useConfirmPendingResult() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: ({ pendingId, playerOneId, playerTwoId }: { pendingId: number; playerOneId: number; playerTwoId: number }) =>
+    mutationFn: ({ pendingId, payload }: { pendingId: number; payload: ConfirmPendingRequest }) =>
       request(`/api/admin/pending-results/${pendingId}/confirm`, {
         method: 'POST',
-        body: JSON.stringify({ player_one_id: playerOneId, player_two_id: playerTwoId }),
+        body: JSON.stringify(payload),
       }),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['admin', 'pending-results'] })
@@ -529,9 +544,12 @@ export function useConfirmPendingResult() {
 export function useRejectPendingResult() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: (pendingId: number) => request<void>(`/api/admin/pending-results/${pendingId}/reject`, { method: 'POST' }),
+    mutationFn: ({ pendingId, reason }: { pendingId: number; reason: string }) => request<void>(`/api/admin/pending-results/${pendingId}/reject`, { method: 'POST', body: JSON.stringify({ reason }) }),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['admin', 'pending-results'] })
+      await queryClient.invalidateQueries({ queryKey: ['division'] })
+      await queryClient.invalidateQueries({ queryKey: ['admin', 'division'] })
+      await queryClient.invalidateQueries({ queryKey: ['season'] })
     },
   })
 }
