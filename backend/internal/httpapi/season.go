@@ -157,7 +157,9 @@ func (h SeasonHandler) handleAdminFixtures(w http.ResponseWriter, r *http.Reques
 		fixtures := make([]map[string]any, 0, len(week.Fixtures))
 		for _, fixture := range week.Fixtures {
 			item := map[string]any{
-				"id":           fixture.ID,
+				"id":        fixture.ID,
+				"season_id": fixture.SeasonID, "division_id": fixture.DivisionID,
+				"player_one_id": fixture.PlayerOneID, "player_two_id": fixture.PlayerTwoID, "expected_result": fixture.ExpectedResult,
 				"player_one":   fixture.PlayerOne,
 				"player_two":   fixture.PlayerTwo,
 				"scheduled_at": fixture.ScheduledAt.UTC().Format(http.TimeFormat),

@@ -1,7 +1,9 @@
 package httpapi
 
 import (
+	"bytes"
 	"encoding/json"
+	"io"
 	"net/http"
 	"strconv"
 
@@ -18,13 +20,9 @@ func NewPendingResultHandler(pending league.PendingResultService) PendingResultH
 
 func (h PendingResultHandler) RegisterRoutes(mux *http.ServeMux, requireAdmin func(http.HandlerFunc) http.HandlerFunc) {
 	mux.HandleFunc("GET /api/admin/pending-results", requireAdmin(h.handleList))
+	mux.HandleFunc("GET /api/admin/pending-results/{pendingID}", requireAdmin(h.handleDetail))
 	mux.HandleFunc("POST /api/admin/pending-results/{pendingID}/confirm", requireAdmin(h.handleConfirm))
 	mux.HandleFunc("POST /api/admin/pending-results/{pendingID}/reject", requireAdmin(h.handleReject))
-}
-
-type confirmPendingResultRequest struct {
-	PlayerOneID int64 `json:"player_one_id"`
-	PlayerTwoID int64 `json:"player_two_id"`
 }
 
 func pendingResultResponse(pending league.PendingResult) map[string]any {
@@ -68,13 +66,30 @@ func (h PendingResultHandler) handleConfirm(w http.ResponseWriter, r *http.Reque
 		writeError(w, http.StatusBadRequest, "invalid_pending_id", "Pending result id must be a positive integer.")
 		return
 	}
-	var req confirmPendingResultRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	var body map[string]json.RawMessage
+	decoder := json.NewDecoder(http.MaxBytesReader(w, r.Body, 16384))
+	if err := decoder.Decode(&body); err != nil {
 		writeError(w, http.StatusBadRequest, "invalid_json", "Request body must be valid JSON.")
 		return
 	}
-	if req.PlayerOneID <= 0 || req.PlayerTwoID <= 0 {
-		writeError(w, http.StatusBadRequest, "players_required", "Both players must be selected.")
+	if _, ok := body["expected_result"]; !ok {
+		writeError(w, http.StatusBadRequest, "expected_result_required", "Supply expected_result, using null for an unscored fixture.")
+		return
+	}
+	if decoder.Decode(new(json.RawMessage)) != io.EOF {
+		writeError(w, http.StatusBadRequest, "invalid_json", "Supply one JSON object.")
+		return
+	}
+	b, err := json.Marshal(body)
+	if err != nil {
+		writeDomainError(w, err)
+		return
+	}
+	var req league.ApprovalRequest
+	strict := json.NewDecoder(bytes.NewReader(b))
+	strict.DisallowUnknownFields()
+	if err := strict.Decode(&req); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid_json", "Invalid approval request.")
 		return
 	}
 
@@ -83,7 +98,8 @@ func (h PendingResultHandler) handleConfirm(w http.ResponseWriter, r *http.Reque
 		actor = "admin"
 	}
 
-	result, err := h.pending.Confirm(r.Context(), pendingID, req.PlayerOneID, req.PlayerTwoID, actor)
+	req.PendingID, req.Actor = pendingID, actor
+	result, err := h.pending.Approve(r.Context(), req)
 	if err != nil {
 		writeDomainError(w, err)
 		return
@@ -109,7 +125,14 @@ func (h PendingResultHandler) handleReject(w http.ResponseWriter, r *http.Reques
 	if actor == "" {
 		actor = "admin"
 	}
-	if err := h.pending.Reject(r.Context(), pendingID, actor); err != nil {
+	var req struct {
+		Reason string `json:"reason"`
+	}
+	if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 16384)).Decode(&req); err != nil && err != io.EOF {
+		writeError(w, http.StatusBadRequest, "invalid_json", "Request body must be valid JSON.")
+		return
+	}
+	if err := h.pending.RejectWithReason(r.Context(), pendingID, actor, req.Reason); err != nil {
 		writeDomainError(w, err)
 		return
 	}
