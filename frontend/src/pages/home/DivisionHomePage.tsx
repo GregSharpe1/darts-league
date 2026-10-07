@@ -210,6 +210,8 @@ export function DivisionHomePage() {
         ) : null}
       </section>}
 
+      {seasonQuery.data?.status !== 'completed' && fixturesQuery.data?.weeks.some(week => week.status === 'unlocked' && week.fixtures.some(fixture => fixture.result)) ? <CompletedResults weeks={fixturesQuery.data.weeks} title="Recorded results" /> : null}
+
       <section className="week-grid" aria-label="Visible season weeks">
         {futureWeeks.length === 0 && !fixturesQuery.isLoading && seasonQuery.data?.status !== 'completed' ? (
           <article className="week-card empty-card">

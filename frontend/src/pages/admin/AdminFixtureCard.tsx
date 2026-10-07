@@ -2,6 +2,7 @@ import { useState } from 'react'
 import type { FormEvent } from 'react'
 import type { AdminFixture } from '../../lib/api'
 import { formatAverage } from '../../lib/api'
+import { Link } from 'react-router-dom'
 
 export function AdminFixtureCard({ fixture, onSave, onUndo, isSaving, isUndoing, isLocked = false, isPastWeek = false, readOnly = false }: {
   fixture: AdminFixture
@@ -112,6 +113,7 @@ export function AdminFixtureCard({ fixture, onSave, onUndo, isSaving, isUndoing,
           {fixture.result ? <button className="secondary-button" type="button" onClick={handleUndo} disabled={isUndoing}>{isUndoing ? 'Undoing...' : 'Undo result'}</button> : null}
         </div> : null}
       </form>
+      {fixture.result ? <Link className="match-view-link" to={`/admin/matches/${fixture.id}`} aria-label={`View match: ${fixture.player_one} vs ${fixture.player_two}`}>View match</Link> : null}
       <div className="score-feedback">
         {!readOnly && !isValidScoreline ? <p className="fixture-meta">{scorelineHint}</p> : statusMessage ? <p className="fixture-meta" role="status">{statusMessage}</p> : null}
       </div>
