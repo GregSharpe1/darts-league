@@ -5,11 +5,11 @@
   },
   {
     "file": "public-manual-375.png",
-    "sha256": "544444949b5dbc712816c58184cf09ea0bd873c6198623193093b6dba4f82b2c"
+    "sha256": "86746b5cd5fdceb5c696b556103a96bf60027d3c6bf69902afe3e740f045b561"
   },
   {
     "file": "public-zero-attempts-375.png",
-    "sha256": "e003ba231989fb0fed62c9bda3dbf9f89b832edf1dcdb3fa942eb3777a6687bf"
+    "sha256": "d9a934fba52bd4dd3e6026e1d3c195bd8975c45b851385702de569f5dc5652d6"
   },
   {
     "file": "public-empty-375.png",
@@ -37,19 +37,19 @@
   },
   {
     "file": "public-filter-manual-375.png",
-    "sha256": "921ed0db8ed8fd9197ed8410c066e07b74e2aab45f0a83117ffa8ab17a8eccad"
+    "sha256": "4b24719b16abd16915cfebb7732641a0f8d8788bafdaaba60d3c3b44baf84a63"
   },
   {
     "file": "public-filter-automatic-375.png",
-    "sha256": "f00f4b6c00b56a4ba91e7b190ec8884b13243d1072008f44f9685cd6ca0a48f9"
+    "sha256": "5011366592469e3d2cb32f38163200b6bf8e4f0d004b3fc609d63146a0890015"
   },
   {
     "file": "public-filter-unknown-375.png",
-    "sha256": "6ae679ccdbc3ba415848b4b0a4ca4bea580479d45fdc1a8430bc211d466d2639"
+    "sha256": "31de68d7c7b800e328823c1e234bbc34c9abc21391a3e81ccea3bd8875576e25"
   },
   {
     "file": "public-filter-all-375.png",
-    "sha256": "af2e0d42cff9519966747ffc33ba77b6a4e23ef1b24cdcd109c64e09ef8603d6"
+    "sha256": "78b3d117db697f83d2384f94dab967587fdd1e31c5f1781c9e3c88c6d18c9b49"
   },
   {
     "file": "public-partial-768.png",
@@ -93,11 +93,11 @@
   },
   {
     "file": "public-filter-automatic-768.png",
-    "sha256": "41ddec5c043886a9c5ab6e529763989c1f3eca3eadb6859b2f4a9bf2fc9c33b4"
+    "sha256": "6704bfff8baf70bd71b77f8029ccffef5044d87fe1c850a538ea981c1af8a82d"
   },
   {
     "file": "public-filter-unknown-768.png",
-    "sha256": "652144ce239a55024c7480f801aba71228bfa76a510cfe7a60c4fda7b7bdd05b"
+    "sha256": "bf2b4e29fb313eb6cdfe7699648a0af3f1b288561831e607f4d9bdd94bcd2449"
   },
   {
     "file": "public-filter-all-768.png",
@@ -145,7 +145,7 @@
   },
   {
     "file": "public-filter-automatic-1280.png",
-    "sha256": "73001a1945aab08dba3e46e9cc617709498cc86dd3ed7e264b54ba35e8222317"
+    "sha256": "9f5fbf5e6960cdde3e174ec1ef9d0649bf51d18e9dad4042047fc56b274c32b0"
   },
   {
     "file": "public-filter-unknown-1280.png",
