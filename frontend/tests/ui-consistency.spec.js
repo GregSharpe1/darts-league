@@ -1,11 +1,12 @@
 import { test, expect } from '@playwright/test'
 import { mkdir } from 'node:fs/promises'
 import path from 'node:path'
+import { source as pendingDetail } from './pending-review-fixtures'
 
 const output = path.resolve('../docs/pr-screenshots/issue-47')
 const players = ['Morgan Ember', 'Casey Vale'].map((name, index) => ({ id: index + 1, display_name: name, preferred_name: name, admin_label: name, status: 'assigned', division_id: 1 }))
 const divisions = [{ id: 1, name: 'Premier Division', slug: 'premier', position: 1 }]
-const fixture = { id: 1, player_one: players[0].display_name, player_two: players[1].display_name, scheduled_at: '2026-06-15T09:00:00Z', game_variant: '501', legs_to_win: 3, status: 'unplayed' }
+const fixture = { id: 1, player_one_id: 1, player_two_id: 2, expected_result: null, player_one: players[0].display_name, player_two: players[1].display_name, scheduled_at: '2026-06-15T09:00:00Z', game_variant: '501', legs_to_win: 3, status: 'unplayed' }
 const weeks = [{ week_number: 1, reveal_at: '2026-06-15T09:00:00Z', status: 'unlocked', fixtures: [fixture] }]
 const pending = { id: 1, player_one_name: 'Morgan', player_two_name: 'Casey', player_one_legs: 3, player_two_legs: 1, player_one_average: 60, player_two_average: 52, received_at: '2026-06-15T10:00:00Z', status: 'pending' }
 
@@ -37,6 +38,7 @@ for (const width of [375, 768, 1280]) {
         if (pendingState === 'error') return route.fulfill({ status: 500, json: { error: { code: 'unavailable', message: 'Results temporarily unavailable.' } } })
         return route.fulfill({ json: { pending_results: pendingState === 'empty' ? [] : [pending] } })
       }
+      if (url === '/api/admin/pending-results/1') return route.fulfill({ json: { ...pendingDetail, pending_result: { ...pending, external_match_id: 'demo-match' }, detail: null, players: pendingDetail.players.map((player, index) => ({ ...player, display_name: index ? pending.player_two_name : pending.player_one_name, legs_won: index ? 1 : 3, stats: null })) } })
       return route.fulfill({ status: 404, json: { error: { code: 'not_found', message: 'Unknown test route.' } } })
     })
     const capture = async name => {
@@ -62,7 +64,7 @@ for (const width of [375, 768, 1280]) {
     await expect(select).toHaveCSS('outline-style', 'solid')
     await expect(select).toHaveCSS('font-family', /Barlow/)
     expect(await page.locator(':root').evaluate(el => getComputedStyle(el).getPropertyValue('--radius-panel').trim())).toBe('20px')
-    await expect(page.getByRole('button', { name: 'Confirm Score', exact: true })).toHaveCSS('background-image', 'none')
+    await expect(page.getByRole('button', { name: 'Approve result', exact: true })).toHaveCSS('background-image', 'none')
     for (const state of ['loading', 'empty', 'error']) {
       pendingState = state
       await page.goto('/admin/pending-results')
