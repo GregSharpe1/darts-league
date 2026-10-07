@@ -80,10 +80,11 @@ func getPendingInTx(ctx context.Context, tx pgx.Tx, id int64) (league.PendingRes
 func (s *Store) GetImport(ctx context.Context, id int64) (league.ImportRecord, error) {
 	var record league.ImportRecord
 	var payload []byte
+	var approval []byte
 	err := s.pool.QueryRow(ctx, `SELECT source,COALESCE(external_match_id,''),COALESCE(digest,''),source_payload,played_at_original,settings_evidence,
-		review_reason,changed_import,season_id,fixture_id,result_id,source_active FROM pending_results WHERE id=$1`, id).Scan(
+		review_reason,changed_import,season_id,fixture_id,result_id,source_active,approval_metadata FROM pending_results WHERE id=$1`, id).Scan(
 		&record.Import.Source, &record.Import.ExternalMatchID, &record.Import.Digest, &payload, &record.Import.PlayedAt, &record.Import.SettingsEvidence,
-		&record.Import.ReviewReason, &record.Changed, &record.SeasonID, &record.FixtureID, &record.ResultID, &record.Active)
+		&record.Import.ReviewReason, &record.Changed, &record.SeasonID, &record.FixtureID, &record.ResultID, &record.Active, &approval)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return record, league.ErrPendingResultNotFound
 	}
@@ -95,6 +96,12 @@ func (s *Store) GetImport(ctx context.Context, id int64) (league.ImportRecord, e
 		return record, err
 	}
 	record.Import.Payload = payload
+	if len(approval) > 0 {
+		if err := json.Unmarshal(approval, &record.Approval); err != nil {
+			return record, err
+		}
+		record.Mapping = record.Approval.Mapping
+	}
 	if record.Import.SettingsEvidence == "source_reported" {
 		var p autodarts.Payload
 		if err := json.Unmarshal(payload, &p); err != nil {
@@ -102,16 +109,13 @@ func (s *Store) GetImport(ctx context.Context, id int64) (league.ImportRecord, e
 		}
 		record.Import.Players, record.Import.Detail = p.Players, p.Detail
 	} else {
-		p := record.Pending
-		for i, player := range []autodarts.Player{{ID: "legacy-1", DisplayName: p.PlayerOneName, LegsWon: p.PlayerOneLegs}, {ID: "legacy-2", DisplayName: p.PlayerTwoName, LegsWon: p.PlayerTwoLegs}} {
-			average := p.PlayerOneAverage
-			if i == 1 {
-				average = p.PlayerTwoAverage
-			}
-			if average != nil {
-				player.Stats = &autodarts.Stats{MatchAverage: average}
-			}
-			record.Import.Players = append(record.Import.Players, player)
+		legacy, err := league.LegacyImportRecord(record.Pending)
+		if err != nil {
+			return record, err
+		}
+		record.Import.Players = legacy.Import.Players
+		if record.Import.Digest == "" {
+			record.Import = legacy.Import
 		}
 	}
 	return record, nil

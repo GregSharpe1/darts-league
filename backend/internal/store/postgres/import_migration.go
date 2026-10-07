@@ -12,6 +12,9 @@ import (
 //go:embed imports.sql
 var importSchema string
 
+//go:embed approval.sql
+var approvalSchema string
+
 func (s *Store) migrateImports(ctx context.Context) error {
 	tx, err := s.pool.Begin(ctx)
 	if err != nil {
@@ -25,6 +28,9 @@ func (s *Store) migrateImports(ctx context.Context) error {
 		return err
 	}
 	if _, err := tx.Exec(ctx, importSchema); err != nil {
+		return err
+	}
+	if _, err := tx.Exec(ctx, approvalSchema); err != nil {
 		return err
 	}
 	// Old rows never contained raw payloads or source time. Preserve the stored
