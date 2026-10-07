@@ -29,12 +29,16 @@ Postgres schema, production frontend build and existing admin session:
 2. Poll the local relay and durably store the import before acknowledgement.
 3. Select season, league, source-player mapping and fixture in the real review UI.
 4. Record a source-date review note, inspect the 27-dart winner heatmap and approve.
-5. Verify the public API still returns 404 before weekly reveal.
+5. Verify the public match API still returns 404 before weekly reveal, with no
+   hidden contribution to player metrics or coordinates.
 6. Replay the identical source: it remains reviewed and does not create a new inbox item.
 7. Restart the test backend against the same schema with time advanced past reveal.
 8. Read the public match and heatmap, preserving optional metrics while stripping
    source identity/profile fields.
-9. Manually correct the result: old source detail detaches. Undo: public detail is 404.
+9. Open the real player profile: verify metric coverage and switch between manual
+   and automatic entry filters without fabricating points.
+10. Manually correct the result: old match detail and player throw statistics
+    detach. Undo: public match detail is 404 and the player's played count returns to zero.
 
 `frontend/tests/autodarts/live-flow.mjs` records browser evidence under
 `docs/pr-screenshots/issue-48/`. No real Autodarts account, deployed relay or Slack
@@ -71,6 +75,7 @@ npm run build
 npm run lint
 node tests/match/verify.mjs
 node tests/matches/verify.mjs
+node src/pages/players/browser/verify.mjs
 npx playwright test tests/pending-review.spec.js tests/ui-consistency.spec.js
 npm run test:e2e
 node tests/autodarts/live-flow.mjs
@@ -79,10 +84,18 @@ node tests/autodarts/live-flow.mjs
 Without `TEST_DATABASE_URL`, Go database tests skip; do not report those skips as
 database verification. The browser full-flow script requires it and fails rather
 than silently using the in-memory fallback. Build the frontend immediately before
-running production-preview harnesses. The player-page harness from #46 must also
-be included in the final assembled check once integrated.
+running production-preview harnesses. The player-page harness is included above;
+it checks public/admin profiles and entry-type filters at all three breakpoints.
 
 ## Coordinated cutover (future authorized deployment only)
+
+Final local verification passed: the full Go race/shuffle suite with disposable
+Postgres, 130 frontend unit tests, production build/lint, both existing league
+end-to-end scenarios, 18 review/layout browser scenarios, and all component,
+match-route and player-route browser harnesses (24/36/39 responsive captures).
+The real Postgres/browser flow also passed through player profiles, entry filters,
+duplicate delivery, hidden-before-reveal metrics and edit/undo detachment.
+These are local test results, not a deployment or independent security approval.
 
 1. Resolve the authentication/security decision, review dependency findings,
    take and test a database backup, and rehearse against a copy without real

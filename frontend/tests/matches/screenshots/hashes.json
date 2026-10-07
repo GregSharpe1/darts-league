@@ -1,15 +1,15 @@
 [
   {
     "file": "public-analysis-375.png",
-    "sha256": "fe8710ca06c755321558125de545421bc7e302093f9c440fed802f6995b7d67d"
+    "sha256": "a6cacb0ed23e974069e5e62675934c7059e021cf8bcb4f8e19377ae264e522a2"
   },
   {
     "file": "public-unknown-375.png",
-    "sha256": "920fb67b8ffb827a325e7380f2fbafd9e15e5e571c4d264eb47d1aada05aff4c"
+    "sha256": "7a7be16437ff99e9a6f09e8248e47a4e4a40626202a6210852f626e93c30cfbb"
   },
   {
     "file": "public-summary-375.png",
-    "sha256": "3b903416f36c1ede8302f4fa0999eb9821b73364d7fff53ddeea9f281573a558"
+    "sha256": "d894c58019b9327cd7f97e8001a2e53af3c15989e55c4a5a23bd59f8cc23d75e"
   },
   {
     "file": "public-missing-375.png",
@@ -25,7 +25,7 @@
   },
   {
     "file": "admin-analysis-375.png",
-    "sha256": "343d5a521929c1acb83296ba90b7d873459b1d0c1e2c6446f5f8a89b383da9dd"
+    "sha256": "b5dcad664196ab7d1b196beffe3765b18baa00c778941a88bd913e132fd9bd98"
   },
   {
     "file": "admin-unauthorized-375.png",
@@ -33,7 +33,7 @@
   },
   {
     "file": "public-opponent-leg3-375.png",
-    "sha256": "137d5707087a9ec64fa95425119f78b2082222b697a0f29e206c580ad8931ac4"
+    "sha256": "80217748748fc337a4035878eb302e651805daf5d3f31df236715c1862827d3b"
   },
   {
     "file": "active-list-375.png",
@@ -49,15 +49,15 @@
   },
   {
     "file": "public-analysis-768.png",
-    "sha256": "c825c0561d0d709eb222ad2ca30febfeb25059b3794cea079b074fa1667a4e5b"
+    "sha256": "374b9313bd7ea8a97cba74bece8688e279c3aeae0401f6bf889b0ab6ce6c65e7"
   },
   {
     "file": "public-unknown-768.png",
-    "sha256": "6a638d6ae16ee34e4aba5fbeabe21d4889cb0177253dd42b87031997bc43f211"
+    "sha256": "a74173e1854083226382a916a833513d10f873260e609a922b4ed108de44e485"
   },
   {
     "file": "public-summary-768.png",
-    "sha256": "e765a3b5bf52df89e536d2635a080508b139a5a5186587c8bf4611597687a8a7"
+    "sha256": "1767462d3c2c698693cecb7168dad61d33bd89c7ed094be50ac005936896cde8"
   },
   {
     "file": "public-missing-768.png",
@@ -73,7 +73,7 @@
   },
   {
     "file": "admin-analysis-768.png",
-    "sha256": "3b6a9e576f3cf5a8a031cbd011047f5a1a2577318737daa62c623892fdddf86d"
+    "sha256": "89334fcf2648a3ee5486a29a3bb1586ae0bda2277467494e30de1f356c878197"
   },
   {
     "file": "admin-unauthorized-768.png",
@@ -81,7 +81,7 @@
   },
   {
     "file": "public-opponent-leg3-768.png",
-    "sha256": "04f6a7a8716537ada6c467e22191d2e3e025ae511b3cd27ad56d1d945652eadb"
+    "sha256": "07a5f2cc183ff8d593662991e751f9c13159c59929c096af88896e84c48fbf5f"
   },
   {
     "file": "active-list-768.png",
@@ -97,15 +97,15 @@
   },
   {
     "file": "public-analysis-1280.png",
-    "sha256": "74ebc591f869a4b99bc2c0528ec62721cda7feacc445db9e8b93734fc037bedb"
+    "sha256": "3033b7b5113f666561e0ba2758571fdc327c51243e8eea34e9be18a7636ade16"
   },
   {
     "file": "public-unknown-1280.png",
-    "sha256": "ece0b54b22c12ef285c78c3d33da6f7659325771e30d5e91d73c6d3717672721"
+    "sha256": "07b5a892e73b5f18f27962845506f45d5794dab77bbf760166151eac1c1e5a25"
   },
   {
     "file": "public-summary-1280.png",
-    "sha256": "3cced7eea10c92bc2eddc11caef70fbc17dd3e7f87cae99e10989f39b1457dc8"
+    "sha256": "fdce3d363cefff5cb81a57b7cebcc966d6a9485bbc743672a87466c61ed39d4b"
   },
   {
     "file": "public-missing-1280.png",
@@ -121,7 +121,7 @@
   },
   {
     "file": "admin-analysis-1280.png",
-    "sha256": "d346c3b08ad0c01544fb2d584895f0695a6c72f4824bd7b335cb53a3399b662d"
+    "sha256": "d27df6a06d75d7785b1000f0de76b3c11e667a643c3349b59c31781215a88563"
   },
   {
     "file": "admin-unauthorized-1280.png",
@@ -129,7 +129,7 @@
   },
   {
     "file": "public-opponent-leg3-1280.png",
-    "sha256": "a8842f3013ab3dc3a74d7d05b909c6cdfd50f671eaabaac2e84f081f4900bc00"
+    "sha256": "9e79ff835681e04425b28ac34c47850708f906e15dce4834ef2e525b8ee08586"
   },
   {
     "file": "active-list-1280.png",

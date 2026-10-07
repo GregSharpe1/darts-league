@@ -5,11 +5,11 @@
   },
   {
     "file": "public-manual-375.png",
-    "sha256": "86746b5cd5fdceb5c696b556103a96bf60027d3c6bf69902afe3e740f045b561"
+    "sha256": "544444949b5dbc712816c58184cf09ea0bd873c6198623193093b6dba4f82b2c"
   },
   {
     "file": "public-zero-attempts-375.png",
-    "sha256": "d9a934fba52bd4dd3e6026e1d3c195bd8975c45b851385702de569f5dc5652d6"
+    "sha256": "e003ba231989fb0fed62c9bda3dbf9f89b832edf1dcdb3fa942eb3777a6687bf"
   },
   {
     "file": "public-empty-375.png",
@@ -29,7 +29,7 @@
   },
   {
     "file": "admin-partial-375.png",
-    "sha256": "50b291a93c39763b33994556159fccc7bb5ba55a74d43c080acd1f8651289876"
+    "sha256": "8ef0b678e56906607b3389dbdae4bca1f84db72660724dd88946a5bf644d57e0"
   },
   {
     "file": "admin-unauthorized-375.png",
@@ -37,19 +37,19 @@
   },
   {
     "file": "public-filter-manual-375.png",
-    "sha256": "4b24719b16abd16915cfebb7732641a0f8d8788bafdaaba60d3c3b44baf84a63"
+    "sha256": "5a821a422014f29a1ea24c1da263128de930e07d954683c58cae8bbc46ae7ac1"
   },
   {
     "file": "public-filter-automatic-375.png",
-    "sha256": "5011366592469e3d2cb32f38163200b6bf8e4f0d004b3fc609d63146a0890015"
+    "sha256": "bdf7df6df911f76be11a3c7df19092c75614fb022f19af173c282949cf6e5bbf"
   },
   {
     "file": "public-filter-unknown-375.png",
-    "sha256": "31de68d7c7b800e328823c1e234bbc34c9abc21391a3e81ccea3bd8875576e25"
+    "sha256": "b9822271a11e6293148e1ca5ccd60ae7b35da6c27a36456e12a5a28aebffb7fd"
   },
   {
     "file": "public-filter-all-375.png",
-    "sha256": "78b3d117db697f83d2384f94dab967587fdd1e31c5f1781c9e3c88c6d18c9b49"
+    "sha256": "8285106a2da4e71e0b08e36d285c1bcd41293b3bfc9b25390f45c903fa129344"
   },
   {
     "file": "public-partial-768.png",
@@ -89,15 +89,15 @@
   },
   {
     "file": "public-filter-manual-768.png",
-    "sha256": "05d60d1a45c0acb7df189918fb6c61a2279b54c9323d9a912d53b3fbba03a543"
+    "sha256": "f4febc6301e8f1e8a5c4b19ff38ae41114f20aa63399fdef28bd4b006feb6a3e"
   },
   {
     "file": "public-filter-automatic-768.png",
-    "sha256": "6704bfff8baf70bd71b77f8029ccffef5044d87fe1c850a538ea981c1af8a82d"
+    "sha256": "1ff634f39a48615cc6554acf9731887b5dbfd1301d34edd1759f29e6ca5927ff"
   },
   {
     "file": "public-filter-unknown-768.png",
-    "sha256": "bf2b4e29fb313eb6cdfe7699648a0af3f1b288561831e607f4d9bdd94bcd2449"
+    "sha256": "8e669b5bcdbfc143a212bfb1fd3b19e2e3ca3ceeb76e8011bf45c93027d1781a"
   },
   {
     "file": "public-filter-all-768.png",
