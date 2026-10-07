@@ -80,6 +80,7 @@ export type PublicFixturesResponse = {
 }
 
 export type StandingRow = {
+  player_id?: number
   player: string
   display_name: string
   played: number
