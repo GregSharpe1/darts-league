@@ -1,0 +1,22 @@
+{
+  "schema_version": "autodarts.api.v1", "season_id": 2, "player_id": 7, "preferred_name": "Arrow",
+  "played": 2, "won": 1, "lost": 1, "legs_for": 4, "legs_against": 4, "leg_difference": 0, "points": 2,
+  "match_average_mean": 42.5, "dart_weighted_average": null, "first_nine_match_average_mean": 60,
+  "checkout_hits": 0, "checkout_attempts": 4, "checkout_percentage": 0,
+  "total_180": 0, "best_leg_darts": null, "highest_finish": 40,
+  "coverage": {
+    "eligible_matches": 2, "matches_with_detail": 1, "match_average_mean": 2, "dart_weighted_average": 0,
+    "first_nine_match_average_mean": 1, "checkout": 1, "total_180": 1, "best_leg_darts": 0, "highest_finish": 1,
+    "matches_with_recorded_throws": 1, "matches_with_positions": 1, "recorded_throws": 3,
+    "known_positions": 2, "plottable_positions": 1, "position_fraction": 0.6666666666666666
+  },
+  "history": [
+    {"fixture_id": 12, "week_number": 2, "scheduled_at": "2026-04-06T08:00:00Z", "opponent_id": 9, "opponent_name": "The Comet", "won": false, "legs_for": 1, "legs_against": 3, "match_average": 40, "detail_coverage": "partial"},
+    {"fixture_id": 11, "week_number": 1, "scheduled_at": "2026-03-30T08:00:00Z", "opponent_id": 8, "opponent_name": "Bullseye", "won": true, "legs_for": 3, "legs_against": 1, "match_average": 45, "detail_coverage": "none"}
+  ],
+  "throws": [
+    {"fixture_id": 12, "leg_number": 1, "visit_number": 1, "throw_number": 1, "segment": {"bed": "triple", "number": 20}, "entry_type": "manual", "position": {"x": 0, "y": 0.6, "units": "board-radius", "origin": "bull", "axis_orientation": "x-right-y-up", "provenance": "manual"}, "plottable": true},
+    {"fixture_id": 12, "leg_number": 1, "visit_number": 1, "throw_number": 2, "segment": {"bed": "single", "number": 20}, "entry_type": "automatic", "position": {"x": 0.2, "y": 0.4, "units": "board-radius", "origin": "bull", "axis_orientation": "x-right-y-up", "provenance": "automatic"}, "plottable": false},
+    {"fixture_id": 12, "leg_number": 1, "visit_number": 1, "throw_number": 3, "segment": {"bed": "miss", "number": 0}, "entry_type": "unknown", "position": null, "plottable": false}
+  ]
+}
