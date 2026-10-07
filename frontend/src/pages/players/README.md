@@ -29,10 +29,9 @@ for every selected entry type. No physical-board accuracy is claimed.
 
 ## Repeat checks
 
-From `frontend`, with the checked-in dependencies and Node 22:
+From `frontend`, with the checked-in dependencies and a supported Node 22 on PATH:
 
 ```sh
-export PATH=/home/greg/.npm/_npx/52027bd8fc0022aa/node_modules/node/bin:$PATH
 npm test
 npm run build
 npm run lint
