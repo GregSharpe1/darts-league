@@ -43,17 +43,19 @@
     {"id": 730, "external_match_id": "fictional-match-001", "player_one_name": "Aster Example", "player_one_legs": 3, "player_one_average": 60.12, "player_two_name": "Birch Guest", "player_two_legs": 0, "player_two_average": null, "status": "pending", "received_at": "Mon, 15 Jun 2026 10:00:00 GMT", "playedAt": "2026-06-15T10:00:00+01:00", "detail_coverage": "partial"}
   ]},
   "admin_detail": {
-    "schema_version": "autodarts.api.v1", "id": 731, "status": "pending", "season_id": null, "fixture_id": null,
-    "source_payload": {"matchId": "fictional-legacy-001", "player1": {"name": "Elm Example", "legsWon": 3, "matchAverage": null}, "player2": {"name": "Fern Guest", "legsWon": 2}},
-    "settings_evidence": "legacy_unverified", "playedAt": null, "detail": null,
-    "warnings": ["format_attestation_required", "manual_mapping_required", "played_at_review_required"]
+    "pending_result": {"id": 731, "external_match_id": "fictional-legacy-001", "player_one_name": "Elm Example", "player_one_legs": 3, "player_one_average": null, "player_two_name": "Fern Guest", "player_two_legs": 2, "player_two_average": null, "status": "pending", "received_at": "Mon, 15 Jun 2026 10:00:00 GMT"},
+    "source": "autodarts", "digest": "example-digest", "changed_import": false,
+    "original_payload": {"matchId": "fictional-legacy-001", "player1": {"name": "Elm Example", "legsWon": 3, "matchAverage": null}, "player2": {"name": "Fern Guest", "legsWon": 2}},
+    "settings_evidence": "legacy_unverified", "review_reason": "", "played_at": null, "detail": null,
+    "players": [{"match_player_id": "legacy-1", "account_id": null, "display_name": "Elm Example", "legs_won": 3, "stats": null}, {"match_player_id": "legacy-2", "account_id": null, "display_name": "Fern Guest", "legs_won": 2, "stats": null}],
+    "season_id": null, "fixture_id": null, "result_id": null, "source_active": false, "mapping": null, "approval": null
   },
   "reversed_confirmation": {
-    "request": {"season_id": 700, "fixture_id": 720, "player_one_id": 702, "player_two_id": 701, "replace_result": false, "expected_result": null, "reason": "Reviewed source date and fixture", "format_attested": false},
+    "request": {"season_id": 700, "fixture_id": 720, "mapping": {"seat-a": 702, "seat-b": 701}, "replace": false, "expected_result": null, "reason": "Reviewed source date and fixture", "attest_format": false, "missing_date_reason": ""},
     "fixture": {"id": 720, "season_id": 700, "player_one_id": 701, "player_two_id": 702, "reveal_at": "2026-06-15T08:00:00Z"},
     "response": {"id": 740, "fixture_id": 720, "player_one_legs": 0, "player_two_legs": 3, "player_one_average": null, "player_two_average": 60.12, "winner_id": 702}
   },
-  "replacement_request": {"season_id": 700, "fixture_id": 720, "player_one_id": 702, "player_two_id": 701, "replace_result": true, "expected_result": {"id": 740, "player_one_legs": 0, "player_two_legs": 3, "player_one_average": null, "player_two_average": 60.12}, "reason": "Reviewed corrected source average", "format_attested": false},
+  "replacement_request": {"season_id": 700, "fixture_id": 720, "mapping": {"seat-a": 702, "seat-b": 701}, "replace": true, "expected_result": {"id": 740, "updated_at": "2026-06-15T11:00:00Z", "player_one_legs": 0, "player_two_legs": 3, "player_one_average": null, "player_two_average": 60.12, "winner_id": 702}, "reason": "Reviewed corrected source average", "attest_format": false, "missing_date_reason": ""},
   "reject_request": {"reason": "Wrong match submitted"},
   "public_detail": {
     "schema_version": "autodarts.api.v1", "fixture_id": 720,

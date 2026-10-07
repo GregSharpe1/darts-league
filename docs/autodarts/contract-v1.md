@@ -92,7 +92,7 @@ Legacy: `{matchId,playedAt?,player1,player2}`, each player
 `{name,legsWon,matchAverage?}`. Missing/null average and timestamp become null;
 create match-local `legacy-1`/`legacy-2`, null account IDs and null detail/totals.
 Record `settings_evidence:legacy_unverified`; confirmation requires explicit
-`format_attested:true`. No invented settings/completion evidence, no sunset date.
+`attest_format:true`. No invented settings/completion evidence, no sunset date.
 
 ## Durable ingestion and replay
 
@@ -129,12 +129,13 @@ content identity, not authenticity. Changing playedAt or player order is a chang
 
 ## Approval and correction
 
-Extend current confirm request with `season_id`, `fixture_id`, `replace_result`,
-`expected_result` and `reason`, retaining `player_one_id`/`player_two_id` as the
-league players corresponding to the **source order**. `expected_result` is null
-for an empty fixture, otherwise the last-read `{id,player_one_legs,player_two_legs,
-player_one_average,player_two_average}` snapshot. Compare atomically under lock;
-no new result-version service is needed. Concurrent changed state returns 409.
+Confirm uses `season_id`, `fixture_id`, explicit source-ID-to-league-ID `mapping`,
+`replace`, `expected_result`, `reason`, `attest_format` and `missing_date_reason`.
+`expected_result` must be present: null for an empty fixture, otherwise the
+last-read `{id,updated_at,player_one_legs,player_two_legs,player_one_average,
+player_two_average,winner_id}` snapshot. Compare atomically under lock; advance
+the microsecond update token even with a frozen clock. Concurrent changed state
+returns 409. See [implemented approval API](../autodarts-approval.md).
 
 Always require explicit season/fixture selection; never infer current season from
 arrival time. Show original playedAt and warn when absent or outside the selected
@@ -145,7 +146,7 @@ season and both distinct players, read-only closed seasons and fixed score forma
 Reverse scores, averages and **all** detail references together when source order
 differs from fixture order. Mapping means admin selection, not account ownership.
 
-An existing result requires `replace_result:true`, matching `expected_result` and
+An existing result requires `replace:true`, matching `expected_result` and
 nonempty reason; otherwise return 409. Empty fixtures require false/null. Commit
 result, pending status, active source link and audit (actor, old/new values, source
 IDs and reason) in one transaction. Reject remains explicit and audited. States:
@@ -178,13 +179,14 @@ not all match darts; unknown-geometry positions are not board-plottable coverage
 
 ## API extensions on existing paths
 
-Existing admin authentication remains required. Add `schema_version:autodarts.api.v1`
-to new DTOs, preserve existing list fields/envelope and existing result responses.
+Existing admin authentication remains required. Preserve existing list
+fields/envelope and existing result responses. The implemented admin DTO below
+uses a nested summary; public DTOs use `schema_version:autodarts.api.v1`.
 
 | Method/path | Response / request |
 | --- | --- |
 | GET /api/admin/pending-results | `{pending_results:[summary...]}`; current default pending list, no nested source/legs/throws |
-| GET /api/admin/pending-results/{pendingID} | `id`, `status`, `source_payload`, normalized `detail`, `playedAt`, `settings_evidence`, `warnings`, `season_id`, `fixture_id`; admin-only |
+| GET /api/admin/pending-results/{pendingID} | `pending_result`, `source`, `digest`, `changed_import`, `settings_evidence`, `review_reason`, `played_at`, normalized `players`/`detail`, `original_payload`, nullable target/result IDs, `source_active`, `mapping`, `approval`; admin-only |
 | POST /api/admin/pending-results/{pendingID}/confirm | Explicit mapping/replacement above -> 200 existing result DTO |
 | POST /api/admin/pending-results/{pendingID}/reject | `{reason}` -> 204 |
 | GET /api/fixtures/{fixtureID}/autodarts | Versioned normalized players/detail/coverage -> 200, or indistinguishable 404 |

@@ -191,7 +191,7 @@ check('optional raw coordinates preserve unknown units and source precision', ()
 });
 check('reversed mapping moves every player association', () => {
   const { request, fixture, response } = examples.reversed_confirmation;
-  const mapping = new Map(examples.producer.players.map((player, index) => [player.match_player_id, [request.player_one_id, request.player_two_id][index]]));
+  const mapping = new Map(Object.entries(request.mapping));
   assert.equal(new Set(mapping.values()).size, 2);
   const ordered = [fixture.player_one_id, fixture.player_two_id].map(id => examples.producer.players.find(p => mapping.get(p.match_player_id) === id));
   assert.deepEqual(ordered.map(p => p.legs_won), [response.player_one_legs, response.player_two_legs]);
@@ -241,13 +241,13 @@ check('publication policy excludes unrevealed, pending and superseded aggregates
   }
 });
 check('replacement snapshot matches the reviewed result and needs explicit intent', () => {
-  const { fixture_id, winner_id, ...snapshot } = examples.reversed_confirmation.response;
-  assert.equal(winner_id, examples.reversed_confirmation.request.player_one_id);
+  const { fixture_id, ...snapshot } = examples.reversed_confirmation.response;
+  assert.equal(snapshot.winner_id, examples.reversed_confirmation.request.mapping['seat-a']);
   assert.equal(examples.replacement_request.fixture_id, fixture_id);
   assert.equal(examples.replacement_request.season_id, examples.reversed_confirmation.fixture.season_id);
-  assert.equal(examples.replacement_request.replace_result, true);
+  assert.equal(examples.replacement_request.replace, true);
   assert(examples.replacement_request.reason.length > 0);
-  assert.deepEqual(examples.replacement_request.expected_result, snapshot);
+  assert.deepEqual(examples.replacement_request.expected_result, { ...snapshot, updated_at: '2026-06-15T11:00:00Z' });
 });
 check('API errors preserve existing code/message error shape', () => {
   for (const error of examples.errors) {
