@@ -80,7 +80,7 @@ func getPendingInTx(ctx context.Context, tx pgx.Tx, id int64) (league.PendingRes
 func (s *Store) GetImport(ctx context.Context, id int64) (league.ImportRecord, error) {
 	var record league.ImportRecord
 	var payload []byte
-	err := s.pool.QueryRow(ctx, `SELECT source,external_match_id,COALESCE(digest,''),source_payload,played_at_original,settings_evidence,
+	err := s.pool.QueryRow(ctx, `SELECT source,COALESCE(external_match_id,''),COALESCE(digest,''),source_payload,played_at_original,settings_evidence,
 		review_reason,changed_import,season_id,fixture_id,result_id,source_active FROM pending_results WHERE id=$1`, id).Scan(
 		&record.Import.Source, &record.Import.ExternalMatchID, &record.Import.Digest, &payload, &record.Import.PlayedAt, &record.Import.SettingsEvidence,
 		&record.Import.ReviewReason, &record.Changed, &record.SeasonID, &record.FixtureID, &record.ResultID, &record.Active)
