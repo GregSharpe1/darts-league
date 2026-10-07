@@ -49,7 +49,7 @@ func TestReceiptlessDetailRemainsBlockedInMemory(t *testing.T) {
 	if err != nil || len(blocked) != 1 || len(client.acked) != 0 {
 		t.Fatalf("lost blocked detail: %v %+v", err, blocked)
 	}
-	if _, err := service.Confirm(context.Background(), blocked[0].ID, 1, 2, "admin"); !errors.Is(err, league.ErrPendingResultNotPending) {
+	if _, err := service.Approve(context.Background(), league.ApprovalRequest{PendingID: blocked[0].ID, Actor: "admin"}); !errors.Is(err, league.ErrImportReviewBlocked) {
 		t.Fatal("confirmed contradictory detail", err)
 	}
 }

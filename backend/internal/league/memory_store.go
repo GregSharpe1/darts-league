@@ -391,7 +391,7 @@ func (s *MemoryStore) ListAuditLogsBySeason(_ context.Context, seasonID int64) (
 	entries := make([]AuditLogEntry, 0, len(s.auditByID))
 	for _, entry := range s.auditByID {
 		fixture, ok := s.fixturesByID[entry.FixtureID]
-		if ok && fixture.SeasonID == seasonID {
+		if (ok && fixture.SeasonID == seasonID) || entry.SeasonID == seasonID {
 			entries = append(entries, entry)
 		}
 	}
@@ -450,8 +450,8 @@ func (s *MemoryStore) CreatePendingResult(_ context.Context, pending PendingResu
 
 	pending.ID = s.nextPendingID
 	s.nextPendingID++
-	s.pendingByID[pending.ID] = pending
-	return pending, nil
+	s.pendingByID[pending.ID] = clonePending(pending)
+	return clonePending(pending), nil
 }
 
 func (s *MemoryStore) ListPendingResults(_ context.Context, status PendingResultStatus) ([]PendingResult, error) {
@@ -486,11 +486,9 @@ func (s *MemoryStore) UpdatePendingResult(_ context.Context, pending PendingResu
 	if _, ok := s.pendingByID[pending.ID]; !ok {
 		return PendingResult{}, ErrPendingResultNotFound
 	}
-	if _, imported := s.importsByID[pending.ID]; imported {
-		original := s.pendingByID[pending.ID]
-		original.Status, original.ConfirmedAt, original.ConfirmedBy = pending.Status, pending.ConfirmedAt, pending.ConfirmedBy
-		pending = original
-	}
+	original := s.pendingByID[pending.ID]
+	original.Status, original.ConfirmedAt, original.ConfirmedBy = pending.Status, pending.ConfirmedAt, pending.ConfirmedBy
+	pending = original
 	s.pendingByID[pending.ID] = clonePending(pending)
 	return clonePending(pending), nil
 }

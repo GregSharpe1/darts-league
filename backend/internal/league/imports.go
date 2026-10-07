@@ -29,11 +29,21 @@ type ImportRecord struct {
 	FixtureID *int64
 	ResultID  *int64
 	Active    bool
+	Mapping   map[string]int64
+	Approval  *ImportAudit
 }
 
 type ImportStore interface {
 	InsertImport(context.Context, autodarts.Import, time.Time) (ImportOutcome, error)
 	GetImport(context.Context, int64) (ImportRecord, error)
+}
+
+type ApprovalStore interface {
+	ImportStore
+	ImportsBySource(context.Context, string, string) ([]ImportRecord, error)
+	ImportByFixture(context.Context, int64) (ImportRecord, error)
+	ImportByResult(context.Context, int64) (ImportRecord, error)
+	SaveImportApproval(context.Context, ImportRecord) error
 }
 
 // DurableImports is a capability declaration, not implied by detailed storage.

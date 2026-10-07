@@ -15,10 +15,18 @@ func (s *MemoryStore) InsertImport(ctx context.Context, imported autodarts.Impor
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	changed := false
-	for id, data := range s.importsByID {
+	for id, pending := range s.pendingByID {
 		var record ImportRecord
-		if err := json.Unmarshal(data, &record); err != nil {
-			return ImportOutcome{}, err
+		if data, ok := s.importsByID[id]; ok {
+			if err := json.Unmarshal(data, &record); err != nil {
+				return ImportOutcome{}, err
+			}
+		} else {
+			var err error
+			record, err = LegacyImportRecord(pending)
+			if err != nil {
+				return ImportOutcome{}, err
+			}
 		}
 		if record.Import.Source != imported.Source || record.Import.ExternalMatchID != imported.ExternalMatchID {
 			continue
@@ -54,6 +62,9 @@ func (s *MemoryStore) GetImport(ctx context.Context, id int64) (ImportRecord, er
 	defer s.mu.RUnlock()
 	data, ok := s.importsByID[id]
 	if !ok {
+		if pending, exists := s.pendingByID[id]; exists {
+			return LegacyImportRecord(clonePending(pending))
+		}
 		return ImportRecord{}, ErrPendingResultNotFound
 	}
 	var record ImportRecord
