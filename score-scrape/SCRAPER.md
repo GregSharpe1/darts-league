@@ -38,7 +38,15 @@ responses must have the matching ID, X01/501/Double, targetLegs=3, no sets
 - `average`, `dartsThrown`, `checkoutsHit`, `checkouts` map to the corresponding
   contract metrics; missing values remain null. Source `score` was zero even for
   the nine-dart winner in the observed capture, so it is **not** total points:
-  `points_scored` stays null. Extra first-nine/180 statistics have no v1 fields.
+  `points_scored` stays null, including when only partial visits are available.
+- Optional match stats map `first9Average` -> `first_nine_average`,
+  `averageUntil170` -> `average_until_170`, `checkoutPoints` -> `highest_finish`,
+  `total180` -> `total_180`, and `less60`/`plus60`/`plus100`/`plus140`/`plus170`
+  -> `less_60`/`plus_60`/`plus_100`/`plus_140`/`plus_170`. Missing keys are omitted;
+  explicit null remains null, and zero is a known zero. Averages are finite
+  0-180, highest finish is integer 0-170, counts are integers 0-1000. Bands are
+  separate source categories, not cumulative thresholds. No attempts or totals
+  are inferred, and match values are not copied into per-leg statistics.
 - `games[].leg`, `turns[].turn`, `throws[].throw` are zero-based; output adds one.
   `winnerPlayerId` and `playerId` retain match-local identity. `turn.score` is end
   remaining; start is score+points, or score for a bust rollback. All games and

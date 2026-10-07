@@ -8,6 +8,7 @@ import (
 	"math"
 	"reflect"
 	"strconv"
+	"strings"
 	"unicode/utf8"
 )
 
@@ -101,7 +102,7 @@ func project(body []byte, typ reflect.Type) ([]byte, error) {
 		filtered := map[string]json.RawMessage{}
 		for i := 0; i < typ.NumField(); i++ {
 			field := typ.Field(i)
-			name := field.Tag.Get("json")
+			name, _, _ := strings.Cut(field.Tag.Get("json"), ",")
 			value, ok := object[name]
 			if !ok {
 				if field.Tag.Get("optional") == "true" {

@@ -62,6 +62,14 @@
         darts_thrown: metric(row.dartsThrown, 3000), checkout_hits: metric(row.checkoutsHit, 3), checkout_attempts: metric(row.checkouts, 3000)
       } : null;
       if (stats) {
+        for (const [source, field, max, integer] of [
+          ["first9Average", "first_nine_average", 180, false], ["averageUntil170", "average_until_170", 180, false],
+          ["checkoutPoints", "highest_finish", 170, true], ["total180", "total_180", 1000, true],
+          ["less60", "less_60", 1000, true], ["plus60", "plus_60", 1000, true],
+          ["plus100", "plus_100", 1000, true], ["plus140", "plus_140", 1000, true], ["plus170", "plus_170", 1000, true]
+        ]) {
+          if (Object.hasOwn(row, source)) stats[field] = metric(row[source], max, integer);
+        }
         requireValue(stats.checkout_hits == null || stats.checkout_attempts == null || stats.checkout_hits <= stats.checkout_attempts);
         requireValue(stats.checkout_attempts == null || stats.darts_thrown == null || stats.checkout_attempts <= stats.darts_thrown);
         requireValue(stats.darts_thrown !== 0 || (stats.match_average === null && (stats.points_scored === null || stats.points_scored === 0)));

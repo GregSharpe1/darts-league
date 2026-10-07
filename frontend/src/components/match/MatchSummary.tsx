@@ -27,6 +27,9 @@ export function MatchSummary({ match }: MatchSummaryProps) {
     <div className="ma-paired-stats">{match.players.map(player => <div key={player.id}>
       <h3>{player.label}</h3><dl className="ma-stats">
         <div><dt>Match average (source)</dt><dd>{player.stats?.match_average?.toFixed(1) ?? 'Unknown'}</dd></div>
+        <div><dt>First-nine average (source)</dt><dd>{player.stats?.first_nine_average?.toFixed(1) ?? 'Not available'}</dd></div>
+        <div><dt>180s (source)</dt><dd>{player.stats?.total_180 ?? 'Not available'}</dd></div>
+        <div><dt>Highest finish (source)</dt><dd>{player.stats?.highest_finish ?? 'Not available'}</dd></div>
         <div><dt>Points scored</dt><dd>{player.stats?.points_scored ?? 'Unknown'}</dd></div>
         <div><dt>Darts thrown</dt><dd>{player.stats?.darts_thrown ?? 'Unknown'}</dd></div>
         <div><dt>Checkouts</dt><dd>{checkout(player.stats)}</dd></div>

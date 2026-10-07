@@ -36,6 +36,11 @@ import type { MatchData } from './components/match'
 - `MatchPlayer`: `{id:string,label:string,legs_won:number,stats:MatchStats|null}`.
 - `MatchStats`: nullable `match_average`, `points_scored`, `darts_thrown`,
   `checkout_hits`, `checkout_attempts` numbers. Source average is never recomputed.
+  Optional nullable extensions: `first_nine_average`, `average_until_170`,
+  `highest_finish`, `total_180`, `less_60`, `plus_60`, `plus_100`, `plus_140`,
+  `plus_170`. First-nine average, 180s and highest finish display in the summary
+  and whole-match analysis; per-leg values are unavailable. Missing/null is not
+  zero. Source bands are separate categories, not cumulative thresholds.
 - Legs, visits, throws, position fields and segment beds follow
   `docs/autodarts/contract-v1.md` without renaming or coercing raw numbers.
 

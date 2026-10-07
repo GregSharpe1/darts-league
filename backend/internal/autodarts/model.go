@@ -37,6 +37,15 @@ type Player struct {
 	Stats       *Stats  `json:"stats"`
 }
 type Stats struct {
+	FirstNineAverage *float64 `json:"first_nine_average,omitempty" optional:"true"`
+	AverageUntil170  *float64 `json:"average_until_170,omitempty" optional:"true"`
+	HighestFinish    *int     `json:"highest_finish,omitempty" optional:"true"`
+	Total180         *int     `json:"total_180,omitempty" optional:"true"`
+	Less60           *int     `json:"less_60,omitempty" optional:"true"`
+	Plus60           *int     `json:"plus_60,omitempty" optional:"true"`
+	Plus100          *int     `json:"plus_100,omitempty" optional:"true"`
+	Plus140          *int     `json:"plus_140,omitempty" optional:"true"`
+	Plus170          *int     `json:"plus_170,omitempty" optional:"true"`
 	MatchAverage     *float64 `json:"match_average"`
 	PointsScored     *int     `json:"points_scored"`
 	DartsThrown      *int     `json:"darts_thrown"`

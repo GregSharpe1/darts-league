@@ -49,6 +49,9 @@ function Analysis({ match }: { readonly match: MatchData }) {
           <div className="ma-analysis-stats">
             <div className="ma-scope" aria-live="polite"><h3>{scope}</h3><strong>{throws.length} <small>recorded throws</small></strong></div>
             <dl className="ma-stats">
+              <div><dt>First-nine average (source)</dt><dd>{selectedLeg === 'all' ? player.stats?.first_nine_average?.toFixed(1) ?? 'Not available' : 'Not available'}</dd></div>
+              <div><dt>180s (source)</dt><dd>{selectedLeg === 'all' ? player.stats?.total_180 ?? 'Not available' : 'Not available'}</dd></div>
+              <div><dt>Highest finish (source)</dt><dd>{selectedLeg === 'all' ? player.stats?.highest_finish ?? 'Not available' : 'Not available'}</dd></div>
               <div><dt>Recorded visits</dt><dd>{visits.length}</dd></div>
               <div><dt>Legs with selected player data</dt><dd>{new Set(visits.map(item => item.leg)).size}</dd></div>
               <div><dt>Recorded points (busts score 0)</dt><dd>{visits.reduce((sum, { visit }) => sum + (visit.bust ? 0 : visit.start_remaining - visit.end_remaining), 0)}</dd></div>

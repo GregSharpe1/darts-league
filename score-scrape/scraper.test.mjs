@@ -13,7 +13,7 @@ const source = () => {
     variant: 'X01', targetLegs: 3, targetSets: null, winner: 0,
     settings: { baseScore: 501, outMode: 'Double' },
     players: fixture.players.map(p => ({ id: p.id, name: p.name, userId: null, user: { email: 'private@example.invalid' } })),
-    scores: fixture.players.map(p => ({ legs: p.legsWon })), matchStats: fixture.matchStats,
+    scores: fixture.players.map(p => ({ legs: p.legsWon })), matchStats: structuredClone(fixture.matchStats),
     host: { secret: 'do-not-copy' }, games: []
   };
   for (const dart of fixture.darts) {
@@ -38,7 +38,8 @@ const expected = state => ({
   players: state.players.map((p, i) => {
     const s = state.matchStats?.find(s => s.playerId === p.id);
     return { match_player_id: p.id, account_id: p.userId, display_name: p.name, legs_won: state.scores[i].legs,
-      stats: s ? { match_average: s.average ?? null, points_scored: null, darts_thrown: s.dartsThrown ?? null, checkout_hits: s.checkoutsHit ?? null, checkout_attempts: s.checkouts ?? null } : null };
+      stats: s ? { match_average: s.average ?? null, points_scored: null, darts_thrown: s.dartsThrown ?? null, checkout_hits: s.checkoutsHit ?? null, checkout_attempts: s.checkouts ?? null,
+        first_nine_average: s.first9Average, total_180: s.total180 } : null };
   }),
   detail: { coverage: 'partial', legs: state.games.map(g => ({ number: g.leg + 1, completed: true, winner_id: g.winnerPlayerId,
     visits: g.turns.map(t => ({ number: t.turn + 1, player_id: t.playerId, start_remaining: t.score + t.points, end_remaining: t.score, bust: false,
@@ -124,6 +125,29 @@ test('offline intercepted XHR: exact detail, privacy, retries and filtering', as
     response = source(); response.id = 'summary'; delete response.games; delete response.matchStats;
     await emit('https://api.autodarts.io/as/v0/matches/summary/stats'); await confirm(); await close();
     assert.equal(posts.at(-1).detail, null); assert.equal(posts.at(-1).players[0].stats, null);
+    response = source(); response.id = 'optional-stats';
+    Object.assign(response.matchStats[0], { score: 0, averageUntil170: 72.5, checkoutPoints: 141, less60: 7, plus60: 2, plus100: 3, plus140: 1, plus170: 0, secret: 'discard' });
+    response.matchStats.reverse();
+    await emit(); await confirm(); await close();
+    assert.deepEqual(posts.at(-1).players[0].stats, {
+      match_average: 167, first_nine_average: 167, average_until_170: 72.5, highest_finish: 141, total_180: 6,
+      less_60: 7, plus_60: 2, plus_100: 3, plus_140: 1, plus_170: 0,
+      points_scored: null, darts_thrown: 27, checkout_hits: 3, checkout_attempts: 3
+    });
+    response = source(); response.id = 'optional-missing-null';
+    delete response.matchStats[0].first9Average;
+    response.matchStats[0].total180 = null;
+    await emit(); await confirm(); await close();
+    assert.equal(Object.hasOwn(posts.at(-1).players[0].stats, 'first_nine_average'), false);
+    assert.equal(posts.at(-1).players[0].stats.total_180, null);
+    assert.equal(posts.at(-1).players[1].stats.first_nine_average, 0);
+    assert.equal(posts.at(-1).players[1].stats.total_180, 0);
+    for (const [field, max] of [['first9Average', 180], ['averageUntil170', 180], ['checkoutPoints', 170], ['total180', 1000], ['less60', 1000], ['plus60', 1000], ['plus100', 1000], ['plus140', 1000], ['plus170', 1000]]) {
+      for (const value of [-1, max + 1, '1', {}, ...(max === 180 ? [] : [1.5])]) {
+        response = source(); response.id = `invalid-${field}`; response.matchStats[0][field] = value;
+        await emit(); assert.equal(await button('Submit').count(), 0);
+      }
+    }
     for (const change of [s => { s.targetLegs = 2; }, s => { s.finishedAt = null; }, s => { s.variant = 'Cricket'; }, s => { s.scores[1].legs = 3; }, s => { s.players[1].id = s.players[0].id; }, s => { s.settings.outMode = 'Straight'; }]) {
       response = source(); change(response); await emit(); assert.equal(await button('Submit').count(), 0);
     }

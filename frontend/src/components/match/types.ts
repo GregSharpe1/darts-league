@@ -37,6 +37,15 @@ export interface MatchLeg {
 }
 
 export interface MatchStats {
+  readonly first_nine_average?: number | null
+  readonly average_until_170?: number | null
+  readonly highest_finish?: number | null
+  readonly total_180?: number | null
+  readonly less_60?: number | null
+  readonly plus_60?: number | null
+  readonly plus_100?: number | null
+  readonly plus_140?: number | null
+  readonly plus_170?: number | null
   readonly match_average: number | null
   readonly points_scored: number | null
   readonly darts_thrown: number | null

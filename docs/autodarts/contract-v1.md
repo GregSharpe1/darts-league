@@ -18,7 +18,7 @@ invalid JSON, duplicate keys, nonfinite numbers, excessive counts/size; never
 truncate. IDs: 1-128 ASCII letters/digits/underscore/hyphen. Labels: 1-80 Unicode
 characters without control characters. Numeric counts are nonnegative integers.
 
-Versioned allowlist (all fields required, nullable where specified):
+Versioned allowlist (all fields required except optional extensions below):
 
 | Field | Shape |
 | --- | --- |
@@ -36,6 +36,32 @@ or unknown points. Zero attempts yields null percentage. Unknown is never zero.
 Source match average is the supplied three-dart average, not a recomputation from
 possibly incomplete totals. Names and account IDs are unverified claims, never
 stable league identity or automatic cross-season mapping keys; guests map manually.
+
+Optional nullable `stats` extensions (match scope only):
+
+| Field | Source `matchStats` field | Bounds |
+| --- | --- | --- |
+| `first_nine_average` | `first9Average` | Finite 0-180 |
+| `average_until_170` | `averageUntil170` | Finite 0-180 |
+| `highest_finish` | `checkoutPoints` | Integer 0-170 |
+| `total_180` | `total180` | Integer 0-1000 |
+| `less_60`, `plus_60`, `plus_100`, `plus_140`, `plus_170` | `less60`, `plus60`, `plus100`, `plus140`, `plus170` | Each integer 0-1000 |
+
+Join source rows by `playerId`, never array position. Scoring bands are separate
+source categories, not cumulative counts; do not sum thresholds or infer attempts.
+The count bound follows the maximum 1000 recorded visits; partial detail is not
+used to recompute these source match metrics. Source `score=0` is not total points:
+keep `points_scored` unknown unless a complete derivation has been verified.
+
+Absent or null means unavailable; zero is a known source value, never a fallback.
+Missing extensions remain absent from filtered canonical JSON, so existing v1
+canonical bytes and digests are unchanged. Explicit null is retained in stored
+filtered JSON and participates in its digest. Typed output uses nullable pointers
+with `omitempty` and optional decoder tags: nil extensions omit, known zero stays.
+Reading the existing filtered JSONB into the typed payload retains known values;
+no new database columns are required. UI shows source match metrics on whole-match
+scope only; absent per-leg metrics display Not available, not match values or
+partial visit totals. Existing golden examples remain the unextended v1 vectors.
 
 Each leg: `{number,completed,winner_id,visits}`; unique number 1-5, winner a
 match-player ID when completed, otherwise null. Visits:

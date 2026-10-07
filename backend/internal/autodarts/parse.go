@@ -122,8 +122,18 @@ func (p Import) validate() error {
 		if s == nil {
 			continue
 		}
-		if s.MatchAverage != nil && (*s.MatchAverage < 0 || *s.MatchAverage > 180) {
+		for _, average := range []*float64{s.MatchAverage, s.FirstNineAverage, s.AverageUntil170} {
+			if average != nil && (*average < 0 || *average > 180) {
+				return ErrInvalidPayload
+			}
+		}
+		if !count(s.HighestFinish, 170) {
 			return ErrInvalidPayload
+		}
+		for _, band := range []*int{s.Total180, s.Less60, s.Plus60, s.Plus100, s.Plus140, s.Plus170} {
+			if !count(band, 1000) {
+				return ErrInvalidPayload
+			}
 		}
 		if !count(s.PointsScored, 5010) || !count(s.DartsThrown, 3000) || !count(s.CheckoutHits, 3) || !count(s.CheckoutAttempts, 3000) || !ordered(s.CheckoutHits, s.CheckoutAttempts) || !ordered(s.CheckoutAttempts, s.DartsThrown) {
 			return ErrInvalidPayload
