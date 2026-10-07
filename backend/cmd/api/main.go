@@ -48,6 +48,7 @@ func main() {
 	resultHandler.RegisterRoutes(mux, authHandler.RequireAdmin)
 	pendingResultHandler.RegisterRoutes(mux, authHandler.RequireAdmin)
 	httpapi.NewMatchDetailHandler(league.NewFixtureServiceWithNow(store, now)).RegisterRoutes(mux, authHandler.RequireAdmin)
+	httpapi.NewPlayerStatisticsHandler(resultService).RegisterRoutes(mux, authHandler.RequireAdmin)
 	versionHandler.RegisterRoutes(mux)
 	mux.HandleFunc("/healthz", func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusOK)
