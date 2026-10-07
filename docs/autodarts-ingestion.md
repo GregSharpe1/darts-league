@@ -101,6 +101,9 @@ store. Receipt-bearing messages bypass the old legacy-only precheck. Memory
 fallback cannot acknowledge them and `IngestDurablePayload` fails with
 `ErrDurableStoreRequired`. Receipt-less legacy transport cannot be acknowledged;
 when Postgres is configured it still uses the same durable parser/store.
+The receipt-less development path also uses detailed ingestion: it preserves
+typed evidence and `review_blocked` rather than flattening contradictory detail
+into an approvable summary. Memory reads return copies of stored evidence.
 
 ## Deliberate exclusions and release gate
 
@@ -128,7 +131,9 @@ suite. Node is used for cross-language canonicalization tests when installed.
 Tests cover concurrent replay, changed content, rejected duplicates, immutable
 originals, committed receipt acknowledgement, lost acknowledgements/redelivery,
 storage failure/no acknowledgement, memory refusal, schema idempotence and legacy
-backfill. Sanitized #37 fixtures are explicitly adapted into v1 test payloads,
+backfill. Boot tests also start from the old pending table, including a null
+historical external ID, and reopen it twice through `postgres.Open`.
+Sanitized #37 fixtures are explicitly adapted into v1 test payloads,
 joining source IDs and preserving coordinates; they are never decoded as the
 production schema. Manual/randomized/missing-coordinate/score-only/reversed-order
 fixtures and complete-detail totals/continuity are exercised.
