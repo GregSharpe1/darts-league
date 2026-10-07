@@ -112,6 +112,7 @@ export function PendingResultCard({ detail, players, divisions, season, disabled
           <p>This publishes the imported score in place of the prior result. The change and reason will be audited.</p>
           <div className="field"><label htmlFor="review-reason">Replacement reason</label><textarea id="review-reason" value={reason} onChange={event => setReason(event.target.value)} maxLength={2000} /></div>
         </div>}
+        {!needsReplacement && <div className="field"><label htmlFor="review-note">Review note</label><textarea id="review-note" value={reason} onChange={event => setReason(event.target.value)} maxLength={2000} /><small>Explain any source date outside the season or ahead of the server clock.</small></div>}
         {detail.settings_evidence !== 'source_reported' && <label className="pending-check"><input type="checkbox" checked={attest} onChange={event => setAttest(event.target.checked)} />I verified this legacy match was 501, first to 3 legs, double out.</label>}
         {!detail.played_at && <div className="field"><label htmlFor="review-date-reason">Missing source date reason</label><textarea id="review-date-reason" value={missingDateReason} onChange={event => setMissingDateReason(event.target.value)} maxLength={2000} /><small>Explain how you verified the intended fixture without a source match date.</small></div>}
       </fieldset>
