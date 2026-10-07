@@ -48,7 +48,7 @@ export function PlayerStatisticsView({ stats: s, admin }: { readonly stats: Play
             <h3>vs <Link to={`${prefix}/seasons/${s.season_id}/players/${h.opponent_id}`}>{h.opponent_name}</Link></h3>
             <p>Average {average(h.match_average) ?? 'unavailable'} / Detail: {h.detail_coverage}</p></div>
           <div className="player-history-result"><strong>{h.legs_for} - {h.legs_against}</strong><span>{h.won ? 'Won' : 'Lost'}</span></div>
-          <Link to={`${prefix}/matches/${h.fixture_id}`}>Match {h.fixture_id}</Link>
+          <div className="toolbar-actions"><Link className="button-link" to={`${prefix}/matches/${h.fixture_id}`}>Match {h.fixture_id}</Link></div>
         </li>)}</ol>}
     </section>
   </>

@@ -23,6 +23,7 @@ it('renders partial metrics with known zero and scoped history links', async () 
   expect(within(screen.getByRole('group', { name: 'Dart-weighted average' })).getByText('Unavailable')).toBeInTheDocument()
   expect(within(screen.getByRole('group', { name: 'First-nine match average mean' })).getByText('1 of 2 eligible matches')).toBeInTheDocument()
   expect(screen.getByRole('link', { name: 'Match 12' })).toHaveAttribute('href', '/matches/12')
+  expect(screen.getByRole('link', { name: 'Match 12' })).toHaveClass('button-link')
   expect(screen.getByRole('link', { name: 'The Comet' })).toHaveAttribute('href', '/seasons/2/players/9')
   expect(screen.queryByText(/locked/i)).not.toBeInTheDocument()
 })
@@ -70,6 +71,7 @@ it('keeps admin history links in the authenticated scope', async () => {
   respond(fixture)
   show(true)
   expect(await screen.findByRole('link', { name: 'Match 12' })).toHaveAttribute('href', '/admin/matches/12')
+  expect(screen.getByRole('link', { name: 'Match 12' })).toHaveClass('button-link')
 })
 
 it('shows an empty season without inventing metric values', async () => {
@@ -103,6 +105,9 @@ it.each([false, true])('links returned match player IDs in the matching admin=%s
     <Routes><Route path="/matches/:fixtureId" element={<MatchPage admin={admin} />} /></Routes>
   </MemoryRouter></QueryClientProvider>)
   expect(await screen.findByRole('link', { name: 'Arrow statistics' })).toHaveAttribute('href', `${admin ? '/admin' : ''}/seasons/2/players/7`)
+  expect(screen.getByRole('link', { name: 'Arrow statistics' })).toHaveClass('button-link')
+  expect(screen.queryByRole('link', { name: 'All divisions' })).not.toBeInTheDocument()
+  if (admin) expect(screen.getByRole('link', { name: 'Admin home' })).toBeInTheDocument()
 })
 
 it('cancels an in-flight request when the page unmounts', () => {

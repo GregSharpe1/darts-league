@@ -69,6 +69,10 @@ try {
         if (state === 'partial') {
           assert.equal(await page.locator('[data-dart]').count(), 1)
           assert.equal(await page.getByRole('link', { name: 'Match 12', exact: true }).getAttribute('href'), `${admin ? '/admin' : ''}/matches/12`)
+          const matchAction = page.getByRole('link', { name: 'Match 12', exact: true })
+          assert.match(await matchAction.evaluate(el => getComputedStyle(el).backgroundImage), /linear-gradient/)
+          assert.equal(await matchAction.evaluate(el => getComputedStyle(el).borderRadius), '999px')
+          assert(await matchAction.evaluate(el => el.getBoundingClientRect().height >= 44))
           assert.equal(await page.getByRole('link', { name: 'The Comet', exact: true }).getAttribute('href'), `${admin ? '/admin' : ''}/seasons/2/players/9`)
         }
         await capture(`${admin ? 'admin' : 'public'}-${state}`)

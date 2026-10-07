@@ -31,11 +31,10 @@
 .player-history h3 { overflow-wrap: anywhere; }
 .player-history-result { display: grid; text-align: center; }
 .player-history-result strong { font: 600 2rem var(--font-display); white-space: nowrap; }
-.player-history > li > a { min-height: 44px; display: flex; align-items: center; }
 @media (max-width: 900px) { .player-record { grid-template-columns: repeat(4, minmax(0, 1fr)); } .player-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 640px) {
   .player-metrics, .player-throw-grid { grid-template-columns: minmax(0, 1fr); }
   .player-record { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .player-history li { grid-template-columns: minmax(0, 1fr) auto; gap: 16px; }
-  .player-history > li > a { grid-column: 1 / -1; }
+  .player-history > li > .toolbar-actions { grid-column: 1 / -1; }
 }
