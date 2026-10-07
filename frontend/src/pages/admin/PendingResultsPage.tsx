@@ -32,9 +32,9 @@ export function PendingResultsPage() {
       <section className="pending-inbox" aria-label="Results inbox" aria-busy={busy}>
         <aside className="admin-card pending-rail" aria-label="Awaiting confirmation">
           <span className="eyebrow">Scoring app imports</span><h2>Awaiting confirmation</h2>
-          <button className="refresh-button" type="button" onClick={() => { setMessage(''); poll.mutate(undefined, { onSuccess: () => setMessage('Fetch complete. Inbox refreshed.') }) }} disabled={busy || poll.isPending}>
+          <div className="toolbar-actions"><button className="button-link" type="button" onClick={() => { setMessage(''); poll.mutate(undefined, { onSuccess: () => setMessage('Fetch complete. Inbox refreshed.') }) }} disabled={busy || poll.isPending}>
             {poll.isPending ? 'Fetching...' : 'Fetch new results'}
-          </button>
+          </button></div>
           {poll.error && <StateNotice tone="error" message={readError(poll.error)} compact />}
           {pending.isLoading && <StateNotice message="Loading pending results..." compact />}
           {pending.error && <><StateNotice tone="error" message={readError(pending.error)} compact /><button type="button" className="secondary-button" onClick={() => void pending.refetch()}>Retry inbox</button></>}

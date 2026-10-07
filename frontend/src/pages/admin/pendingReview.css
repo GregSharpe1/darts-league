@@ -10,8 +10,6 @@
 .pending-receipt b { font-size: 24px; font-variant-numeric: tabular-nums; }
 .pending-selected, .pending-review, .pending-review .field { min-width: 0; }
 .pending-review .admin-card { padding: 24px; }
-.pending-views { display: flex; flex-wrap: wrap; gap: 8px; }
-.pending-views [aria-pressed="true"] { border-color: var(--color-accent); }
 .pending-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
 .pending-target fieldset { border: 0; padding: 0; margin: 0; min-width: 0; display: grid; gap: 16px; }
 .pending-target select, .pending-target textarea { width: 100%; min-width: 0; }
