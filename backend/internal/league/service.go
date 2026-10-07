@@ -1007,36 +1007,6 @@ func (s ResultService) deleteResult(ctx context.Context, fixtureID int64, actor 
 	return err
 }
 
-func (s ResultService) Standings(ctx context.Context, divisionSlug string) ([]StandingRow, error) {
-	season, err := s.store.GetActiveSeason(ctx)
-	if err != nil {
-		return nil, err
-	}
-	division, err := s.store.GetDivisionBySlug(ctx, season.ID, divisionSlug)
-	if err != nil {
-		return nil, err
-	}
-	players, err := s.store.ListPlayersBySeason(ctx, season.ID)
-	if err != nil {
-		return nil, err
-	}
-	fixtures, err := s.store.ListFixturesByDivision(ctx, division.ID)
-	if err != nil {
-		return nil, err
-	}
-	results, err := s.store.ListResultsByDivision(ctx, division.ID)
-	if err != nil {
-		return nil, err
-	}
-	divisionPlayers := make([]Player, 0)
-	for _, player := range players {
-		if player.DivisionID != nil && *player.DivisionID == division.ID && player.Status == PlayerStatusAssigned {
-			divisionPlayers = append(divisionPlayers, player)
-		}
-	}
-	return BuildStandings(divisionPlayers, fixtures, results), nil
-}
-
 func (s ResultService) AuditLog(ctx context.Context, divisionSlug string) ([]AuditLogEntry, error) {
 	season, err := s.store.GetActiveSeason(ctx)
 	if err != nil {
