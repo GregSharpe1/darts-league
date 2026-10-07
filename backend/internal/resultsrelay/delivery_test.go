@@ -2,9 +2,11 @@ package resultsrelay
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"io"
 	"log"
+	"os"
 	"testing"
 	"time"
 
@@ -16,6 +18,53 @@ type deliveryClient struct {
 	messages []Message
 	acked    []Message
 	ackErr   error
+}
+
+func TestReceiptlessDetailRemainsBlockedInMemory(t *testing.T) {
+	b, err := os.ReadFile("../../../docs/autodarts/examples-v1.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var examples map[string]json.RawMessage
+	if err := json.Unmarshal(b, &examples); err != nil {
+		t.Fatal(err)
+	}
+	var payload autodarts.Payload
+	if err := json.Unmarshal(examples["producer"], &payload); err != nil {
+		t.Fatal(err)
+	}
+	payload.Detail.Legs[0].Visits[0].EndRemaining = 2
+	body, err := json.Marshal(payload)
+	if err != nil {
+		t.Fatal(err)
+	}
+	client := &deliveryClient{messages: []Message{{Body: string(body)}}}
+	store := league.NewMemoryStore()
+	service := league.NewPendingResultService(store, league.NewResultService(store))
+	poller := NewPoller(client, service, time.UTC, time.Minute, log.New(io.Discard, "", 0))
+	if err := poller.PollNow(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	blocked, err := store.ListPendingResults(context.Background(), league.PendingResultStatusReviewBlocked)
+	if err != nil || len(blocked) != 1 || len(client.acked) != 0 {
+		t.Fatalf("lost blocked detail: %v %+v", err, blocked)
+	}
+	if _, err := service.Confirm(context.Background(), blocked[0].ID, 1, 2, "admin"); !errors.Is(err, league.ErrPendingResultNotPending) {
+		t.Fatal("confirmed contradictory detail", err)
+	}
+}
+
+func TestMemoryDurableCallbackNeverAcknowledges(t *testing.T) {
+	client := &deliveryClient{messages: []Message{delivery("memory")}}
+	store := league.NewMemoryStore()
+	service := league.NewPendingResultService(store, league.NewResultService(store))
+	poller := NewPoller(client, service, time.UTC, time.Minute, log.New(io.Discard, "", 0)).WithDurableIngest(func(ctx context.Context, m Message) error {
+		_, err := service.IngestDurablePayload(ctx, []byte(m.Body))
+		return err
+	})
+	if err := poller.PollNow(context.Background()); !errors.Is(err, league.ErrDurableStoreRequired) || len(client.acked) != 0 {
+		t.Fatal("memory acknowledged", err)
+	}
 }
 
 func (c *deliveryClient) ReceiveMessages(context.Context) ([]Message, error) { return c.messages, nil }

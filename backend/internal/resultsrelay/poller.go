@@ -6,7 +6,6 @@ import (
 	"log"
 	"time"
 
-	"github.com/greg/darts-league/backend/internal/autodarts"
 	"github.com/greg/darts-league/backend/internal/league"
 )
 
@@ -137,16 +136,8 @@ func (p *Poller) processMessage(ctx context.Context, message Message) error {
 	if p.durableIngest != nil {
 		return p.durableIngest(ctx, message)
 	}
-	parsed, err := autodarts.Parse([]byte(message.Body))
-	if err != nil {
-		return err
-	}
-	a, b := parsed.Players[0], parsed.Players[1]
-	_, err = p.ingest.Ingest(ctx, parsed.ExternalMatchID, a.DisplayName, a.LegsWon, a.Average(), b.DisplayName, b.LegsWon, b.Average())
-	if err != nil && !errors.Is(err, league.ErrDuplicateExternalMatch) {
-		return err
-	}
-	return nil
+	_, err := p.ingest.IngestPayload(ctx, []byte(message.Body))
+	return err
 }
 
 // ShouldPoll reports whether now (evaluated in loc) falls on a weekday within
