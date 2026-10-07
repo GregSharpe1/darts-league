@@ -19,6 +19,11 @@ export function MatchPage({ admin = false }: { readonly admin?: boolean }) {
       <div><span className="eyebrow">{admin ? 'Admin match view' : 'Recorded league match'}</span><h1>Match analysis</h1></div>
       <Link to={admin ? '/admin' : '/'}>{admin ? 'Admin home' : 'All divisions'}</Link>
     </header>
+    {query.isSuccess && !query.isFetching ? <nav aria-label="Player season statistics">
+      {query.data.match.players.map((player, index) => <span key={player.id}>
+        {index > 0 ? ' / ' : ''}<Link to={`${admin ? '/admin' : ''}/seasons/${query.data.seasonId}/players/${player.id}`}>{player.label} statistics</Link>
+      </span>)}
+    </nav> : null}
     {query.isPending || query.isFetching ? <MatchAnalysis status="loading" /> :
       query.isError ? status === 404 ? <div className="content-panel" role="status"><h2>Match not found.</h2><p>This match is not available.</p></div> :
         status === 401 ? <div className="content-panel" role="status"><h2>Admin login required</h2><Link to="/admin">Admin login</Link></div> :
