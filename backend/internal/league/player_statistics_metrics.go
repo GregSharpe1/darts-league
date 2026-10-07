@@ -1,6 +1,10 @@
 package league
 
-import "github.com/greg/darts-league/backend/internal/autodarts"
+import (
+	"math"
+
+	"github.com/greg/darts-league/backend/internal/autodarts"
+)
 
 type playerStatisticsAccumulator struct {
 	result              *PlayerStatistics
@@ -73,6 +77,7 @@ func (a *playerStatisticsAccumulator) addImport(record ImportRecord, fixtureID i
 				}
 				for _, dart := range visit.Throws {
 					position := dart.Position
+					plottable := false
 					if position != nil {
 						copy := *position
 						if dart.EntryType == "manual" {
@@ -80,8 +85,14 @@ func (a *playerStatisticsAccumulator) addImport(record ImportRecord, fixtureID i
 						}
 						position = &copy
 						r.Coverage.KnownPositions++
+						plottable = dart.EntryType == "manual" && copy.Units != nil && *copy.Units == "board-radius" &&
+							copy.Origin != nil && *copy.Origin == "bull" && copy.AxisOrientation != nil && *copy.AxisOrientation == "x-right-y-up" &&
+							!math.IsInf(250+copy.X*191, 0) && !math.IsInf(250-copy.Y*191, 0)
+						if plottable {
+							r.Coverage.PlottablePositions++
+						}
 					}
-					r.Throws = append(r.Throws, PlayerStatisticsThrow{FixtureID: fixtureID, LegNumber: leg.Number, VisitNumber: visit.Number, ThrowNumber: dart.Number, Segment: dart.Segment, EntryType: dart.EntryType, Position: position})
+					r.Throws = append(r.Throws, PlayerStatisticsThrow{FixtureID: fixtureID, LegNumber: leg.Number, VisitNumber: visit.Number, ThrowNumber: dart.Number, Segment: dart.Segment, EntryType: dart.EntryType, Position: position, Plottable: plottable})
 				}
 			}
 			if detail.Coverage == "complete" && leg.Completed && leg.WinnerID != nil && *leg.WinnerID == sourceID && legDarts > 0 && (best == nil || legDarts < *best) {

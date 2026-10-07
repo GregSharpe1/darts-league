@@ -87,11 +87,12 @@ forces manual position provenance without altering the stored source original.
 Coordinate coverage adds `matches_with_recorded_throws`, `matches_with_positions`,
 `recorded_throws`, `known_positions`, `plottable_positions`, nullable
 `position_fraction = known_positions / recorded_throws`. This denominator is
-recorded throws, **not** all match darts. No verified geometry adapter exists:
-all positions currently remain `plottable:false` and plottable coverage is zero,
-even when source geometry labels are present. A future verified adapter may
-normalize them explicitly; do not place unknown points or segment centers on a
-board. Both arrays serialize as `[]`, not null, when empty.
+recorded throws, **not** all match darts. The verified manual browser-input adapter
+is plottable when it declares `board-radius`, origin `bull`, axes `x-right-y-up`
+and finite projected SVG coordinates. Unknown or automatic geometry remains
+`plottable:false` until separately verified; manual points are not physical-board
+accuracy evidence. Values are never rescaled or inferred from segment centers.
+Both arrays serialize as `[]`, not null, when empty.
 
 ## Example public JSON (manual result, no invented detail)
 
