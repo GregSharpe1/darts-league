@@ -26,3 +26,9 @@ test('queue age and quarantine have observable alarms', () => {
   assert.match(resource('ResultsDeadLetterAlarm'), /MetricName: ApproximateNumberOfMessagesVisible/);
   assert.match(resource('ResultsQueueAgeAlarm'), /MetricName: ApproximateAgeOfOldestMessage/);
 });
+
+test('saved SAM deployment settings do not override the browser origin with a wildcard', () => {
+  const config = readFileSync(`${__dirname}/../samconfig.toml`, 'utf8');
+  assert.ok(config.includes('AllowedOrigin=\\"https://play.autodarts.com\\"'));
+  assert.ok(!config.includes('AllowedOrigin=\\"*\\"'));
+});
