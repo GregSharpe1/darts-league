@@ -2,29 +2,12 @@ package resultsrelay
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"log"
-	"strings"
 	"time"
 
 	"github.com/greg/darts-league/backend/internal/league"
 )
-
-// resultMessage mirrors the JSON payload produced by the score-scrape relay:
-//
-//	{"matchId":"...","player1":{"name":"TERRY","legsWon":2,"matchAverage":143.1},...}
-type resultMessage struct {
-	MatchID string        `json:"matchId"`
-	Player1 playerMessage `json:"player1"`
-	Player2 playerMessage `json:"player2"`
-}
-
-type playerMessage struct {
-	Name         string  `json:"name"`
-	LegsWon      int     `json:"legsWon"`
-	MatchAverage float64 `json:"matchAverage"`
-}
 
 // Poller periodically checks the queue for new results and stores each one
 // as a pending result awaiting admin confirmation.
@@ -35,7 +18,7 @@ type Poller struct {
 	interval      time.Duration
 	now           func() time.Time
 	logger        *log.Logger
-	durableIngest func(context.Context, Message) error
+	durableIngest func(context.Context, league.PendingResult) error
 }
 
 var ErrDurableIngestRequired = errors.New("relay acknowledgement requires a durable ingestion callback")
@@ -44,7 +27,7 @@ var ErrDurableIngestRequired = errors.New("relay acknowledgement requires a dura
 // commit the import before returning nil, or verify a persisted duplicate before
 // returning league.ErrDuplicateExternalMatch. It must honor context cancellation.
 // Never wire this to the development in-memory store.
-func (p *Poller) WithDurableIngest(ingest func(context.Context, Message) error) *Poller {
+func (p *Poller) WithDurableIngest(ingest func(context.Context, league.PendingResult) error) *Poller {
 	configured := *p
 	configured.durableIngest = ingest
 	return &configured
@@ -132,15 +115,12 @@ func (p *Poller) pollOnce(ctx context.Context) error {
 
 // Invalid messages remain in SQS for bounded retry and native DLQ redrive.
 func (p *Poller) processMessage(ctx context.Context, message Message) error {
-	if message.Rejection != "" || len(message.Body) > 256*1024 {
+	if message.Rejection != "" {
 		return ErrInvalidDelivery
 	}
-	var parsed resultMessage
-	if err := json.Unmarshal([]byte(message.Body), &parsed); err != nil {
-		return ErrInvalidDelivery
-	}
-	if strings.TrimSpace(parsed.MatchID) == "" || strings.TrimSpace(parsed.Player1.Name) == "" || strings.TrimSpace(parsed.Player2.Name) == "" {
-		return ErrInvalidDelivery
+	parsed, err := parseLegacy(message.Body)
+	if err != nil {
+		return err
 	}
 	if message.MessageID != "" || message.ReceiptHandle != "" {
 		if !message.validReceipt() {
@@ -149,7 +129,7 @@ func (p *Poller) processMessage(ctx context.Context, message Message) error {
 		if p.durableIngest == nil {
 			return ErrDurableIngestRequired
 		}
-		err := p.durableIngest(ctx, message)
+		err := p.durableIngest(ctx, parsed)
 		if errors.Is(err, league.ErrDuplicateExternalMatch) {
 			return nil
 		}
@@ -157,9 +137,7 @@ func (p *Poller) processMessage(ctx context.Context, message Message) error {
 	}
 
 	// Legacy responses have no receipt and cannot be acknowledged by this poller.
-	playerOneAverage := parsed.Player1.MatchAverage
-	playerTwoAverage := parsed.Player2.MatchAverage
-	_, err := p.ingest.Ingest(ctx, parsed.MatchID, parsed.Player1.Name, parsed.Player1.LegsWon, &playerOneAverage, parsed.Player2.Name, parsed.Player2.LegsWon, &playerTwoAverage)
+	_, err = p.ingest.Ingest(ctx, parsed.ExternalMatchID, parsed.PlayerOneName, parsed.PlayerOneLegs, parsed.PlayerOneAverage, parsed.PlayerTwoName, parsed.PlayerTwoLegs, parsed.PlayerTwoAverage)
 	if err != nil && !errors.Is(err, league.ErrDuplicateExternalMatch) {
 		return err
 	}

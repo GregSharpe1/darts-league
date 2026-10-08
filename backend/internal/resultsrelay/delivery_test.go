@@ -48,17 +48,17 @@ func TestPollAcknowledgesOnlyCommittedMessagesInPartialBatch(t *testing.T) {
 	storageErr := errors.New("storage unavailable")
 	committed := map[string]bool{"duplicate": true}
 	poller := NewPoller(client, league.PendingResultService{}, time.UTC, time.Minute, log.New(io.Discard, "", 0)).WithDurableIngest(
-		func(_ context.Context, message Message) error {
+		func(_ context.Context, message league.PendingResult) error {
 			if len(client.acked) != 0 {
 				t.Fatal("ack preceded completion of ingestion")
 			}
-			if message.MessageID == "db-failure" {
+			if message.ExternalMatchID == "db-failure" {
 				return storageErr
 			}
-			if committed[message.MessageID] {
+			if committed[message.ExternalMatchID] {
 				return league.ErrDuplicateExternalMatch
 			}
-			committed[message.MessageID] = true
+			committed[message.ExternalMatchID] = true
 			return nil
 		})
 	err := poller.PollNow(context.Background())
@@ -74,7 +74,7 @@ func TestPollRedeliveryAfterLostAckCreatesOneImport(t *testing.T) {
 	client := &deliveryClient{messages: []Message{delivery("id")}, ackErr: errors.New("lost ack")}
 	imports := 0
 	poller := NewPoller(client, league.PendingResultService{}, time.UTC, time.Minute, log.New(io.Discard, "", 0)).WithDurableIngest(
-		func(context.Context, Message) error {
+		func(context.Context, league.PendingResult) error {
 			if imports > 0 {
 				return league.ErrDuplicateExternalMatch
 			}
@@ -101,7 +101,10 @@ func TestPollLeavesMalformedMessagesForRedrive(t *testing.T) {
 			message.Body = body
 			client := &deliveryClient{messages: []Message{message}}
 			poller := NewPoller(client, league.PendingResultService{}, time.UTC, time.Minute, log.New(io.Discard, "", 0)).WithDurableIngest(
-				func(context.Context, Message) error { t.Fatal("malformed input reached ingest"); return nil })
+				func(context.Context, league.PendingResult) error {
+					t.Fatal("malformed input reached ingest")
+					return nil
+				})
 			if err := poller.PollNow(context.Background()); err == nil || len(client.acked) != 0 {
 				t.Fatalf("malformed message discarded: %v", err)
 			}

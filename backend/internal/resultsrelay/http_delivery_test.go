@@ -83,8 +83,9 @@ func TestHTTPDeliveryRetriesStorageAndLostAckWithoutDuplicateImports(t *testing.
 	}
 	legacy := NewPoller(client, service, time.UTC, time.Minute, log.New(io.Discard, "", 0))
 	// The memory store models the durable callback only for this offline test.
-	poller := legacy.WithDurableIngest(func(ctx context.Context, message Message) error {
-		return legacy.processMessage(ctx, Message{Body: message.Body})
+	poller := legacy.WithDurableIngest(func(ctx context.Context, pending league.PendingResult) error {
+		_, err := service.Ingest(ctx, pending.ExternalMatchID, pending.PlayerOneName, pending.PlayerOneLegs, pending.PlayerOneAverage, pending.PlayerTwoName, pending.PlayerTwoLegs, pending.PlayerTwoAverage)
+		return err
 	})
 	// When the first poll loses its acknowledgement and one database write fails.
 	if err := poller.PollNow(context.Background()); err == nil {
