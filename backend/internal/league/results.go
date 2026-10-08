@@ -46,6 +46,8 @@ type standingAverageAccumulator struct {
 }
 
 type AuditLogEntry struct {
+	SeasonID     int64
+	Import       *ImportAudit
 	ID           int64
 	FixtureID    int64
 	FixtureLabel string
