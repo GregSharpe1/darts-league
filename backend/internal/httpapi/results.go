@@ -157,6 +157,7 @@ func (h ResultHandler) handleAuditLog(w http.ResponseWriter, r *http.Request) {
 		item := map[string]any{
 			"id":            entry.ID,
 			"fixture_id":    entry.FixtureID,
+			"import":        entry.Import,
 			"fixture_label": entry.FixtureLabel,
 			"action":        entry.Action,
 			"actor":         entry.Actor,

@@ -16,7 +16,8 @@ func TestRecordResultAndStandingsFlow(t *testing.T) {
 	t.Parallel()
 
 	store := league.NewMemoryStore()
-	clock := func() time.Time { return time.Date(2026, time.March, 18, 12, 0, 0, 0, time.UTC) }
+	clockNow := time.Date(2026, time.March, 18, 12, 0, 0, 0, time.UTC)
+	clock := func() time.Time { return clockNow }
 	registration := NewRegistrationHandler(league.NewRegistrationServiceWithNow(store, clock))
 	season := NewSeasonHandler(league.NewSeasonServiceWithNow(store, clock), league.NewFixtureServiceWithNow(store, clock), "Darts League")
 	results := NewResultHandler(league.NewResultServiceWithNow(store, clock))
@@ -40,6 +41,7 @@ func TestRecordResultAndStandingsFlow(t *testing.T) {
 	request.SetPathValue("fixtureID", strconv.FormatInt(fixtureID, 10))
 	hitEndpoint(t, results.handleRecordResult, request, http.StatusCreated)
 
+	clockNow = time.Date(2026, time.March, 23, 9, 0, 0, 0, time.UTC)
 	standingsReq := httptest.NewRequest(http.MethodGet, "/api/divisions/"+division.Slug+"/standings", nil)
 	standingsReq.SetPathValue("divisionSlug", division.Slug)
 	standingsResponse := hitEndpoint(t, results.handleStandings, standingsReq, http.StatusOK)
