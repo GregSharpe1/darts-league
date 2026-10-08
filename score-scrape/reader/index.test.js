@@ -93,3 +93,20 @@ test('missing SQS acknowledgement outcomes fail closed', async () => {
   assert.equal(result.statusCode, 503);
   assert.deepEqual(JSON.parse(result.body), { acknowledged: [], failed: ['id'] });
 });
+
+test('receive and ack SQS timeouts fail closed without sensitive logs', async (t) => {
+  const logs = [];
+  t.mock.method(console, 'info', (...args) => logs.push(args.join(' ')));
+  t.mock.method(console, 'error', (...args) => logs.push(args.join(' ')));
+  const handler = createHandler({ send: async (_command, options) => {
+    assert.ok(options.abortSignal);
+    throw new DOMException('secret-body secret-receipt', 'TimeoutError');
+  } });
+  for (const request of [event('GET'), event('POST', JSON.stringify({ messages: [{ messageId: 'id', receiptHandle: 'secret-receipt' }] }))]) {
+    const result = await handler(request);
+    assert.equal(result.statusCode, 503);
+    assert.deepEqual(JSON.parse(result.body), { error: 'queue_unavailable' });
+  }
+  assert.ok(logs.length > 0);
+  assert.ok(logs.every(line => !line.includes('secret')));
+});
