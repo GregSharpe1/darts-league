@@ -1,0 +1,7 @@
+.match-page { display: grid; gap: 24px; min-width: 0; }
+.match-page-heading { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px; }
+.match-page-heading h1 { margin: 0; font-family: var(--font-display); font-size: clamp(48px, 6vw, 64px); }
+.match-page-heading a { display: inline-flex; align-items: center; min-height: 44px; color: var(--color-accent-soft); }
+.match-page .toolbar-actions .button-link { max-width: 100%; overflow-wrap: anywhere; text-align: center; }
+.match-view-link { display: inline-flex; align-items: center; min-height: 44px; color: var(--color-accent-soft); }
+.match-page a:focus-visible, .match-view-link:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 4px; }

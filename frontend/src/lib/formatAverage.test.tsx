@@ -1,5 +1,6 @@
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, expect, it, vi } from 'vitest'
+import { MemoryRouter } from 'react-router-dom'
 import { formatAverage } from './api'
 import { AdminFixtureCard } from '../pages/admin/AdminFixtureCard'
 import { AuditEntryCard } from '../pages/admin/AuditEntryCard'
@@ -21,7 +22,7 @@ const fixture = { id: 1, player_one: 'Morgan', player_two: 'Casey', scheduled_at
 
 it.each([null, undefined])('keeps unknown average %s blank when editing and saving a score', async (average) => {
   const onSave = vi.fn().mockResolvedValue(undefined)
-  render(<AdminFixtureCard fixture={{ ...fixture, result: { ...result, player_one_average: average } }} onSave={onSave} onUndo={vi.fn()} isSaving={false} isUndoing={false} />)
+  render(<MemoryRouter><AdminFixtureCard fixture={{ ...fixture, result: { ...result, player_one_average: average } }} onSave={onSave} onUndo={vi.fn()} isSaving={false} isUndoing={false} /></MemoryRouter>)
   expect(screen.getByLabelText('Morgan average')).toHaveValue('')
   expect(screen.getByLabelText('Casey average')).toHaveValue('0.0')
   fireEvent.click(screen.getByRole('button', { name: 'Save score' }))
@@ -34,7 +35,7 @@ it('renders audit history with null, omitted and zero averages', () => {
 })
 
 it('renders unknown public averages as placeholders rather than zero', () => {
-  render(<CompletedResults weeks={[{ week_number: 1, status: 'unlocked', reveal_at: fixture.scheduled_at, fixtures: [fixture, { ...fixture, id: 2, result: { player_one_legs: 3, player_two_legs: 0, winner_id: 1 } }] }]} />)
+  render(<MemoryRouter><CompletedResults weeks={[{ week_number: 1, status: 'unlocked', reveal_at: fixture.scheduled_at, fixtures: [fixture, { ...fixture, id: 2, result: { player_one_legs: 3, player_two_legs: 0, winner_id: 1 } }] }]} /></MemoryRouter>)
   expect(screen.getByText('Averages: - / 0.0')).toBeVisible()
   expect(screen.getByText('Averages: - / -')).toBeVisible()
 })
