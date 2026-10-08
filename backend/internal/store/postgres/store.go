@@ -19,7 +19,7 @@ import (
 var initialSchema string
 
 type Store struct {
-	pool *pgxpool.Pool
+	pool database
 }
 
 func Open(ctx context.Context, databaseURL string) (*Store, error) {
@@ -36,16 +36,16 @@ func Open(ctx context.Context, databaseURL string) (*Store, error) {
 }
 
 func (s *Store) Close() {
-	if s.pool != nil {
-		s.pool.Close()
+	if pool, ok := s.pool.(*pgxpool.Pool); ok {
+		pool.Close()
 	}
 }
 
 func (s *Store) pingAndMigrate(ctx context.Context) error {
-	if err := s.pool.Ping(ctx); err != nil {
+	if _, err := s.pool.Exec(ctx, "SELECT 1"); err != nil {
 		return err
 	}
-	return s.migrateImportExpansion(ctx)
+	return s.migrateImports(ctx)
 }
 
 func (s *Store) EnsureActiveSeason(ctx context.Context, season league.Season) (league.Season, error) {
@@ -363,10 +363,10 @@ func (s *Store) GetResultByFixture(ctx context.Context, fixtureID int64) (league
 
 func (s *Store) ListAuditLogsBySeason(ctx context.Context, seasonID int64) ([]league.AuditLogEntry, error) {
 	rows, err := s.pool.Query(ctx, `
-		SELECT a.id, a.fixture_id, a.action, a.actor, a.old_payload, a.new_payload, a.created_at
+		SELECT a.id, COALESCE(a.fixture_id,0), a.action, a.actor, a.old_payload, a.new_payload, a.created_at, COALESCE(a.season_id,f.season_id), a.import_metadata
 		FROM admin_audit_log a
-		JOIN fixtures f ON f.id = a.fixture_id
-		WHERE f.season_id = $1
+		LEFT JOIN fixtures f ON f.id = a.fixture_id
+		WHERE COALESCE(a.season_id,f.season_id) = $1
 		ORDER BY a.created_at DESC, a.id DESC
 	`, seasonID)
 	if err != nil {
@@ -379,8 +379,14 @@ func (s *Store) ListAuditLogsBySeason(ctx context.Context, seasonID int64) ([]le
 		var entry league.AuditLogEntry
 		var oldPayload []byte
 		var newPayload []byte
-		if err := rows.Scan(&entry.ID, &entry.FixtureID, &entry.Action, &entry.Actor, &oldPayload, &newPayload, &entry.CreatedAt); err != nil {
+		var metadata []byte
+		if err := rows.Scan(&entry.ID, &entry.FixtureID, &entry.Action, &entry.Actor, &oldPayload, &newPayload, &entry.CreatedAt, &entry.SeasonID, &metadata); err != nil {
 			return nil, err
+		}
+		if len(metadata) > 0 {
+			if err := json.Unmarshal(metadata, &entry.Import); err != nil {
+				return nil, err
+			}
 		}
 		if len(oldPayload) > 0 {
 			entry.OldResult = &league.ResultSnapshot{}
@@ -401,7 +407,7 @@ func (s *Store) ListAuditLogsBySeason(ctx context.Context, seasonID int64) ([]le
 
 func (s *Store) ListAuditLogsByDivision(ctx context.Context, divisionID int64) ([]league.AuditLogEntry, error) {
 	rows, err := s.pool.Query(ctx, `
-		SELECT a.id, a.fixture_id, a.action, a.actor, a.old_payload, a.new_payload, a.created_at
+		SELECT a.id, a.fixture_id, a.action, a.actor, a.old_payload, a.new_payload, a.created_at, f.season_id, a.import_metadata
 		FROM admin_audit_log a
 		JOIN fixtures f ON f.id = a.fixture_id
 		WHERE f.division_id = $1
@@ -416,8 +422,14 @@ func (s *Store) ListAuditLogsByDivision(ctx context.Context, divisionID int64) (
 		var entry league.AuditLogEntry
 		var oldPayload []byte
 		var newPayload []byte
-		if err := rows.Scan(&entry.ID, &entry.FixtureID, &entry.Action, &entry.Actor, &oldPayload, &newPayload, &entry.CreatedAt); err != nil {
+		var metadata []byte
+		if err := rows.Scan(&entry.ID, &entry.FixtureID, &entry.Action, &entry.Actor, &oldPayload, &newPayload, &entry.CreatedAt, &entry.SeasonID, &metadata); err != nil {
 			return nil, err
+		}
+		if len(metadata) > 0 {
+			if err := json.Unmarshal(metadata, &entry.Import); err != nil {
+				return nil, err
+			}
 		}
 		if len(oldPayload) > 0 {
 			entry.OldResult = &league.ResultSnapshot{}
@@ -605,17 +617,22 @@ func (s *Store) CreateAuditLog(ctx context.Context, entry league.AuditLogEntry) 
 			return league.AuditLogEntry{}, err
 		}
 	}
+	metadata, err := json.Marshal(entry.Import)
+	if err != nil {
+		return league.AuditLogEntry{}, err
+	}
 	row := s.pool.QueryRow(ctx, `
-		INSERT INTO admin_audit_log (fixture_id, action, actor, old_payload, new_payload, created_at)
-		VALUES ($1, $2, $3, $4, $5, $6)
-		RETURNING id, fixture_id, action, actor, created_at
-	`, entry.FixtureID, entry.Action, entry.Actor, nullableJSON(oldPayload), nullableJSON(newPayload), entry.CreatedAt)
+		INSERT INTO admin_audit_log (fixture_id, action, actor, old_payload, new_payload, created_at, season_id, import_metadata)
+		VALUES (NULLIF($1,0), $2, $3, $4, $5, $6, NULLIF($7,0), $8)
+		RETURNING id, COALESCE(fixture_id,0), action, actor, created_at
+	`, entry.FixtureID, entry.Action, entry.Actor, nullableJSON(oldPayload), nullableJSON(newPayload), entry.CreatedAt, entry.SeasonID, metadata)
 	var created league.AuditLogEntry
 	if err := row.Scan(&created.ID, &created.FixtureID, &created.Action, &created.Actor, &created.CreatedAt); err != nil {
 		return league.AuditLogEntry{}, err
 	}
 	created.OldResult = entry.OldResult
 	created.NewResult = entry.NewResult
+	created.SeasonID, created.Import = entry.SeasonID, entry.Import
 	return created, nil
 }
 
