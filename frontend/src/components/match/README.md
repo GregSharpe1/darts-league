@@ -99,6 +99,7 @@ From `frontend/`, with Node 22 and the checked-in lockfile:
 
 ```sh
 npm ci
+npm run test:typecheck
 npm test
 npm run build
 npm run lint
@@ -111,7 +112,7 @@ through Vite's separate HTML entry into ignored `node_modules/.cache/match-harne
 then serves on an ephemeral loopback port. No backend, login or remote requests.
 For interactive inspection: `npm run dev`, then `/tests/match/index.html`.
 
-Screenshots: `frontend/tests/match/screenshots/`, SHA-256 manifest `hashes.json`.
+Screenshots: ignored `frontend/test-results/match/`, SHA-256 manifest `hashes.json`.
 Eight states at 375/768/1280: analysis, unknown geometry, summary-only, partial 3-2,
 80-character label stress, loading, error, opponent/leg 3. Browser checks assert
 no page overflow, exact positions/counts, fonts, keyboard filters, keyboard table
@@ -121,5 +122,6 @@ mixed/missing positions, actual zero position, busts, unfinished legs, long unsa
 labels, unknown stats and zero checkout attempts.
 
 Evidence is component/browser QA, not a full Lighthouse audit, independent design
-review, live adapter test, or #43/#44 integration test. No React instrumentation,
-chart framework, dependency, global CSS, app route or shared contract was changed.
+review or live adapter test. Stage 04 uses these components for admin source
+review only; public match/player pages and routes remain deferred. No React
+instrumentation, chart framework or dependency was added.
