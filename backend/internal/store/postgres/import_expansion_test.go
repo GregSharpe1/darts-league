@@ -8,7 +8,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/greg/darts-league/backend/internal/league"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -60,8 +59,9 @@ func TestImportExpansionPreservesLegacyWritersAndRestart(t *testing.T) {
 		t.Fatal(err)
 	}
 	store := &Store{pool: pool}
-	old, err := store.CreatePendingResult(ctx, league.PendingResult{ExternalMatchID: "legacy-before", PlayerOneName: "One", PlayerOneLegs: 3, PlayerTwoName: "Two", PlayerTwoLegs: 1, Status: league.PendingResultStatusPending})
-	if err != nil {
+	var oldID int64
+	if err := pool.QueryRow(ctx, `INSERT INTO pending_results(external_match_id,player_one_name,player_one_legs,player_two_name,player_two_legs)
+		VALUES('legacy-before','One',3,'Two',1) RETURNING id`).Scan(&oldID); err != nil {
 		t.Fatal(err)
 	}
 	if err := store.migrateImportExpansion(ctx); err != nil {
@@ -77,11 +77,12 @@ func TestImportExpansionPreservesLegacyWritersAndRestart(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	got, err := store.GetPendingResult(ctx, old.ID)
+	got, err := store.GetPendingResult(ctx, oldID)
 	if err != nil || got.PlayerOneName != "Corrected" || got.PlayerTwoLegs != 2 {
 		t.Fatalf("legacy write: %+v %v", got, err)
 	}
-	if _, err := store.CreatePendingResult(ctx, league.PendingResult{ExternalMatchID: "legacy-after", PlayerOneName: "Three", PlayerOneLegs: 3, PlayerTwoName: "Four", PlayerTwoLegs: 0, Status: league.PendingResultStatusPending}); err != nil {
+	if _, err := pool.Exec(ctx, `INSERT INTO pending_results(external_match_id,player_one_name,player_one_legs,player_two_name,player_two_legs)
+		VALUES('legacy-after','Three',3,'Four',0)`); err != nil {
 		t.Fatal(err)
 	}
 	// Re-running the old schema simulates rolling the application back, not dropping new storage.

@@ -144,11 +144,32 @@ jobs:
 
       - name: Run Playwright smoke tests
         working-directory: frontend
-        run: npm run test:e2e
+        run: CAPTURE_UI_SCREENSHOTS=1 npm run test:e2e
 
       - name: Build frontend
         working-directory: frontend
         run: npm run build
+
+      - name: Capture available offline feature evidence
+        working-directory: frontend
+        run: |
+          for script in tests/match/verify.mjs tests/matches/verify.mjs src/pages/players/browser/verify.mjs; do
+            if [ -f "$script" ]; then node "$script"; fi
+          done
+
+      - name: Upload UI evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ui-evidence-${{ github.run_id }}
+          retention-days: 14
+          if-no-files-found: ignore
+          path: |
+            docs/pr-screenshots/
+            frontend/test-results/
+            frontend/playwright-report/
+            frontend/tests/**/screenshots/
+            frontend/src/pages/**/browser/screenshots/
 
   publish-backend-pr:
     runs-on: ubuntu-latest
