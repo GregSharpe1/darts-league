@@ -1,0 +1,686 @@
+{
+  "provenance": "Observed manual browser-entry test; coordinates are not physical board measurements. Fictitious identities.",
+  "matchId": "demo-match-001",
+  "winnerId": "demo-player-1",
+  "players": [
+    {
+      "id": "demo-player-1",
+      "name": "Morgan Ember",
+      "legsWon": 3
+    },
+    {
+      "id": "demo-player-2",
+      "name": "Casey Vale",
+      "legsWon": 0
+    }
+  ],
+  "matchStats": [
+    {
+      "playerId": "demo-player-1",
+      "average": 167,
+      "first9Average": 167,
+      "checkouts": 3,
+      "checkoutsHit": 3,
+      "total180": 6,
+      "dartsThrown": 27
+    },
+    {
+      "playerId": "demo-player-2",
+      "average": 0,
+      "first9Average": 0,
+      "checkouts": 0,
+      "checkoutsHit": 0,
+      "total180": 0,
+      "dartsThrown": 21
+    }
+  ],
+  "legStats": [
+    {
+      "leg": 1,
+      "stats": [
+        {
+          "playerId": "demo-player-1",
+          "average": 167,
+          "first9Average": 167,
+          "checkouts": 1,
+          "checkoutsHit": 1,
+          "total180": 2,
+          "dartsThrown": 9
+        },
+        {
+          "playerId": "demo-player-2",
+          "average": 0,
+          "first9Average": 0,
+          "checkouts": 0,
+          "checkoutsHit": 0,
+          "total180": 0,
+          "dartsThrown": 6
+        }
+      ]
+    },
+    {
+      "leg": 2,
+      "stats": [
+        {
+          "playerId": "demo-player-2",
+          "average": 0,
+          "first9Average": 0,
+          "checkouts": 0,
+          "checkoutsHit": 0,
+          "total180": 0,
+          "dartsThrown": 9
+        },
+        {
+          "playerId": "demo-player-1",
+          "average": 167,
+          "first9Average": 167,
+          "checkouts": 1,
+          "checkoutsHit": 1,
+          "total180": 2,
+          "dartsThrown": 9
+        }
+      ]
+    },
+    {
+      "leg": 3,
+      "stats": [
+        {
+          "playerId": "demo-player-1",
+          "average": 167,
+          "first9Average": 167,
+          "checkouts": 1,
+          "checkoutsHit": 1,
+          "total180": 2,
+          "dartsThrown": 9
+        },
+        {
+          "playerId": "demo-player-2",
+          "average": 0,
+          "first9Average": 0,
+          "checkouts": 0,
+          "checkoutsHit": 0,
+          "total180": 0,
+          "dartsThrown": 6
+        }
+      ]
+    }
+  ],
+  "darts": [
+    {
+      "id": "demo-leg-1-visit-0-dart-0",
+      "gameId": "demo-leg-1",
+      "visitId": "demo-leg-1-visit-0",
+      "playerId": "demo-player-1",
+      "leg": 1,
+      "visit": 0,
+      "dart": 0,
+      "segment": "T20",
+      "x": 0,
+      "y": 0.6000251311031892
+    },
+    {
+      "id": "demo-leg-1-visit-0-dart-1",
+      "gameId": "demo-leg-1",
+      "visitId": "demo-leg-1-visit-0",
+      "playerId": "demo-player-1",
+      "leg": 1,
+      "visit": 0,
+      "dart": 1,
+      "segment": "T20",
+      "x": 0,
+      "y": 0.6000251311031892
+    },
+    {
+      "id": "demo-leg-1-visit-0-dart-2",
+      "gameId": "demo-leg-1",
+      "visitId": "demo-leg-1-visit-0",
+      "playerId": "demo-player-1",
+      "leg": 1,
+      "visit": 0,
+      "dart": 2,
+      "segment": "T20",
+      "x": 0,
+      "y": 0.6000251311031892
+    },
+    {
+      "id": "demo-leg-1-visit-1-dart-0",
+      "gameId": "demo-leg-1",
+      "visitId": "demo-leg-1-visit-1",
+      "playerId": "demo-player-2",
+      "leg": 1,
+      "visit": 1,
+      "dart": 0,
+      "segment": "M20",
+      "x": 0,
+      "y": 1.1911764246894714
+    },
+    {
+      "id": "demo-leg-1-visit-1-dart-1",
+      "gameId": "demo-leg-1",
+      "visitId": "demo-leg-1-visit-1",
+      "playerId": "demo-player-2",
+      "leg": 1,
+      "visit": 1,
+      "dart": 1,
+      "segment": "M20",
+      "x": 0,
+      "y": 1.1911764246894714
+    },
+    {
+      "id": "demo-leg-1-visit-1-dart-2",
+      "gameId": "demo-leg-1",
+      "visitId": "demo-leg-1-visit-1",
+      "playerId": "demo-player-2",
+      "leg": 1,
+      "visit": 1,
+      "dart": 2,
+      "segment": "M20",
+      "x": 0,
+      "y": 1.1911764246894714
+    },
+    {
+      "id": "demo-leg-1-visit-2-dart-0",
+      "gameId": "demo-leg-1",
+      "visitId": "demo-leg-1-visit-2",
+      "playerId": "demo-player-1",
+      "leg": 1,
+      "visit": 2,
+      "dart": 0,
+      "segment": "T20",
+      "x": 0,
+      "y": 0.6000251311031892
+    },
+    {
+      "id": "demo-leg-1-visit-2-dart-1",
+      "gameId": "demo-leg-1",
+      "visitId": "demo-leg-1-visit-2",
+      "playerId": "demo-player-1",
+      "leg": 1,
+      "visit": 2,
+      "dart": 1,
+      "segment": "T20",
+      "x": 0,
+      "y": 0.6000251311031892
+    },
+    {
+      "id": "demo-leg-1-visit-2-dart-2",
+      "gameId": "demo-leg-1",
+      "visitId": "demo-leg-1-visit-2",
+      "playerId": "demo-player-1",
+      "leg": 1,
+      "visit": 2,
+      "dart": 2,
+      "segment": "T20",
+      "x": 0,
+      "y": 0.6000251311031892
+    },
+    {
+      "id": "demo-leg-1-visit-3-dart-0",
+      "gameId": "demo-leg-1",
+      "visitId": "demo-leg-1-visit-3",
+      "playerId": "demo-player-2",
+      "leg": 1,
+      "visit": 3,
+      "dart": 0,
+      "segment": "M20",
+      "x": 0,
+      "y": 1.1911764246894714
+    },
+    {
+      "id": "demo-leg-1-visit-3-dart-1",
+      "gameId": "demo-leg-1",
+      "visitId": "demo-leg-1-visit-3",
+      "playerId": "demo-player-2",
+      "leg": 1,
+      "visit": 3,
+      "dart": 1,
+      "segment": "M20",
+      "x": 0,
+      "y": 1.1911764246894714
+    },
+    {
+      "id": "demo-leg-1-visit-3-dart-2",
+      "gameId": "demo-leg-1",
+      "visitId": "demo-leg-1-visit-3",
+      "playerId": "demo-player-2",
+      "leg": 1,
+      "visit": 3,
+      "dart": 2,
+      "segment": "M20",
+      "x": 0,
+      "y": 1.1911764246894714
+    },
+    {
+      "id": "demo-leg-1-visit-4-dart-0",
+      "gameId": "demo-leg-1",
+      "visitId": "demo-leg-1-visit-4",
+      "playerId": "demo-player-1",
+      "leg": 1,
+      "visit": 4,
+      "dart": 0,
+      "segment": "T20",
+      "x": 0,
+      "y": 0.6000251311031892
+    },
+    {
+      "id": "demo-leg-1-visit-4-dart-1",
+      "gameId": "demo-leg-1",
+      "visitId": "demo-leg-1-visit-4",
+      "playerId": "demo-player-1",
+      "leg": 1,
+      "visit": 4,
+      "dart": 1,
+      "segment": "T19",
+      "x": -0.18544431676201645,
+      "y": -0.5706216944730218
+    },
+    {
+      "id": "demo-leg-1-visit-4-dart-2",
+      "gameId": "demo-leg-1",
+      "visitId": "demo-leg-1-visit-4",
+      "playerId": "demo-player-1",
+      "leg": 1,
+      "visit": 4,
+      "dart": 2,
+      "segment": "D12",
+      "x": -0.5705464205002403,
+      "y": 0.7852440849344998
+    },
+    {
+      "id": "demo-leg-2-visit-0-dart-0",
+      "gameId": "demo-leg-2",
+      "visitId": "demo-leg-2-visit-0",
+      "playerId": "demo-player-2",
+      "leg": 2,
+      "visit": 0,
+      "dart": 0,
+      "segment": "M20",
+      "x": 0,
+      "y": 1.1911764246894714
+    },
+    {
+      "id": "demo-leg-2-visit-0-dart-1",
+      "gameId": "demo-leg-2",
+      "visitId": "demo-leg-2-visit-0",
+      "playerId": "demo-player-2",
+      "leg": 2,
+      "visit": 0,
+      "dart": 1,
+      "segment": "M20",
+      "x": 0,
+      "y": 1.1911764246894714
+    },
+    {
+      "id": "demo-leg-2-visit-0-dart-2",
+      "gameId": "demo-leg-2",
+      "visitId": "demo-leg-2-visit-0",
+      "playerId": "demo-player-2",
+      "leg": 2,
+      "visit": 0,
+      "dart": 2,
+      "segment": "M20",
+      "x": 0,
+      "y": 1.1911764246894714
+    },
+    {
+      "id": "demo-leg-2-visit-1-dart-0",
+      "gameId": "demo-leg-2",
+      "visitId": "demo-leg-2-visit-1",
+      "playerId": "demo-player-1",
+      "leg": 2,
+      "visit": 1,
+      "dart": 0,
+      "segment": "T20",
+      "x": 0,
+      "y": 0.6000251311031892
+    },
+    {
+      "id": "demo-leg-2-visit-1-dart-1",
+      "gameId": "demo-leg-2",
+      "visitId": "demo-leg-2-visit-1",
+      "playerId": "demo-player-1",
+      "leg": 2,
+      "visit": 1,
+      "dart": 1,
+      "segment": "T20",
+      "x": 0,
+      "y": 0.6000251311031892
+    },
+    {
+      "id": "demo-leg-2-visit-1-dart-2",
+      "gameId": "demo-leg-2",
+      "visitId": "demo-leg-2-visit-1",
+      "playerId": "demo-player-1",
+      "leg": 2,
+      "visit": 1,
+      "dart": 2,
+      "segment": "T20",
+      "x": 0,
+      "y": 0.6000251311031892
+    },
+    {
+      "id": "demo-leg-2-visit-2-dart-0",
+      "gameId": "demo-leg-2",
+      "visitId": "demo-leg-2-visit-2",
+      "playerId": "demo-player-2",
+      "leg": 2,
+      "visit": 2,
+      "dart": 0,
+      "segment": "M20",
+      "x": 0,
+      "y": 1.1911764246894714
+    },
+    {
+      "id": "demo-leg-2-visit-2-dart-1",
+      "gameId": "demo-leg-2",
+      "visitId": "demo-leg-2-visit-2",
+      "playerId": "demo-player-2",
+      "leg": 2,
+      "visit": 2,
+      "dart": 1,
+      "segment": "M20",
+      "x": 0,
+      "y": 1.1911764246894714
+    },
+    {
+      "id": "demo-leg-2-visit-2-dart-2",
+      "gameId": "demo-leg-2",
+      "visitId": "demo-leg-2-visit-2",
+      "playerId": "demo-player-2",
+      "leg": 2,
+      "visit": 2,
+      "dart": 2,
+      "segment": "M20",
+      "x": 0,
+      "y": 1.1911764246894714
+    },
+    {
+      "id": "demo-leg-2-visit-3-dart-0",
+      "gameId": "demo-leg-2",
+      "visitId": "demo-leg-2-visit-3",
+      "playerId": "demo-player-1",
+      "leg": 2,
+      "visit": 3,
+      "dart": 0,
+      "segment": "T20",
+      "x": 0,
+      "y": 0.6000251311031892
+    },
+    {
+      "id": "demo-leg-2-visit-3-dart-1",
+      "gameId": "demo-leg-2",
+      "visitId": "demo-leg-2-visit-3",
+      "playerId": "demo-player-1",
+      "leg": 2,
+      "visit": 3,
+      "dart": 1,
+      "segment": "T20",
+      "x": 0,
+      "y": 0.6000251311031892
+    },
+    {
+      "id": "demo-leg-2-visit-3-dart-2",
+      "gameId": "demo-leg-2",
+      "visitId": "demo-leg-2-visit-3",
+      "playerId": "demo-player-1",
+      "leg": 2,
+      "visit": 3,
+      "dart": 2,
+      "segment": "T20",
+      "x": 0,
+      "y": 0.6000251311031892
+    },
+    {
+      "id": "demo-leg-2-visit-4-dart-0",
+      "gameId": "demo-leg-2",
+      "visitId": "demo-leg-2-visit-4",
+      "playerId": "demo-player-2",
+      "leg": 2,
+      "visit": 4,
+      "dart": 0,
+      "segment": "M20",
+      "x": 0,
+      "y": 1.1911764246894714
+    },
+    {
+      "id": "demo-leg-2-visit-4-dart-1",
+      "gameId": "demo-leg-2",
+      "visitId": "demo-leg-2-visit-4",
+      "playerId": "demo-player-2",
+      "leg": 2,
+      "visit": 4,
+      "dart": 1,
+      "segment": "M20",
+      "x": 0,
+      "y": 1.1911764246894714
+    },
+    {
+      "id": "demo-leg-2-visit-4-dart-2",
+      "gameId": "demo-leg-2",
+      "visitId": "demo-leg-2-visit-4",
+      "playerId": "demo-player-2",
+      "leg": 2,
+      "visit": 4,
+      "dart": 2,
+      "segment": "M20",
+      "x": 0,
+      "y": 1.1911764246894714
+    },
+    {
+      "id": "demo-leg-2-visit-5-dart-0",
+      "gameId": "demo-leg-2",
+      "visitId": "demo-leg-2-visit-5",
+      "playerId": "demo-player-1",
+      "leg": 2,
+      "visit": 5,
+      "dart": 0,
+      "segment": "T20",
+      "x": 0,
+      "y": 0.6000251311031892
+    },
+    {
+      "id": "demo-leg-2-visit-5-dart-1",
+      "gameId": "demo-leg-2",
+      "visitId": "demo-leg-2-visit-5",
+      "playerId": "demo-player-1",
+      "leg": 2,
+      "visit": 5,
+      "dart": 1,
+      "segment": "T19",
+      "x": -0.18544431676201645,
+      "y": -0.5706216944730218
+    },
+    {
+      "id": "demo-leg-2-visit-5-dart-2",
+      "gameId": "demo-leg-2",
+      "visitId": "demo-leg-2-visit-5",
+      "playerId": "demo-player-1",
+      "leg": 2,
+      "visit": 5,
+      "dart": 2,
+      "segment": "D12",
+      "x": -0.5705464205002403,
+      "y": 0.7852440849344998
+    },
+    {
+      "id": "demo-leg-3-visit-0-dart-0",
+      "gameId": "demo-leg-3",
+      "visitId": "demo-leg-3-visit-0",
+      "playerId": "demo-player-1",
+      "leg": 3,
+      "visit": 0,
+      "dart": 0,
+      "segment": "T20",
+      "x": 0,
+      "y": 0.6000251311031892
+    },
+    {
+      "id": "demo-leg-3-visit-0-dart-1",
+      "gameId": "demo-leg-3",
+      "visitId": "demo-leg-3-visit-0",
+      "playerId": "demo-player-1",
+      "leg": 3,
+      "visit": 0,
+      "dart": 1,
+      "segment": "T20",
+      "x": 0,
+      "y": 0.6000251311031892
+    },
+    {
+      "id": "demo-leg-3-visit-0-dart-2",
+      "gameId": "demo-leg-3",
+      "visitId": "demo-leg-3-visit-0",
+      "playerId": "demo-player-1",
+      "leg": 3,
+      "visit": 0,
+      "dart": 2,
+      "segment": "T20",
+      "x": 0,
+      "y": 0.6000251311031892
+    },
+    {
+      "id": "demo-leg-3-visit-1-dart-0",
+      "gameId": "demo-leg-3",
+      "visitId": "demo-leg-3-visit-1",
+      "playerId": "demo-player-2",
+      "leg": 3,
+      "visit": 1,
+      "dart": 0,
+      "segment": "M20",
+      "x": 0,
+      "y": 1.1911764246894714
+    },
+    {
+      "id": "demo-leg-3-visit-1-dart-1",
+      "gameId": "demo-leg-3",
+      "visitId": "demo-leg-3-visit-1",
+      "playerId": "demo-player-2",
+      "leg": 3,
+      "visit": 1,
+      "dart": 1,
+      "segment": "M20",
+      "x": 0,
+      "y": 1.1911764246894714
+    },
+    {
+      "id": "demo-leg-3-visit-1-dart-2",
+      "gameId": "demo-leg-3",
+      "visitId": "demo-leg-3-visit-1",
+      "playerId": "demo-player-2",
+      "leg": 3,
+      "visit": 1,
+      "dart": 2,
+      "segment": "M20",
+      "x": 0,
+      "y": 1.1911764246894714
+    },
+    {
+      "id": "demo-leg-3-visit-2-dart-0",
+      "gameId": "demo-leg-3",
+      "visitId": "demo-leg-3-visit-2",
+      "playerId": "demo-player-1",
+      "leg": 3,
+      "visit": 2,
+      "dart": 0,
+      "segment": "T20",
+      "x": 0,
+      "y": 0.6000251311031892
+    },
+    {
+      "id": "demo-leg-3-visit-2-dart-1",
+      "gameId": "demo-leg-3",
+      "visitId": "demo-leg-3-visit-2",
+      "playerId": "demo-player-1",
+      "leg": 3,
+      "visit": 2,
+      "dart": 1,
+      "segment": "T20",
+      "x": 0,
+      "y": 0.6000251311031892
+    },
+    {
+      "id": "demo-leg-3-visit-2-dart-2",
+      "gameId": "demo-leg-3",
+      "visitId": "demo-leg-3-visit-2",
+      "playerId": "demo-player-1",
+      "leg": 3,
+      "visit": 2,
+      "dart": 2,
+      "segment": "T20",
+      "x": 0,
+      "y": 0.6000251311031892
+    },
+    {
+      "id": "demo-leg-3-visit-3-dart-0",
+      "gameId": "demo-leg-3",
+      "visitId": "demo-leg-3-visit-3",
+      "playerId": "demo-player-2",
+      "leg": 3,
+      "visit": 3,
+      "dart": 0,
+      "segment": "M20",
+      "x": 0,
+      "y": 1.1911764246894714
+    },
+    {
+      "id": "demo-leg-3-visit-3-dart-1",
+      "gameId": "demo-leg-3",
+      "visitId": "demo-leg-3-visit-3",
+      "playerId": "demo-player-2",
+      "leg": 3,
+      "visit": 3,
+      "dart": 1,
+      "segment": "M20",
+      "x": 0,
+      "y": 1.1911764246894714
+    },
+    {
+      "id": "demo-leg-3-visit-3-dart-2",
+      "gameId": "demo-leg-3",
+      "visitId": "demo-leg-3-visit-3",
+      "playerId": "demo-player-2",
+      "leg": 3,
+      "visit": 3,
+      "dart": 2,
+      "segment": "M20",
+      "x": 0,
+      "y": 1.1911764246894714
+    },
+    {
+      "id": "demo-leg-3-visit-4-dart-0",
+      "gameId": "demo-leg-3",
+      "visitId": "demo-leg-3-visit-4",
+      "playerId": "demo-player-1",
+      "leg": 3,
+      "visit": 4,
+      "dart": 0,
+      "segment": "T20",
+      "x": 0,
+      "y": 0.6000251311031892
+    },
+    {
+      "id": "demo-leg-3-visit-4-dart-1",
+      "gameId": "demo-leg-3",
+      "visitId": "demo-leg-3-visit-4",
+      "playerId": "demo-player-1",
+      "leg": 3,
+      "visit": 4,
+      "dart": 1,
+      "segment": "T19",
+      "x": -0.18544431676201645,
+      "y": -0.5706216944730218
+    },
+    {
+      "id": "demo-leg-3-visit-4-dart-2",
+      "gameId": "demo-leg-3",
+      "visitId": "demo-leg-3-visit-4",
+      "playerId": "demo-player-1",
+      "leg": 3,
+      "visit": 4,
+      "dart": 2,
+      "segment": "D12",
+      "x": -0.5705464205002403,
+      "y": 0.7852440849344998
+    }
+  ]
+}

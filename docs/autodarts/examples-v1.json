@@ -1,0 +1,83 @@
+{
+  "corpus_version": "autodarts.examples.v1",
+  "synthetic": true,
+  "producer": {
+    "schema_version": "autodarts.import.v1",
+    "source": "autodarts",
+    "external_match_id": "fictional-match-001",
+    "playedAt": "2026-06-15T10:00:00+01:00",
+    "settings": {"base_score": 501, "legs_to_win": 3, "out": "double"},
+    "completed": true,
+    "players": [
+      {"match_player_id": "seat-a", "account_id": "fictional-account-a", "display_name": "Aster Example", "legs_won": 3, "stats": {"match_average": 60.12, "points_scored": null, "darts_thrown": null, "checkout_hits": 3, "checkout_attempts": null}},
+      {"match_player_id": "seat-b", "account_id": null, "display_name": "Birch Guest", "legs_won": 0, "stats": null}
+    ],
+    "detail": {"coverage": "partial", "legs": [
+      {"number": 1, "completed": true, "winner_id": "seat-a", "visits": [
+        {"number": 9, "player_id": "seat-a", "start_remaining": 40, "end_remaining": 0, "bust": false, "throws": [
+          {"number": 1, "segment": {"bed": "double", "number": 20}, "entry_type": "manual", "position": {"x": 0, "y": 162, "units": "mm", "origin": "board-center", "axis_orientation": "x-right-y-up", "provenance": "manual"}}
+        ]}
+      ]},
+      {"number": 2, "completed": true, "winner_id": "seat-a", "visits": [
+        {"number": 11, "player_id": "seat-a", "start_remaining": 32, "end_remaining": 0, "bust": false, "throws": [
+          {"number": 1, "segment": {"bed": "double", "number": 16}, "entry_type": "unknown", "position": null}
+        ]}
+      ]}
+    ]}
+  },
+  "missing_detail": {
+    "schema_version": "autodarts.import.v1", "source": "autodarts", "external_match_id": "fictional-match-002", "playedAt": null,
+    "settings": {"base_score": 501, "legs_to_win": 3, "out": "double"}, "completed": true,
+    "players": [
+      {"match_player_id": "guest-1", "account_id": null, "display_name": "Cedar Example", "legs_won": 1, "stats": null},
+      {"match_player_id": "guest-2", "account_id": null, "display_name": "Dahlia Example", "legs_won": 3, "stats": null}
+    ], "detail": null
+  },
+  "legacy": {
+    "matchId": "fictional-legacy-001",
+    "player1": {"name": "Elm Example", "legsWon": 3, "matchAverage": null},
+    "player2": {"name": "Fern Guest", "legsWon": 2}
+  },
+  "unknown_geometry_position": {"x": 243.123456789, "y": -87, "units": null, "origin": null, "axis_orientation": null, "provenance": "unknown"},
+  "admin_list": {"pending_results": [
+    {"id": 730, "external_match_id": "fictional-match-001", "player_one_name": "Aster Example", "player_one_legs": 3, "player_one_average": 60.12, "player_two_name": "Birch Guest", "player_two_legs": 0, "player_two_average": null, "status": "pending", "received_at": "Mon, 15 Jun 2026 10:00:00 GMT", "playedAt": "2026-06-15T10:00:00+01:00", "detail_coverage": "partial"}
+  ]},
+  "admin_detail": {
+    "pending_result": {"id": 731, "external_match_id": "fictional-legacy-001", "player_one_name": "Elm Example", "player_one_legs": 3, "player_one_average": null, "player_two_name": "Fern Guest", "player_two_legs": 2, "player_two_average": null, "status": "pending", "received_at": "Mon, 15 Jun 2026 10:00:00 GMT"},
+    "source": "autodarts", "digest": "example-digest", "changed_import": false,
+    "original_payload": {"matchId": "fictional-legacy-001", "player1": {"name": "Elm Example", "legsWon": 3, "matchAverage": null}, "player2": {"name": "Fern Guest", "legsWon": 2}},
+    "settings_evidence": "legacy_unverified", "review_reason": "", "played_at": null, "detail": null,
+    "players": [{"match_player_id": "legacy-1", "account_id": null, "display_name": "Elm Example", "legs_won": 3, "stats": null}, {"match_player_id": "legacy-2", "account_id": null, "display_name": "Fern Guest", "legs_won": 2, "stats": null}],
+    "season_id": null, "fixture_id": null, "result_id": null, "source_active": false, "mapping": null, "approval": null
+  },
+  "reversed_confirmation": {
+    "request": {"season_id": 700, "fixture_id": 720, "mapping": {"seat-a": 702, "seat-b": 701}, "replace": false, "expected_result": null, "reason": "Reviewed source date and fixture", "attest_format": false, "missing_date_reason": ""},
+    "fixture": {"id": 720, "season_id": 700, "player_one_id": 701, "player_two_id": 702, "reveal_at": "2026-06-15T08:00:00Z"},
+    "response": {"id": 740, "fixture_id": 720, "player_one_legs": 0, "player_two_legs": 3, "player_one_average": null, "player_two_average": 60.12, "winner_id": 702}
+  },
+  "replacement_request": {"season_id": 700, "fixture_id": 720, "mapping": {"seat-a": 702, "seat-b": 701}, "replace": true, "expected_result": {"id": 740, "updated_at": "2026-06-15T11:00:00Z", "player_one_legs": 0, "player_two_legs": 3, "player_one_average": null, "player_two_average": 60.12, "winner_id": 702}, "reason": "Reviewed corrected source average", "attest_format": false, "missing_date_reason": ""},
+  "reject_request": {"reason": "Wrong match submitted"},
+  "public_detail": {
+    "schema_version": "autodarts.api.v1", "fixture_id": 720,
+    "players": [{"league_player_id": 701, "preferred_name": "Birch Guest", "legs_won": 0, "match_average": null}, {"league_player_id": 702, "preferred_name": "Aster", "legs_won": 3, "match_average": 60.12}],
+    "detail": {"coverage": "partial", "legs": [
+      {"number": 1, "winner_id": 702, "completed": true, "visits": [{"number": 9, "player_id": 702, "start_remaining": 40, "end_remaining": 0, "bust": false, "throws": [{"number": 1, "segment": {"bed": "double", "number": 20}, "entry_type": "manual", "position": {"x": 0, "y": 162, "units": "mm", "origin": "board-center", "axis_orientation": "x-right-y-up", "provenance": "manual"}}]}]},
+      {"number": 2, "winner_id": 702, "completed": true, "visits": [{"number": 11, "player_id": 702, "start_remaining": 32, "end_remaining": 0, "bust": false, "throws": [{"number": 1, "segment": {"bed": "double", "number": 16}, "entry_type": "unknown", "position": null}]}]}
+    ]},
+    "coverage": {"recorded_throws": 2, "known_positions": 1, "position_fraction": 0.5}
+  },
+  "public_summary_only": {"schema_version": "autodarts.api.v1", "fixture_id": 721, "players": [{"league_player_id": 703, "preferred_name": "Elm", "legs_won": 3, "match_average": null}, {"league_player_id": 704, "preferred_name": "Fern Guest", "legs_won": 2, "match_average": null}], "detail": null, "coverage": {"recorded_throws": 0, "known_positions": 0, "position_fraction": null}},
+  "lifecycle_cases": [
+    {"case": "first", "prior_status": null, "same_digest": false, "outcome": "pending"},
+    {"case": "duplicate_pending", "prior_status": "pending", "same_digest": true, "outcome": "duplicate"},
+    {"case": "duplicate_rejected", "prior_status": "rejected", "same_digest": true, "outcome": "duplicate"},
+    {"case": "duplicate_confirmed", "prior_status": "confirmed", "same_digest": true, "outcome": "duplicate"},
+    {"case": "changed_confirmed", "prior_status": "confirmed", "same_digest": false, "outcome": "pending"},
+    {"case": "changed_rejected", "prior_status": "rejected", "same_digest": false, "outcome": "pending"}
+  ],
+  "errors": [
+    {"http_status": 409, "body": {"error": {"code": "replacement_required", "message": "Explicit replacement is required."}}},
+    {"http_status": 422, "body": {"error": {"code": "mapping_mismatch", "message": "Select the fixture's two distinct players."}}},
+    {"http_status": 404, "body": {"error": {"code": "not_found", "message": "Match detail is unavailable."}}}
+  ]
+}

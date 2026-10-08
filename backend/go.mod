@@ -2,7 +2,10 @@ module github.com/greg/darts-league/backend
 
 go 1.24.0
 
-require github.com/jackc/pgx/v5 v5.8.0
+require (
+	github.com/cyberphone/json-canonicalization v0.0.0-20241213102144-19d51d7fe467
+	github.com/jackc/pgx/v5 v5.8.0
+)
 
 require (
 	github.com/jackc/pgpassfile v1.0.0 // indirect

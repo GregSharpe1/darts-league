@@ -1,0 +1,17 @@
+{
+  "provenance": "Synthetic score-only variant; no statistics or dart evidence available.",
+  "matchId": "demo-match-001",
+  "winnerId": "demo-player-1",
+  "players": [
+    {
+      "id": "demo-player-1",
+      "name": "Morgan Ember",
+      "legsWon": 3
+    },
+    {
+      "id": "demo-player-2",
+      "name": "Casey Vale",
+      "legsWon": 0
+    }
+  ]
+}
