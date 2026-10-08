@@ -3,6 +3,7 @@ package postgres
 import (
 	"context"
 	"errors"
+	"reflect"
 	"strings"
 
 	"github.com/greg/darts-league/backend/internal/league"
@@ -31,8 +32,16 @@ func (s *Store) CreatePendingResultDurably(ctx context.Context, pending league.P
 	duplicate := errors.Is(err, pgx.ErrNoRows)
 	if duplicate {
 		// A new READ COMMITTED statement sees the row committed by a competing insert.
-		var id int64
-		err = tx.QueryRow(ctx, `SELECT id FROM pending_results WHERE external_match_id = $1`, pending.ExternalMatchID).Scan(&id)
+		var existing league.PendingResult
+		err = tx.QueryRow(ctx, `SELECT player_one_name,player_one_legs,player_one_average,player_two_name,player_two_legs,player_two_average
+			FROM pending_results WHERE external_match_id = $1`, pending.ExternalMatchID).Scan(
+			&existing.PlayerOneName, &existing.PlayerOneLegs, &existing.PlayerOneAverage,
+			&existing.PlayerTwoName, &existing.PlayerTwoLegs, &existing.PlayerTwoAverage)
+		if err == nil && (existing.PlayerOneName != pending.PlayerOneName || existing.PlayerTwoName != pending.PlayerTwoName ||
+			existing.PlayerOneLegs != pending.PlayerOneLegs || existing.PlayerTwoLegs != pending.PlayerTwoLegs ||
+			!reflect.DeepEqual(existing.PlayerOneAverage, pending.PlayerOneAverage) || !reflect.DeepEqual(existing.PlayerTwoAverage, pending.PlayerTwoAverage)) {
+			return league.PendingResult{}, league.ErrLegacyContentConflict
+		}
 	}
 	if err != nil {
 		return league.PendingResult{}, err

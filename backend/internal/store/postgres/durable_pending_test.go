@@ -111,6 +111,11 @@ func TestDurableLegacyConcurrentReplayAndAdminRejection(t *testing.T) {
 	if err := service.IngestDurable(ctx, input); !errors.Is(err, league.ErrDuplicateExternalMatch) {
 		t.Fatalf("confirmed replay: %v", err)
 	}
+	changed := input
+	changed.PlayerTwoLegs = 1
+	if err := service.IngestDurable(ctx, changed); !errors.Is(err, league.ErrLegacyContentConflict) {
+		t.Fatalf("changed content must remain unacknowledged, not be counted as a duplicate: %v", err)
+	}
 	cancelled, cancel := context.WithCancel(ctx)
 	cancel()
 	if err := service.IngestDurable(cancelled, input); err == nil || errors.Is(err, league.ErrDuplicateExternalMatch) {

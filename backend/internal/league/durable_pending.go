@@ -6,6 +6,7 @@ import (
 )
 
 var ErrDurablePendingStoreRequired = errors.New("durable pending result store required")
+var ErrLegacyContentConflict = errors.New("legacy match content differs from persisted result")
 
 // IngestDurable accepts a validated legacy result. Only stores with an explicit
 // commit boundary may participate; the development memory fallback cannot.

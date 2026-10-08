@@ -40,10 +40,13 @@ parent/production database access, deployment, push or PR was performed.
   (PendingResult, error)`. Only the real Postgres store implements it in production.
 - Postgres uses an explicit READ COMMITTED transaction with `INSERT ... ON
   CONFLICT (external_match_id) DO NOTHING`. A conflict is followed by a separate
-  lookup of the committed row. Only a successful commit returns success or
+  lookup comparing the committed names, scores and nullable averages. Only a successful commit returns success or
   `ErrDuplicateExternalMatch`. Pending, confirmed and rejected duplicates all
   qualify; their existing contents/status are not overwritten. A failed lookup,
   write, cancellation or uncertain commit is an error, not a duplicate.
+- Reusing an ID with different content is not an acknowledged duplicate. It stays
+  queued for retry/DLQ handling without overwriting the stored summary. Preserve
+  that message for review/redrive after stage 4 adds content-versioned imports.
 - `Poller.WithDurableIngest` now accepts
   `func(context.Context, league.PendingResult) error` (validated legacy data, not
   a raw transport `Message`). `cmd/api` wires the service only for `*postgres.Store`.
