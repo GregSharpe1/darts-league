@@ -34,9 +34,14 @@ For mock-only testing, run `npm run preview -- --host 127.0.0.1 --port 4281`
 and set `PLAYWRIGHT_BASE_URL=http://127.0.0.1:4281 PLAYWRIGHT_USE_DOCKER=1`
 on the Playwright command. The existing flag only skips managed web servers;
 this command does not start Docker. Set `CAPTURE_UI_SCREENSHOTS=1` to refresh
-the two representative [screenshots](../pr-screenshots/feat-autodarts-01-ui-foundations/).
+the representative [screenshots](../pr-screenshots/feat-autodarts-01-ui-foundations/).
 Other captures go to ignored `frontend/test-results/`. No screenshot sweep or
 new design/performance tooling is included.
+
+CI uploads the full UI capture set as `ui-evidence-<run ID>` with 14-day retention.
+Only a small explicitly selected set is tracked in Git; generated feature capture
+directories are ignored. Later stages add offline harnesses that the same CI step
+detects and runs when present. This changes verification, not deployment behavior.
 
 ## Rollback
 
