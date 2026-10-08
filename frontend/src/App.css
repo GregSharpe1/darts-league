@@ -111,8 +111,8 @@
 .metric-card,
 .info-card,
 .standings-card {
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: linear-gradient(180deg, rgba(24, 24, 26, 0.96) 0%, rgba(13, 13, 15, 0.96) 100%);
+  border: var(--border-panel);
+  background: var(--panel-background);
   box-shadow: var(--shadow-panel);
 }
 
@@ -146,6 +146,12 @@
   font-size: clamp(3rem, 7vw, 5.8rem);
   line-height: 0.95;
   text-transform: uppercase;
+}
+
+.page-intro h1 {
+  font-size: clamp(2.5rem, 5vw, 64px);
+  max-width: 100%;
+  overflow-wrap: anywhere;
 }
 
 .hero-copy p,
@@ -183,7 +189,7 @@
 .hero-actions a:first-child,
 .cta-link {
   color: #fff5f5;
-  background: linear-gradient(180deg, #ff6a5f 0%, #cb2e22 100%);
+  background: var(--action-background);
   box-shadow: 0 1rem 2rem rgba(203, 46, 34, 0.32);
 }
 
@@ -205,7 +211,7 @@
 .standings-card,
 .week-card,
 .content-panel {
-  border-radius: 1.5rem;
+  border-radius: var(--radius-panel);
 }
 
 .metric-card,
@@ -617,9 +623,9 @@
 }
 
 .field input {
-  min-height: 3rem;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 1rem;
+  min-height: var(--control-height);
+  border: var(--border-panel);
+  border-radius: var(--radius-field);
   background: rgba(255, 255, 255, 0.04);
   color: var(--color-text);
   padding: 0 0.95rem;
@@ -630,9 +636,9 @@
 }
 
 .field select {
-  min-height: 3rem;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 1rem;
+  min-height: var(--control-height);
+  border: var(--border-panel);
+  border-radius: var(--radius-field);
   background: rgba(255, 255, 255, 0.04);
   color: var(--color-text);
   padding: 0 0.95rem;
@@ -716,12 +722,22 @@
 .score-actions button,
 .toolbar-actions button,
 .toolbar-actions .button-link {
-  min-height: 3rem;
+  min-height: var(--control-height);
   border: 0;
-  border-radius: 1rem;
+  border-radius: var(--radius-pill);
   font-weight: 700;
   color: #fff5f5;
-  background: linear-gradient(180deg, #ff6a5f 0%, #cb2e22 100%);
+  background: var(--action-background);
+}
+
+.admin-login button:disabled,
+.form-preview button:disabled,
+.score-form button:disabled,
+.score-actions button:disabled,
+.toolbar-actions button:disabled {
+  color: var(--color-muted);
+  background: var(--color-surface-raised);
+  border: var(--border-panel);
 }
 
 .refresh-button {
@@ -1172,7 +1188,7 @@
   .register-card,
   .admin-card,
   .standings-card {
-    border-radius: 1.2rem;
+    border-radius: var(--radius-panel-small);
   }
 
   .hero-panel,

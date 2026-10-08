@@ -8,3 +8,6 @@ frontend/test-results/
 .env
 .env.*
 .aws-sam/
+frontend/tests/**/screenshots/
+frontend/src/pages/**/browser/screenshots/
+docs/pr-screenshots/**
