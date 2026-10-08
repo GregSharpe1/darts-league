@@ -1,0 +1,32 @@
+.pending-inbox { display: grid; grid-template-columns: 244px minmax(0, 1fr); gap: 16px; align-items: start; }
+.pending-rail { padding: 24px; }
+.pending-rail h2 { font-size: 24px; }
+.pending-receipts, .pending-review { display: grid; gap: 16px; }
+.pending-receipts { margin-top: 24px; }
+.pending-receipt { display: grid; gap: 8px; width: 100%; text-align: left; white-space: normal; background: var(--color-surface-raised); color: var(--color-text); border: var(--border-panel); border-radius: var(--radius-panel-small); padding: 16px; }
+.pending-receipt[aria-pressed="true"] { border-color: var(--color-accent); background: var(--color-surface); }
+.pending-receipt span, .pending-receipt small { color: var(--color-muted); font-size: 12px; }
+.pending-receipt strong, .pending-provenance, .pending-source-score, .pending-feedback { overflow-wrap: anywhere; }
+.pending-receipt b { font-size: 24px; font-variant-numeric: tabular-nums; }
+.pending-selected, .pending-review, .pending-review .field { min-width: 0; }
+.pending-review .admin-card { padding: 24px; }
+.pending-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.pending-target fieldset { border: 0; padding: 0; margin: 0; min-width: 0; display: grid; gap: 16px; }
+.pending-target select, .pending-target textarea { width: 100%; min-width: 0; }
+.pending-target textarea { min-height: 88px; resize: vertical; }
+.pending-warning { padding: 16px; border: 1px solid #edc783; border-radius: var(--radius-field); color: #edc783; }
+.pending-warning p:last-child { margin-bottom: 0; }
+.pending-check { display: flex; align-items: center; gap: 12px; min-height: 44px; }
+.pending-check input { flex: 0 0 auto; width: 20px; height: 20px; }
+.pending-comparison { background: var(--color-surface-raised); border-radius: var(--radius-field); padding: 16px; }
+.pending-comparison dl { display: grid; gap: 12px; }
+.pending-comparison dl div { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; }
+.pending-comparison dd { margin: 0; font-variant-numeric: tabular-nums; font-weight: bold; }
+.pending-reject { margin-top: 24px; border-top: var(--border-panel); padding-top: 16px; }
+.pending-reject summary { cursor: pointer; min-height: 44px; }
+.pending-source-score { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 16px; }
+.pending-source-score b { font: 700 48px var(--font-display); }
+.pending-source-score small { grid-column: 1 / -1; color: var(--color-muted); }
+.pending-feedback { border-left: 4px solid var(--color-accent); padding: 16px; }
+@media (max-width: 900px) { .pending-inbox { grid-template-columns: minmax(0, 1fr); } .pending-receipts { grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr)); } }
+@media (max-width: 640px) { .pending-fields { grid-template-columns: minmax(0, 1fr); } .pending-review .admin-card, .pending-rail { padding: 16px; } .pending-source-score { grid-template-columns: minmax(0, 1fr); } }
