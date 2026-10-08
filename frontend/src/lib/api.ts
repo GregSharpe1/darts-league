@@ -59,8 +59,8 @@ export type PublicFixture = {
   result?: {
     player_one_legs: number
     player_two_legs: number
-    player_one_average?: number
-    player_two_average?: number
+    player_one_average?: number | null
+    player_two_average?: number | null
     winner_id: number
   }
 }
@@ -112,8 +112,8 @@ export type AdminFixture = {
   result?: {
     player_one_legs: number
     player_two_legs: number
-    player_one_average?: number
-    player_two_average?: number
+    player_one_average?: number | null
+    player_two_average?: number | null
     winner_id: number
   }
 }
@@ -134,15 +134,15 @@ export type AuditEntry = {
   old_result?: {
     player_one_legs: number
     player_two_legs: number
-    player_one_average?: number
-    player_two_average?: number
+    player_one_average?: number | null
+    player_two_average?: number | null
     winner_id: number
   }
   new_result?: {
     player_one_legs: number
     player_two_legs: number
-    player_one_average?: number
-    player_two_average?: number
+    player_one_average?: number | null
+    player_two_average?: number | null
     winner_id: number
   }
 }
@@ -482,10 +482,10 @@ export type PendingResult = {
   external_match_id: string
   player_one_name: string
   player_one_legs: number
-  player_one_average?: number
+  player_one_average?: number | null
   player_two_name: string
   player_two_legs: number
-  player_two_average?: number
+  player_two_average?: number | null
   status: 'pending' | 'confirmed' | 'rejected'
   received_at: string
 }
@@ -536,11 +536,8 @@ export function useRejectPendingResult() {
   })
 }
 
-export function formatAverage(value?: number) {
-  if (value === undefined) {
-    return ''
-  }
-  return value.toFixed(1)
+export function formatAverage(value?: number | null) {
+  return value?.toFixed(1) ?? ''
 }
 
 export function formatWhen(value?: string) {
