@@ -74,7 +74,15 @@ try {
         if (state === 'analysis') assert.equal(await page.locator('[data-dart]').count(), 27)
         if (state === 'unknown') assert.equal(await page.locator('[data-dart]').count(), 0)
         assert.equal(await page.getByRole('link', { name: 'All divisions', exact: true }).count(), 0)
-        assert.equal(await page.getByRole('navigation', { name: 'Player season statistics' }).count(), 0)
+        if (['analysis', 'unknown', 'summary'].includes(state)) {
+          const actions = page.getByRole('navigation', { name: 'Player season statistics' }).getByRole('link')
+          assert.equal(await actions.count(), 2)
+          for (const action of await actions.all()) {
+            assert.match(await action.evaluate(el => getComputedStyle(el).backgroundImage), /linear-gradient/)
+            assert.equal(await action.evaluate(el => getComputedStyle(el).borderRadius), '999px')
+            assert(await action.evaluate(el => el.getBoundingClientRect().height >= 44))
+          }
+        }
         if (state === 'summary') {
           assert.deepEqual(await page.locator('.ma-score-number strong').allTextContents(), ['3', '0'])
           assert.equal(await page.locator('[data-dart]').count(), 0)

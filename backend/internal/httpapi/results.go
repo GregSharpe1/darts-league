@@ -32,6 +32,7 @@ type resultRequest struct {
 }
 
 type standingRowResponse struct {
+	PlayerID      int64    `json:"player_id"`
 	Player        string   `json:"player"`
 	DisplayName   string   `json:"display_name"`
 	Played        int      `json:"played"`
@@ -53,6 +54,7 @@ func (h ResultHandler) handleStandings(w http.ResponseWriter, r *http.Request) {
 	response := make([]standingRowResponse, 0, len(rows))
 	for _, row := range rows {
 		response = append(response, standingRowResponse{
+			PlayerID:      row.PlayerID,
 			Player:        row.PreferredName,
 			DisplayName:   row.DisplayName,
 			Played:        row.Played,

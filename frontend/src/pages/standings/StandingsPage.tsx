@@ -1,4 +1,4 @@
-import { useParams } from 'react-router-dom'
+import { Link, useParams } from 'react-router-dom'
 import { useDivisions, useDivisionStandings, useSeasonSummary } from '../../lib/api'
 import { StateNotice } from '../../components/StateNotice'
 import { readError } from '../../lib/utils'
@@ -50,7 +50,7 @@ export function StandingsPage() {
                 <td className="player-cell">
                   <strong>
                     <span className="position-badge" aria-label={`Position ${index + 1}`}>{index + 1}</span>
-                    {row.player}
+                    {row.player_id && seasonQuery.data?.id ? <Link to={`/seasons/${seasonQuery.data.id}/players/${row.player_id}`}>{row.player}</Link> : row.player}
                   </strong>
                   <span>{row.display_name}</span>
                 </td>
