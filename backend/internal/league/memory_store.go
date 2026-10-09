@@ -20,6 +20,7 @@ type MemoryStore struct {
 	resultsByID    map[int64]Result
 	auditByID      map[int64]AuditLogEntry
 	pendingByID    map[int64]PendingResult
+	importsByID    map[int64][]byte
 	nextDivisionID int64
 	nextPlayerID   int64
 	nextFixtureID  int64
@@ -42,6 +43,7 @@ func NewMemoryStore() *MemoryStore {
 		resultsByID:    make(map[int64]Result),
 		auditByID:      make(map[int64]AuditLogEntry),
 		pendingByID:    make(map[int64]PendingResult),
+		importsByID:    make(map[int64][]byte),
 		nextDivisionID: 1,
 		nextPlayerID:   1,
 		nextFixtureID:  1,
@@ -389,7 +391,7 @@ func (s *MemoryStore) ListAuditLogsBySeason(_ context.Context, seasonID int64) (
 	entries := make([]AuditLogEntry, 0, len(s.auditByID))
 	for _, entry := range s.auditByID {
 		fixture, ok := s.fixturesByID[entry.FixtureID]
-		if ok && fixture.SeasonID == seasonID {
+		if (ok && fixture.SeasonID == seasonID) || entry.SeasonID == seasonID {
 			entries = append(entries, entry)
 		}
 	}
@@ -448,8 +450,8 @@ func (s *MemoryStore) CreatePendingResult(_ context.Context, pending PendingResu
 
 	pending.ID = s.nextPendingID
 	s.nextPendingID++
-	s.pendingByID[pending.ID] = pending
-	return pending, nil
+	s.pendingByID[pending.ID] = clonePending(pending)
+	return clonePending(pending), nil
 }
 
 func (s *MemoryStore) ListPendingResults(_ context.Context, status PendingResultStatus) ([]PendingResult, error) {
@@ -459,7 +461,7 @@ func (s *MemoryStore) ListPendingResults(_ context.Context, status PendingResult
 	pending := make([]PendingResult, 0, len(s.pendingByID))
 	for _, entry := range s.pendingByID {
 		if entry.Status == status {
-			pending = append(pending, entry)
+			pending = append(pending, clonePending(entry))
 		}
 	}
 	sort.Slice(pending, func(i, j int) bool { return pending[i].ReceivedAt.Before(pending[j].ReceivedAt) })
@@ -474,7 +476,7 @@ func (s *MemoryStore) GetPendingResult(_ context.Context, pendingID int64) (Pend
 	if !ok {
 		return PendingResult{}, ErrPendingResultNotFound
 	}
-	return pending, nil
+	return clonePending(pending), nil
 }
 
 func (s *MemoryStore) UpdatePendingResult(_ context.Context, pending PendingResult) (PendingResult, error) {
@@ -484,8 +486,11 @@ func (s *MemoryStore) UpdatePendingResult(_ context.Context, pending PendingResu
 	if _, ok := s.pendingByID[pending.ID]; !ok {
 		return PendingResult{}, ErrPendingResultNotFound
 	}
-	s.pendingByID[pending.ID] = pending
-	return pending, nil
+	original := s.pendingByID[pending.ID]
+	original.Status, original.ConfirmedAt, original.ConfirmedBy = pending.Status, pending.ConfirmedAt, pending.ConfirmedBy
+	pending = original
+	s.pendingByID[pending.ID] = clonePending(pending)
+	return clonePending(pending), nil
 }
 
 func (s *MemoryStore) PendingResultExistsForExternalMatch(_ context.Context, externalMatchID string) (bool, error) {

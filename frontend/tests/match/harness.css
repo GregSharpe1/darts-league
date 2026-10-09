@@ -1,0 +1,7 @@
+@import '../../../docs/mockups/autodarts/fonts/fonts.css';
+.match-harness { max-width: 1180px; padding: 32px; margin: auto; }
+.match-harness > h1 { font-size: clamp(40px,5vw,64px); text-transform: uppercase; line-height: 1; margin: 16px 0; }
+.match-harness > h1 span { color: var(--color-accent); }
+.harness-label { color: #edc783; font-size: 12px; letter-spacing: .1em; text-transform: uppercase; }
+.harness-note { color: var(--color-muted); font-size: 14px; margin-bottom: 24px; }
+@media (max-width: 640px) { .match-harness { padding: 24px 16px; } }

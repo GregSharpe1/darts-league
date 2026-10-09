@@ -176,6 +176,7 @@ func TestEditResultUpdatesStandingsAndWritesAuditLog(t *testing.T) {
 		t.Fatalf("expected result edit to succeed, got %v", err)
 	}
 
+	now = time.Date(2026, time.March, 23, 9, 0, 0, 0, time.UTC)
 	standings, err := resultService.Standings(ctx, divisions[0].Slug)
 	if err != nil {
 		t.Fatalf("expected standings, got %v", err)

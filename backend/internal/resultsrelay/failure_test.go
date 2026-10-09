@@ -20,8 +20,11 @@ func TestPollMemoryCallbackRefusesReceiptsAndLogsNoPayload(t *testing.T) {
 	service := league.NewPendingResultService(store, league.NewResultService(store))
 	client := &deliveryClient{messages: []Message{delivery("secret-match")}}
 	var logs bytes.Buffer
-	poller := NewPoller(client, service, time.UTC, time.Minute, log.New(&logs, "", 0)).WithDurableIngest(service.IngestDurable)
-	if err := poller.PollNow(context.Background()); !errors.Is(err, league.ErrDurablePendingStoreRequired) {
+	poller := NewPoller(client, service, time.UTC, time.Minute, log.New(&logs, "", 0)).WithDurableIngest(func(ctx context.Context, message Message) error {
+		_, err := service.IngestDurablePayload(ctx, []byte(message.Body))
+		return err
+	})
+	if err := poller.PollNow(context.Background()); !errors.Is(err, league.ErrDurableStoreRequired) {
 		t.Fatalf("memory callback accepted: %v", err)
 	}
 	if len(client.acked) != 0 {
@@ -42,7 +45,7 @@ func TestPollRejectsIncompleteReceipts(t *testing.T) {
 	} {
 		receipt.Body = delivery("id").Body
 		client := &deliveryClient{messages: []Message{receipt}}
-		poller := NewPoller(client, league.PendingResultService{}, time.UTC, time.Minute, log.Default()).WithDurableIngest(func(context.Context, league.PendingResult) error {
+		poller := NewPoller(client, league.PendingResultService{}, time.UTC, time.Minute, log.Default()).WithDurableIngest(func(context.Context, Message) error {
 			t.Fatal("invalid receipt reached storage")
 			return nil
 		})
@@ -98,7 +101,7 @@ func TestClientBoundsAckResponseAndSurfacesReceiveFailure(t *testing.T) {
 
 func TestPollPassesBoundedContextToStorage(t *testing.T) {
 	client := &deliveryClient{messages: []Message{delivery("id")}}
-	poller := NewPoller(client, league.PendingResultService{}, time.UTC, time.Minute, log.Default()).WithDurableIngest(func(ctx context.Context, _ league.PendingResult) error {
+	poller := NewPoller(client, league.PendingResultService{}, time.UTC, time.Minute, log.Default()).WithDurableIngest(func(ctx context.Context, _ Message) error {
 		deadline, ok := ctx.Deadline()
 		if !ok || time.Until(deadline) > 45*time.Second {
 			t.Fatal("unbounded ingestion")

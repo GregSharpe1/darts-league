@@ -791,14 +791,19 @@ type AdminFixtureWeek struct {
 }
 
 type AdminFixture struct {
-	ID          int64
-	PlayerOne   string
-	PlayerTwo   string
-	ScheduledAt time.Time
-	GameVariant string
-	LegsToWin   int
-	Status      string
-	Result      *ResultSnapshot
+	ID             int64
+	SeasonID       int64
+	DivisionID     int64
+	PlayerOneID    int64
+	PlayerTwoID    int64
+	ExpectedResult *ExpectedResult
+	PlayerOne      string
+	PlayerTwo      string
+	ScheduledAt    time.Time
+	GameVariant    string
+	LegsToWin      int
+	Status         string
+	Result         *ResultSnapshot
 }
 
 func (s FixtureService) AdminSchedule(ctx context.Context, divisionSlug string) ([]AdminFixtureWeek, error) {
@@ -842,8 +847,13 @@ func (s FixtureService) AdminSchedule(ctx context.Context, divisionSlug string) 
 	for _, week := range grouped {
 		adminFixtures := make([]AdminFixture, 0, len(week.Fixtures))
 		for _, fixture := range week.Fixtures {
+			var expected *ExpectedResult
+			if result, ok := resultsByFixtureID[fixture.ID]; ok {
+				expected = ExpectedFromResult(result)
+			}
 			adminFixtures = append(adminFixtures, AdminFixture{
-				ID:          fixture.ID,
+				ID:       fixture.ID,
+				SeasonID: fixture.SeasonID, DivisionID: fixture.DivisionID, PlayerOneID: fixture.PlayerOneID, PlayerTwoID: fixture.PlayerTwoID, ExpectedResult: expected,
 				PlayerOne:   playersByID[fixture.PlayerOneID].FixtureLabel(),
 				PlayerTwo:   playersByID[fixture.PlayerTwoID].FixtureLabel(),
 				ScheduledAt: fixture.ScheduledAt,
@@ -878,7 +888,7 @@ func NewResultServiceWithNow(store Store, now func() time.Time) ResultService {
 	return ResultService{store: store, now: now}
 }
 
-func (s ResultService) RecordResult(ctx context.Context, fixtureID int64, playerOneLegs, playerTwoLegs int, playerOneAverage, playerTwoAverage *float64) (Result, error) {
+func (s ResultService) recordResult(ctx context.Context, fixtureID int64, playerOneLegs, playerTwoLegs int, playerOneAverage, playerTwoAverage *float64) (Result, error) {
 	if err := s.requireWritableFixture(ctx, fixtureID); err != nil {
 		return Result{}, err
 	}
@@ -915,7 +925,7 @@ func (s ResultService) RecordResult(ctx context.Context, fixtureID int64, player
 	return s.store.CreateResult(ctx, result)
 }
 
-func (s ResultService) EditResult(ctx context.Context, fixtureID int64, playerOneLegs, playerTwoLegs int, playerOneAverage, playerTwoAverage *float64, actor string) (Result, error) {
+func (s ResultService) editResult(ctx context.Context, fixtureID int64, playerOneLegs, playerTwoLegs int, playerOneAverage, playerTwoAverage *float64, actor string) (Result, error) {
 	if err := s.requireWritableFixture(ctx, fixtureID); err != nil {
 		return Result{}, err
 	}
@@ -940,7 +950,11 @@ func (s ResultService) EditResult(ctx context.Context, fixtureID int64, playerOn
 	updated.PlayerOneAverage = playerOneAverage
 	updated.PlayerTwoAverage = playerTwoAverage
 	updated.WinnerID = winnerID
-	updated.UpdatedAt = now
+	updated.UpdatedAt = nextResultTime(now, existing.UpdatedAt)
+	metadata, err := detachImport(ctx, s.store, existing, &updated)
+	if err != nil {
+		return Result{}, err
+	}
 
 	updated, err = s.store.UpdateResult(ctx, updated)
 	if err != nil {
@@ -950,6 +964,7 @@ func (s ResultService) EditResult(ctx context.Context, fixtureID int64, playerOn
 	_, err = s.store.CreateAuditLog(ctx, AuditLogEntry{
 		FixtureID: fixtureID,
 		Action:    "result_edited",
+		Import:    metadata,
 		Actor:     actor,
 		OldResult: SnapshotFromResult(existing),
 		NewResult: SnapshotFromResult(updated),
@@ -962,7 +977,7 @@ func (s ResultService) EditResult(ctx context.Context, fixtureID int64, playerOn
 	return updated, nil
 }
 
-func (s ResultService) DeleteResult(ctx context.Context, fixtureID int64, actor string) error {
+func (s ResultService) deleteResult(ctx context.Context, fixtureID int64, actor string) error {
 	if err := s.requireWritableFixture(ctx, fixtureID); err != nil {
 		return err
 	}
@@ -972,6 +987,10 @@ func (s ResultService) DeleteResult(ctx context.Context, fixtureID int64, actor 
 	}
 
 	now := s.now().UTC()
+	metadata, err := detachImport(ctx, s.store, existing, nil)
+	if err != nil {
+		return err
+	}
 	if err := s.store.DeleteResultByFixture(ctx, fixtureID); err != nil {
 		return err
 	}
@@ -979,42 +998,13 @@ func (s ResultService) DeleteResult(ctx context.Context, fixtureID int64, actor 
 	_, err = s.store.CreateAuditLog(ctx, AuditLogEntry{
 		FixtureID: fixtureID,
 		Action:    "result_deleted",
+		Import:    metadata,
 		Actor:     actor,
 		OldResult: SnapshotFromResult(existing),
 		NewResult: nil,
 		CreatedAt: now,
 	})
 	return err
-}
-
-func (s ResultService) Standings(ctx context.Context, divisionSlug string) ([]StandingRow, error) {
-	season, err := s.store.GetActiveSeason(ctx)
-	if err != nil {
-		return nil, err
-	}
-	division, err := s.store.GetDivisionBySlug(ctx, season.ID, divisionSlug)
-	if err != nil {
-		return nil, err
-	}
-	players, err := s.store.ListPlayersBySeason(ctx, season.ID)
-	if err != nil {
-		return nil, err
-	}
-	fixtures, err := s.store.ListFixturesByDivision(ctx, division.ID)
-	if err != nil {
-		return nil, err
-	}
-	results, err := s.store.ListResultsByDivision(ctx, division.ID)
-	if err != nil {
-		return nil, err
-	}
-	divisionPlayers := make([]Player, 0)
-	for _, player := range players {
-		if player.DivisionID != nil && *player.DivisionID == division.ID && player.Status == PlayerStatusAssigned {
-			divisionPlayers = append(divisionPlayers, player)
-		}
-	}
-	return BuildStandings(divisionPlayers, fixtures, results), nil
 }
 
 func (s ResultService) AuditLog(ctx context.Context, divisionSlug string) ([]AuditLogEntry, error) {

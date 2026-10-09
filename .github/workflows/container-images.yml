@@ -138,6 +138,10 @@ jobs:
         working-directory: frontend
         run: npm test
 
+      - name: Typecheck frontend tests in full repository
+        working-directory: frontend
+        run: npm run test:typecheck
+
       - name: Run Playwright smoke tests
         working-directory: frontend
         run: CAPTURE_UI_SCREENSHOTS=1 npm run test:e2e

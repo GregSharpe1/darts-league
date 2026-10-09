@@ -12,24 +12,25 @@ import (
 	"testing"
 	"time"
 
+	"github.com/greg/darts-league/backend/internal/autodarts"
 	"github.com/greg/darts-league/backend/internal/league"
 )
 
 type failingStore struct {
-	league.Store
+	*league.MemoryStore
 	fail bool
 }
 
-func (s *failingStore) CreatePendingResult(ctx context.Context, pending league.PendingResult) (league.PendingResult, error) {
-	if s.fail && pending.ExternalMatchID == "retry" {
-		return league.PendingResult{}, errors.New("database write failed")
+func (s *failingStore) InsertImport(ctx context.Context, imported autodarts.Import, received time.Time) (league.ImportOutcome, error) {
+	if s.fail && imported.ExternalMatchID == "retry" {
+		return league.ImportOutcome{}, errors.New("database write failed")
 	}
-	return s.Store.CreatePendingResult(ctx, pending)
+	return s.MemoryStore.InsertImport(ctx, imported, received)
 }
 
 func TestHTTPDeliveryRetriesStorageAndLostAckWithoutDuplicateImports(t *testing.T) {
 	// Given a real ingestion service over a test store and an HTTP receive/ack queue.
-	store := &failingStore{Store: league.NewMemoryStore(), fail: true}
+	store := &failingStore{MemoryStore: league.NewMemoryStore(), fail: true}
 	service := league.NewPendingResultService(store, league.NewResultService(store))
 	var mu sync.Mutex
 	queue := []Message{delivery("good"), delivery("retry")}
@@ -83,9 +84,8 @@ func TestHTTPDeliveryRetriesStorageAndLostAckWithoutDuplicateImports(t *testing.
 	}
 	legacy := NewPoller(client, service, time.UTC, time.Minute, log.New(io.Discard, "", 0))
 	// The memory store models the durable callback only for this offline test.
-	poller := legacy.WithDurableIngest(func(ctx context.Context, pending league.PendingResult) error {
-		_, err := service.Ingest(ctx, pending.ExternalMatchID, pending.PlayerOneName, pending.PlayerOneLegs, pending.PlayerOneAverage, pending.PlayerTwoName, pending.PlayerTwoLegs, pending.PlayerTwoAverage)
-		return err
+	poller := legacy.WithDurableIngest(func(ctx context.Context, message Message) error {
+		return legacy.processMessage(ctx, Message{Body: message.Body})
 	})
 	// When the first poll loses its acknowledgement and one database write fails.
 	if err := poller.PollNow(context.Background()); err == nil {

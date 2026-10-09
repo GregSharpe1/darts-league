@@ -226,6 +226,16 @@ func writeDomainError(w http.ResponseWriter, err error) {
 		writeError(w, http.StatusNotFound, "pending_result_not_found", "Pending result was not found.")
 	case errors.Is(err, league.ErrPendingResultNotPending):
 		writeError(w, http.StatusConflict, "pending_result_processed", "This pending result has already been confirmed or rejected.")
+	case errors.Is(err, league.ErrApprovalConflict):
+		writeError(w, http.StatusConflict, "approval_conflict", "Target, source mapping or expected result changed. Reload before approval.")
+	case errors.Is(err, league.ErrReplacementRequired):
+		writeError(w, http.StatusConflict, "replacement_required", "Explicit replacement and a reason are required.")
+	case errors.Is(err, league.ErrImportReviewBlocked):
+		writeError(w, http.StatusConflict, "import_review_blocked", "Conflicting source detail cannot be confirmed.")
+	case errors.Is(err, league.ErrImportAttestation):
+		writeError(w, http.StatusBadRequest, "import_attestation_required", "Attest the legacy match format and explain any missing source date.")
+	case errors.Is(err, league.ErrInvalidMapping):
+		writeError(w, http.StatusBadRequest, "invalid_source_mapping", "Map both source players to distinct fixture players.")
 	case errors.Is(err, league.ErrDuplicateExternalMatch):
 		writeError(w, http.StatusConflict, "duplicate_external_match", "This match has already been received.")
 	case errors.Is(err, league.ErrNoFixtureForPlayers):
