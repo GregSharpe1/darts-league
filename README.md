@@ -35,6 +35,7 @@
 - `frontend/` - React app
 - `.agents/skills/` - repo-local agent workflow and skill docs
 - `docs/` - operational guides, including [Slack notifications](docs/notifications.md)
+- `score-scrape/terraform/` - [results relay infrastructure and deployment guide](score-scrape/terraform/README.md)
 - `docker-compose.yml` - local container stack
 - `Makefile` - common local commands
 - `AGENTS.md` - project/product rules for coding agents
