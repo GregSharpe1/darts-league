@@ -11,6 +11,7 @@ import { AdminPage } from './pages/admin/AdminPage'
 import { DivisionAdminPage } from './pages/admin/DivisionAdminPage'
 import { PendingResultsPage } from './pages/admin/PendingResultsPage'
 import { MatchPage } from './pages/matches/MatchPage'
+import { PlayerPage } from './pages/players/PlayerPage'
 
 function App() {
   const location = useLocation()
@@ -80,6 +81,8 @@ function App() {
           <Route path="/divisions/:slug/standings" element={<StandingsPage />} />
           <Route path="/register" element={<RegisterPage />} />
           <Route path="/matches/:fixtureId" element={<MatchPage />} />
+          <Route path="/seasons/:seasonId/players/:playerId" element={<PlayerPage />} />
+          <Route path="/admin/seasons/:seasonId/players/:playerId" element={<PlayerPage admin />} />
           <Route path="/admin/matches/:fixtureId" element={<MatchPage admin />} />
           <Route path="/admin" element={<AdminPage />} />
           <Route path="/admin/pending-results" element={<PendingResultsPage />} />
