@@ -9,7 +9,7 @@ profile = "darts"
 confirm_changeset = true
 capabilities = "CAPABILITY_IAM"
 disable_rollback = true
-parameter_overrides = "AllowedOrigin=\"*\""
+parameter_overrides = "AllowedOrigin=\"https://play.autodarts.com\""
 image_repositories = []
 
 [default.global.parameters]
