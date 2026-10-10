@@ -11,3 +11,12 @@ frontend/test-results/
 frontend/tests/**/screenshots/
 frontend/src/pages/**/browser/screenshots/
 docs/pr-screenshots/**
+score-scrape/reader/node_modules/
+score-scrape/terraform/build/
+**/.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+*.tfvars
+*.tfvars.json
+crash.log

@@ -1,5 +1,11 @@
 # Stage 02: durable legacy relay
 
+For deployment use the [Terraform relay handoff](../../score-scrape/terraform/README.md).
+The obsolete SAM deployment entrypoints have been removed without changing any
+existing AWS stack. Terraform does not automatically migrate an old queue backlog.
+This document records the historical stage-2 legacy backend contract; stage 4
+replaces that adapter with content-versioned ingestion and explicit review.
+
 ## Scope and release gates
 
 This stage is independently usable with the current Postgres schema and old
@@ -9,8 +15,8 @@ result validation and `ResultStore` interfaces remain unchanged. No migration,
 backfill, trigger or index is added. The old `scoreScrape.js` producer continues
 unchanged. Detailed/v1 producers remain sandbox-only and undeployed.
 
-**Public rollout is gated. Authentication is explicitly deferred.** The SAM
-routes still use `AuthorizationType: NONE`. Anyone with network access can
+**Public rollout is gated. Authentication is explicitly deferred.** The relay
+routes still use `NONE` authorization. Anyone with network access can
 submit fabricated results, receive private match data/receipt handles, or delete
 deliveries through `/results/ack`. CORS is not authentication: restricting the
 browser origin does not stop non-browser clients. Do not expose this as an
@@ -64,10 +70,10 @@ parent/production database access, deployment, push or PR was performed.
 HTTP requests time out after 12 seconds; a backend poll has a 45-second deadline.
 The Lambda has a 10-second timeout and an 8-second SDK abort signal. The source
 queue visibility timeout is 180 seconds, retention four days, max receive count
-five. The encrypted DLQ retains messages for 14 days and is retained on stack
-deletion/replacement. CloudWatch alarms cover visible DLQ messages and source
+five. The encrypted DLQ retains messages for 14 days. Terraform protects both
+queues with `prevent_destroy`; see the handoff for its limits. CloudWatch alarms cover visible DLQ messages and source
 age over three days; operators must connect alarm actions to their alerting
-destination (this template does not choose one). Logs contain counts and generic
+destination (the configuration does not choose one). Logs contain counts and generic
 failure categories, never bodies, receipt handles or SDK error details.
 
 ## Paired deployment procedure (not executed)
@@ -78,11 +84,11 @@ failure categories, never bodies, receipt handles or SDK error details.
    empty and restart backend consumers; empty keeps polling disabled. Stop any
    separate old readers. Keep the legacy producer unchanged: messages can queue
    during the short maintenance window, within source retention.
-3. Deploy the new reader and SAM receive/ack routes plus queue/DLQ configuration
-   while polling stays paused. Deploy this backend in the same maintenance window.
-   Verify saved `samconfig.toml` uses `https://play.autodarts.com`, not `*` or `.io`.
-4. Verify the backend is using Postgres (not fallback memory), schema has existing
-   `external_match_id` uniqueness, and both relay routes are the paired versions.
+3. Follow the Terraform handoff to deploy the reader, receive/ack routes and queues
+   while polling stays paused. Preserve existing state for an already-deployed
+   Terraform relay. Confirm `allowed_origin` is `https://play.autodarts.com`.
+4. Verify the backend is using Postgres (not fallback memory), schema matches its
+   deployed application stage, and both relay routes are the paired versions.
    Test fresh delivery, lost acknowledgement/redelivery, pending visibility in the
    old admin, and rejected duplicate behavior in the approved test environment.
 5. Only after those checks restore `RESULTS_ENDPOINT` to the paired `/results`
@@ -97,22 +103,21 @@ only redrive reviewed deliveries after the appropriate compatible stage is activ
 ## Verification and Stage 3 handoff
 
 Local checks: `go test ./...` and `go test -race -shuffle=on -count=1 ./...` from
-`backend/`; `node --test` from `score-scrape/reader/` (13 tests). The HTTP/service
+`backend/`; `node --test` from `score-scrape/reader/`. Infrastructure checks and
+Node 22 packaging instructions are in the Terraform handoff. The HTTP/service
 tests include simulated storage failure, lost ack, partial ack, response bounds,
 timeouts, malformed/detailed input, null averages and memory refusal. Simulated
 storage tests are not evidence of real Postgres durability. Two new real-Postgres
 tests cover concurrent replays, one fresh notification, rejected/confirmed replay,
 cancellation, and no ack after storage failure; both were explicitly skipped here.
-Reader tests ran on local Node 20; deployed runtime is Node 22. SAM CLI validation
-and live AWS tests were not run. Initial npm registry install timed out; offline
-installation of the existing cached SDK succeeded without manifest/lock changes.
+The reader runtime is Node 22. Local mocked checks are not a live AWS validation.
 
 Use only a disposable test database: existing full-suite database tests reset
 tables. The new relay-specific tests create and drop their own random schema.
-Run `go test -race -v ./internal/store/postgres -run TestDurableLegacy -count=1`
-with that disposable URL to exercise the real commit/uniqueness boundaries.
+Run the current backend tests with that disposable URL to exercise the deployed
+stage's real commit/uniqueness boundaries.
 
-Stage 3 must explicitly replace/extend the legacy-only parser and typed callback
+Stage 4 replaces the legacy-only parser and typed callback
 when introducing detailed persistence; do not silently drop detailed fields into
 this legacy adapter. Keep the commit-before-ack, persisted-duplicate verification,
 memory refusal and nullable-average guarantees. Reconcile the callback signature
