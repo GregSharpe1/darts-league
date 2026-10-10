@@ -18,7 +18,7 @@ const expected = state => ({
   }),
   detail: { coverage: 'partial', legs: state.games.map(g => ({ number: g.leg + 1, completed: true, winner_id: g.winnerPlayerId,
     visits: g.turns.map(t => ({ number: t.turn + 1, player_id: t.playerId, start_remaining: t.score + t.points, end_remaining: t.score, bust: false,
-      throws: t.throws.map(d => ({ number: d.throw + 1, segment: { bed: { Triple: 'triple', Double: 'double', Outside: 'miss', Single: 'single' }[d.segment.bed], number: d.segment.bed === 'Outside' ? 0 : d.segment.number }, entry_type: 'manual',
+      throws: t.throws.map(d => ({ number: d.throw + 1, segment: { bed: { Triple: 'triple', Double: 'double', Outside: 'miss', Single: 'single', SingleOuter: 'single' }[d.segment.bed], number: d.segment.bed === 'Outside' ? 0 : d.segment.number }, entry_type: 'manual',
         position: d.coords ? { x: d.coords.x, y: d.coords.y, units: 'board-radius', origin: 'bull', axis_orientation: 'x-right-y-up', provenance: 'manual' } : null })) })) })) }
 });
 
@@ -97,6 +97,25 @@ test('offline intercepted XHR: exact detail, privacy, retries and filtering', as
     assert.equal(resultDarts[1].entry_type, 'automatic');
     assert.equal(resultDarts[1].position.units, null);
     assert.equal(resultDarts[2].position, null);
+    response = source(); response.id = 'manual-outer-singles';
+    Object.assign(response.matchStats[1], { average: 60, first9Average: 60 });
+    for (const game of response.games) {
+      let remaining = 501;
+      for (const turn of game.turns.filter(turn => turn.playerId === response.players[1].id)) {
+        for (const dart of turn.throws) {
+          dart.segment = { bed: 'SingleOuter', number: 20, multiplier: 1, name: 'S20' };
+          dart.coords = { x: 0, y: 0.8 };
+        }
+        turn.points = turn.throws.length * 20;
+        remaining -= turn.points;
+        turn.score = remaining;
+      }
+    }
+    await emit(); await button('Submit').waitFor({ timeout: 2000 }); await confirm(); await close();
+    assert.deepEqual(posts.at(-1), expected(response));
+    const single = posts.at(-1).detail.legs[0].visits.find(visit => visit.player_id === response.players[1].id).throws[0];
+    assert.deepEqual(single.segment, { bed: 'single', number: 20 });
+    assert.equal(single.position.y, 0.8);
     response = source(); response.id = 'summary'; delete response.games; delete response.matchStats;
     await emit('https://api.autodarts.io/as/v0/matches/summary/stats'); await confirm(); await close();
     assert.equal(posts.at(-1).detail, null); assert.equal(posts.at(-1).players[0].stats, null);

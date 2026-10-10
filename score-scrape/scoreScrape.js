@@ -89,7 +89,7 @@
           requireValue(start >= 2 && start <= 501);
           const throws = [...turn.throws].sort((a, b) => a.throw - b.throw).map((dart, index) => {
             requireValue(dart.throw === index);
-            const beds = { Outside: "miss", Single: "single", Double: "double", Triple: "triple", OuterBull: "outer_bull", InnerBull: "inner_bull" };
+            const beds = { Outside: "miss", Single: "single", SingleOuter: "single", Double: "double", Triple: "triple", OuterBull: "outer_bull", InnerBull: "inner_bull" };
             let bed = beds[dart.segment?.bed];
             if (dart.segment?.number === 25 && bed === "single") bed = "outer_bull";
             if (dart.segment?.number === 25 && bed === "double") bed = "inner_bull";
