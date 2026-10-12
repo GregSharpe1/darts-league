@@ -106,19 +106,22 @@ func (p Import) detailConflict() string {
 			lastPlayer = visit.PlayerID
 			lastNumber = visit.Number
 			score := visit.StartRemaining
-			bust := false
-			for k, dart := range visit.Throws {
+			bust, terminal := false, false
+			for _, dart := range visit.Throws {
+				if terminal {
+					// Autodarts pads a bust turn to three darts with misses.
+					if bust && dart.Segment.Bed == "miss" {
+						continue
+					}
+					return "throws_after_terminal_dart"
+				}
 				value, _ := segmentScore(dart.Segment)
 				score -= value
 				double := dart.Segment.Bed == "double" || dart.Segment.Bed == "inner_bull"
 				bust = score < 0 || score == 1 || (score == 0 && !double)
-				if bust || score == 0 {
-					if k != len(visit.Throws)-1 {
-						return "throws_after_terminal_dart"
-					}
-					if !bust {
-						checkedOut = visit.PlayerID
-					}
+				terminal = bust || score == 0
+				if terminal && !bust {
+					checkedOut = visit.PlayerID
 				}
 			}
 			if bust {

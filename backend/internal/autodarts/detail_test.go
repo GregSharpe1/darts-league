@@ -25,6 +25,17 @@ func TestDetailConflictsAreRetainedNotRepaired(t *testing.T) {
 			dart.Number = 2
 			v.Throws = append(v.Throws, dart)
 		}},
+		{"miss after checkout", "throws_after_terminal_dart", func(p *Payload) {
+			v := &p.Detail.Legs[0].Visits[0]
+			v.Throws = append(v.Throws, Throw{Number: 2, Segment: Segment{Bed: "miss"}, EntryType: "automatic"})
+		}},
+		{"score after bust", "throws_after_terminal_dart", func(p *Payload) {
+			l := &p.Detail.Legs[0]
+			l.Completed, l.WinnerID = false, nil
+			v := &l.Visits[0]
+			v.StartRemaining, v.EndRemaining, v.Bust = 32, 32, true
+			v.Throws = append(v.Throws, Throw{Number: 2, Segment: Segment{Bed: "single", Number: 1}, EntryType: "automatic"})
+		}},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			var p Payload
@@ -62,16 +73,23 @@ func TestBustRollback(t *testing.T) {
 	v.StartRemaining = 32
 	v.EndRemaining = 32
 	v.Bust = true
-	body, err := json.Marshal(p)
-	if err != nil {
-		t.Fatal(err)
-	}
-	got, err := Parse(body)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if got.ReviewReason != "" {
-		t.Fatal(got.ReviewReason)
+	for _, padded := range []bool{false, true} {
+		if padded {
+			for n := 2; n <= 3; n++ {
+				v.Throws = append(v.Throws, Throw{Number: n, Segment: Segment{Bed: "miss"}, EntryType: "automatic"})
+			}
+		}
+		body, err := json.Marshal(p)
+		if err != nil {
+			t.Fatal(err)
+		}
+		got, err := Parse(body)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if got.ReviewReason != "" {
+			t.Fatalf("padded=%v: %s", padded, got.ReviewReason)
+		}
 	}
 }
 
