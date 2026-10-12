@@ -50,7 +50,7 @@ func (s PendingResultService) approve(ctx context.Context, req ApprovalRequest) 
 	if err != nil {
 		return Result{}, err
 	}
-	if fixture.SeasonID != req.SeasonID || fixture.GameVariant != "501" || fixture.LegsToWin != 3 {
+	if fixture.SeasonID != req.SeasonID || fixture.GameVariant != "501" || (fixture.LegsToWin != 2 && fixture.LegsToWin != 3) {
 		return Result{}, ErrApprovalConflict
 	}
 	if len(record.Import.Players) != 2 || len(req.Mapping) != 2 {
@@ -119,7 +119,7 @@ func (s PendingResultService) approve(ctx context.Context, req ApprovalRequest) 
 	if one != fixture.PlayerOneID {
 		a, b = b, a
 	}
-	if err := ValidateResultScore(a.LegsWon, b.LegsWon, 3); err != nil {
+	if err := ValidateResultScore(a.LegsWon, b.LegsWon, fixture.LegsToWin); err != nil {
 		return Result{}, err
 	}
 	meta := &ImportAudit{PendingID: req.PendingID, Source: record.Import.Source, ExternalMatchID: record.Import.ExternalMatchID, Digest: record.Import.Digest, Mapping: maps.Clone(req.Mapping), Reason: strings.TrimSpace(req.Reason), AttestFormat: req.AttestFormat, MissingDateReason: strings.TrimSpace(req.MissingDateReason)}

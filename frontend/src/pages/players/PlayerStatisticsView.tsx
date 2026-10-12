@@ -19,7 +19,7 @@ export function PlayerStatisticsView({ stats: s, admin }: { readonly stats: Play
     s.checkout_attempts === 0 ? '0 / 0 - no attempts' : `${s.checkout_hits} / ${s.checkout_attempts} (${s.checkout_percentage?.toFixed(1)}%)`
   return <>
     <div className="player-hero content-panel">
-      <div><span className="eyebrow">Season {s.season_id} / 501 / First to 3</span><h1>{s.preferred_name}</h1>
+      <div><span className="eyebrow">Season {s.season_id} / 501</span><h1>{s.preferred_name}</h1>
         <p>{admin ? 'Current recorded results in this season.' : 'Revealed results in this season only.'} Missing evidence is never treated as zero.</p></div>
       <dl className="player-record">
         {([['Played', s.played], ['Won', s.won], ['Lost', s.lost], ['Points', s.points], ['Legs for', s.legs_for], ['Legs against', s.legs_against], ['Leg difference', s.leg_difference]] as const)

@@ -77,11 +77,11 @@ export function approvalProblem(detail: PendingDetail, selection: ReviewSelectio
   if (detail.pending_result.status !== 'pending') return 'This import is no longer pending. Reload the inbox.'
   if (detail.players.length !== 2 || !detail.players[0].match_player_id || !detail.players[1].match_player_id || detail.players[0].match_player_id === detail.players[1].match_player_id) return 'Two distinct source players are required.'
   const scores = detail.players.map(player => player.legs_won)
-  if (!scores.every(Number.isInteger) || !((scores[0] === 3 && scores[1] >= 0 && scores[1] < 3) || (scores[1] === 3 && scores[0] >= 0 && scores[0] < 3))) return 'Source score must be 3-0, 3-1 or 3-2.'
+  if (!scores.every(Number.isInteger) || ![2, 3].includes(Math.max(...scores)) || Math.min(...scores) < 0 || scores[0] === scores[1]) return 'Source score must be 2-0, 2-1, 3-0, 3-1 or 3-2.'
   if (!selection.seasonId) return 'Choose the current season explicitly.'
   if (playerIds.length !== 2 || !playerIds.every(id => id > 0) || playerIds[0] === playerIds[1]) return 'Map both source players to distinct league players.'
   if (!fixture || ![fixture.player_one_id, fixture.player_two_id].every(id => id !== undefined && playerIds.includes(id))) return 'Choose a fixture for this exact player pair.'
-  if (fixture.game_variant !== '501' || fixture.legs_to_win !== 3) return 'The selected fixture must be 501, first to 3.'
+  if (fixture.game_variant !== '501' || fixture.legs_to_win !== Math.max(...scores)) return `The selected fixture must be 501, first to ${Math.max(...scores)}.`
   if (fixture.expected_result === undefined || (fixture.result && !fixture.expected_result)) return 'Expected result snapshot is unavailable. Reload before approving.'
   if (fixture.expected_result && (!fixture.expected_result.id || !fixture.expected_result.updated_at)) return 'Expected result snapshot is incomplete. Reload before approving.'
   if ((fixture.expected_result || detail.changed_import) && (!selection.replace || !selection.reason.trim())) return 'Replacement requires explicit consent and a reason.'

@@ -42,7 +42,7 @@ test('offline intercepted XHR: exact detail, privacy, retries and filtering', as
     const install = async (live = true, old = false) => {
       await page.goto('https://play.autodarts.com/');
       await page.evaluate(({ live, old }) => {
-        document.cookie = `autodarts_score_scrape_settings=${encodeURIComponent(JSON.stringify({ endpoint: 'https://relay.invalid/results', baseScore: 501, winningLegs: old ? 2 : 3 }))}; path=/`;
+        document.cookie = `autodarts_score_scrape_settings=${encodeURIComponent(JSON.stringify({ endpoint: 'https://relay.invalid/results', baseScore: 501, winningLegs: old ? 4 : 3 }))}; path=/`;
         if (live) window.__scoreScrapeSandbox = false;
       }, { live, old });
       await page.evaluate(script);
@@ -54,7 +54,8 @@ test('offline intercepted XHR: exact detail, privacy, retries and filtering', as
     const confirm = async () => { await button('Submit').click(); };
     const close = async () => { await button('Close').click(); };
     await install(true, true);
-    assert.equal(await page.locator('[name=winningLegs]').inputValue(), '3');
+    assert.equal(await page.locator('[name=winningLegs]').inputValue(), '2');
+    await page.locator('[name=winningLegs]').fill('3');
     await button('Save').click();
     assert.equal(await page.locator('#autodarts-wrapper-installed-indicator').count(), 1);
     await emit(); await emit();

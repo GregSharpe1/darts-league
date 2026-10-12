@@ -11,7 +11,7 @@
   const DEFAULT_SETTINGS = {
     endpoint: "",
     baseScore: 501,
-    winningLegs: 3
+    winningLegs: 2
   };
 
   const open = XMLHttpRequest.prototype.open;
@@ -45,12 +45,13 @@
   };
   const project = (state, matchId) => {
     requireValue(state && state.id === matchId && state.variant === "X01" && state.settings?.baseScore === 501 && state.settings.outMode === "Double");
-    requireValue(state.targetLegs === 3 && (state.targetSets === null || state.targetSets === 0) && timestamp(state.finishedAt) !== null);
+    const legsToWin = state.targetLegs;
+    requireValue((legsToWin === 2 || legsToWin === 3) && (state.targetSets === null || state.targetSets === 0) && timestamp(state.finishedAt) !== null);
     requireValue(Array.isArray(state.players) && state.players.length === 2 && Array.isArray(state.scores) && state.scores.length === 2);
     const ids = state.players.map(player => id(player.id));
     requireValue(new Set(ids).size === 2 && [0, 1].includes(state.winner));
-    const scores = state.scores.map(score => count(score.legs, 3));
-    requireValue(scores[state.winner] === 3 && scores[1 - state.winner] < 3);
+    const scores = state.scores.map(score => count(score.legs, legsToWin));
+    requireValue(scores[state.winner] === legsToWin && scores[1 - state.winner] < legsToWin);
     const reference = value => { requireValue(ids.includes(value)); return value; };
     const players = state.players.map((player, index) => {
       requireValue(typeof player.name === "string" && [...player.name].length >= 1 && [...player.name].length <= 80 && !/[\u0000-\u001f\u007f-\u009f]/.test(player.name));
@@ -59,7 +60,7 @@
       const row = rows[0];
       const stats = row ? {
         match_average: metric(row.average, 180, false), points_scored: null,
-        darts_thrown: metric(row.dartsThrown, 3000), checkout_hits: metric(row.checkoutsHit, 3), checkout_attempts: metric(row.checkouts, 3000)
+        darts_thrown: metric(row.dartsThrown, 3000), checkout_hits: metric(row.checkoutsHit, legsToWin), checkout_attempts: metric(row.checkouts, 3000)
       } : null;
       if (stats) {
         for (const [source, field, max, integer] of [
@@ -115,7 +116,7 @@
       // Source history may be truncated; the backend checks scoring semantics.
       detail = { coverage: "partial", legs };
     }
-    const payload = { schema_version: "autodarts.import.v1", source: "autodarts", external_match_id: id(state.id), playedAt: timestamp(state.createdAt), settings: { base_score: 501, legs_to_win: 3, out: "double" }, completed: true, players, detail };
+    const payload = { schema_version: "autodarts.import.v1", source: "autodarts", external_match_id: id(state.id), playedAt: timestamp(state.createdAt), settings: { base_score: 501, legs_to_win: legsToWin, out: "double" }, completed: true, players, detail };
     requireValue(new TextEncoder().encode(JSON.stringify(payload)).length <= 128 * 1024);
     return payload;
   };
@@ -239,8 +240,8 @@
         <input name="baseScore" type="number" value="501" readonly required />
       </label>
       <label style="display: flex; flex-direction: column; gap: 4px; font-size: 13px;">
-        Required Winning Legs
-        <input name="winningLegs" type="number" value="3" readonly required />
+        League Legs To Win
+        <input name="winningLegs" type="number" value="2" min="2" max="3" required />
       </label>
     `,
     onMount: (dialog) => {
@@ -277,9 +278,9 @@
     ]
   });
 
-   const savedSettings = loadSettingsFromCookie();
-   const settingsPromise = Promise.resolve(savedSettings?.baseScore === 501 && savedSettings?.winningLegs === 3
-     ? savedSettings : showSettingsDialog({ ...DEFAULT_SETTINGS, endpoint: savedSettings?.endpoint ?? "" }));
+  const savedSettings = loadSettingsFromCookie();
+  const settingsPromise = Promise.resolve(savedSettings?.baseScore === 501 && [2, 3].includes(savedSettings?.winningLegs)
+    ? savedSettings : showSettingsDialog({ ...DEFAULT_SETTINGS, endpoint: savedSettings?.endpoint ?? "" }));
 
   const renderInstallIndicator = () => {
     if (typeof document === "undefined") {
@@ -343,13 +344,17 @@
   });
   const submit = async (payload, synthetic) => {
     const settings = await settingsPromise;
+    if (payload.settings.legs_to_win !== settings.winningLegs) {
+      log(`Match ignored: first to ${payload.settings.legs_to_win}, league is first to ${settings.winningLegs}`);
+      return;
+    }
     let endpoint;
     try {
       endpoint = new URL(settings.endpoint);
       requireValue(endpoint.protocol === "https:" && !endpoint.username && !endpoint.password);
     } catch { await notice("Invalid endpoint: configure an HTTPS relay URL and reload."); return; }
     const summary = payload.players.map(player => `${player.display_name}: ${player.legs_won} legs (avg ${player.stats?.match_average ?? "n/a"})`).join("\n");
-    if (!await showConfirmDialog(`${sandbox ? "SANDBOX: no data will be posted.\n" : ""}501, first to 3, double out\n${summary}\nPlayed: ${payload.playedAt ?? "unknown"}\nMatch: ${payload.external_match_id}\nSend detailed result to ${endpoint.href}?`)) return;
+    if (!await showConfirmDialog(`${sandbox ? "SANDBOX: no data will be posted.\n" : ""}501, first to ${payload.settings.legs_to_win}, double out\n${summary}\nPlayed: ${payload.playedAt ?? "unknown"}\nMatch: ${payload.external_match_id}\nSend detailed result to ${endpoint.href}?`)) return;
     if (sandbox || synthetic) {
       await notice(synthetic ? "Synthetic source blocked: no data posted." : "Sandbox preview complete: no data posted.");
       return;

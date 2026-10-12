@@ -28,3 +28,13 @@ func TestTimestampRequiresRFC3339Offset(t *testing.T) {
 		}
 	}
 }
+
+func TestFirstToTwoMustMatchReportedLegs(t *testing.T) {
+	body := strings.Replace(string(example(t, "missing_detail")), `"legs_to_win": 3`, `"legs_to_win": 2`, 1)
+	if _, err := Parse([]byte(body)); err == nil {
+		t.Fatal("accepted 3-1 reported as first to 2")
+	}
+	if _, err := Parse([]byte(strings.Replace(body, `"legs_won": 3`, `"legs_won": 2`, 1))); err != nil {
+		t.Fatalf("rejected 2-1 first to 2: %v", err)
+	}
+}

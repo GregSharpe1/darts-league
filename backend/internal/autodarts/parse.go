@@ -45,7 +45,7 @@ func Parse(body []byte) (Import, error) {
 		if err := json.Unmarshal(filtered, &p); err != nil {
 			return result, ErrInvalidPayload
 		}
-		if p.Source != "autodarts" || p.Settings != (Settings{501, 3, "double"}) || !p.Completed {
+		if p.Source != "autodarts" || (p.Settings != Settings{501, 2, "double"} && p.Settings != Settings{501, 3, "double"}) || !p.Completed || len(p.Players) != 2 || max(p.Players[0].LegsWon, p.Players[1].LegsWon) != p.Settings.LegsToWin {
 			return result, ErrInvalidPayload
 		}
 		result = Import{Source: p.Source, ExternalMatchID: p.ExternalMatchID, PlayedAt: p.PlayedAt, Players: p.Players, Detail: p.Detail, SettingsEvidence: "source_reported"}
@@ -111,7 +111,7 @@ func (p Import) validate() error {
 		}
 	}
 	a, b := p.Players[0], p.Players[1]
-	if a.ID == b.ID || !((a.LegsWon == 3 && b.LegsWon >= 0 && b.LegsWon < 3) || (b.LegsWon == 3 && a.LegsWon >= 0 && a.LegsWon < 3)) {
+	if win := max(a.LegsWon, b.LegsWon); a.ID == b.ID || (win != 2 && win != 3) || min(a.LegsWon, b.LegsWon) < 0 || a.LegsWon == b.LegsWon {
 		return ErrInvalidPayload
 	}
 	for _, player := range p.Players {

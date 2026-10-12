@@ -59,6 +59,9 @@ describe('approval guard', () => {
   it('requires a selected season and fixed-format fixture', () => {
     expect(approvalProblem(detail, { ...selection, seasonId: 0 })).not.toBe('')
     expect(approvalProblem(detail, { ...selection, fixture: { ...fixture, legs_to_win: 5 } })).not.toBe('')
+  const firstToTwo = { ...detail, players: detail.players.map(player => ({ ...player, legs_won: player.legs_won === 3 ? 2 : 1 })) }
+  expect(approvalProblem(firstToTwo, { ...selection, fixture: { ...fixture, legs_to_win: 2 } })).toBe('')
+  expect(approvalProblem(firstToTwo, selection)).not.toBe('')
   })
   it('blocks changed source score and review-blocked status', () => {
     expect(approvalProblem({ ...detail, players: detail.players.map(player => ({ ...player, legs_won: 3 })) }, selection)).not.toBe('')

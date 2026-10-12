@@ -26,7 +26,7 @@ remains unauthenticated by approved scope; admin review does not prove origin.
 
 Only GET stats XHRs from `https://api.autodarts.com/as/v0/matches/{id}/stats`
 (or the same path at `api.autodarts.io`) are considered. Successful JSON/text
-responses must have the matching ID, X01/501/Double, targetLegs=3, no sets
+responses must have the matching ID, X01/501/Double, targetLegs=2 or 3 (must match the saved league setting, default 2), no sets
 (targetSets null/0), finishedAt, two distinct players and a matching winner with
 3-0/3-1/3-2 scores. Other app responses are untouched.
 
