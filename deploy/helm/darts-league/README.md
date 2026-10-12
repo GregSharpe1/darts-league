@@ -81,6 +81,40 @@ postgres:
   enabled: true
 ```
 
+## Autodarts automatic approval
+
+`backend.env.autodartsAutoSubmit` defaults to `false` and renders the backend
+environment variable `AUTODARTS_AUTO_SUBMIT` as `"false"`. No environment override
+enables it by default. To opt in, set `backend.env.autodartsAutoSubmit=true` in
+your deployment values and deploy a backend image supporting this setting.
+It is deployment configuration, not an admin UI toggle.
+
+Before imports arrive, open `/admin`, use **Autodarts mappings** to select each
+league player, enter their exact Autodarts name, and save. Edit or remove mappings
+there at any time, including after roster lock or current-season completion;
+completed-season scoring remains closed. Mappings apply only to the current
+season and are not carried into the next. Source names are assumed unique and
+matched case-sensitively after trimming surrounding whitespace, preserving
+internal whitespace and punctuation; no account lookup or nickname fallback occurs.
+
+Only new imports at first successful ingestion can be automatically approved,
+and both names must already map to distinct players in the same current-season
+division. The season must be started and writable, with exactly one compatible,
+unscored fixture. Supported source-reported format (`501`, first to `2` or `3`,
+double out), a valid matching score, and a source `played_at` between season
+start and server time inclusive are required. Unchanged source data and no review
+conflict are required; manual format attestation or missing-date explanations
+cannot qualify. Approval records audit actor `autodarts:auto-submit` and never
+automatically replaces a result. Unmapped, ambiguous, or otherwise ineligible
+imports remain pending for manual admin review. Public release rules still apply.
+
+Previously pending results stay manual after mapping edits, flag changes,
+duplicate deliveries, refetches, or restarts; mappings only improve their prefill.
+Manual result entry and editing remain admin-only. To disable, set
+`backend.env.autodartsAutoSubmit=false` and redeploy the backend so its environment
+is refreshed. Disabling affects future ingestions only and does not undo scores
+or audits. See the [admin operating guide](../../../README.md#autodarts-player-mappings-and-automatic-approval).
+
 ## Slack notifications
 
 See the [notifications guide](../../../docs/notifications.md) for message examples,

@@ -20,7 +20,7 @@ This file captures the working context, product rules, and implementation guidan
 - Public frontend shows current league games left to play
 - Public frontend shows current league points/standings
 - Admin login is available at `/admin`
-- Only admins can enter and edit scores
+- Manual score entry and editing are admin-only; explicitly configured automatic Autodarts approval may record new results with a system audit entry
 
 ## Locked Product Decisions
 
@@ -122,6 +122,9 @@ Write tests before or alongside implementation for:
 - `score-scrape/scoreScrape.js` is loaded by the bookmarklet in `scripts/score-scrape.txt` from `main`; merging to `main` changes the live scraper immediately
 - The `legs_to_win` rule is enforced in four places that must stay in sync: the scraper, `backend/internal/autodarts/parse.go`, `backend/internal/league/approval.go`, and `frontend/src/lib/pendingReview.ts`
 - Approval validates against the fixture's own `legs_to_win`; never hardcode a leg count
+- `AUTODARTS_AUTO_SUBMIT` defaults false; only new eligible ingestions with both source names already mapped may be automatically approved, audited as `autodarts:auto-submit`; never auto-replace results or auto-submit prior pending imports
+- Autodarts names are assumed unique and matched case-sensitively after trimming; mappings are current-season only and editable at any time without reopening completed-season scoring
+- Automatic approval requires a writable started season, distinct same-division players, exactly one compatible unscored fixture, source-reported supported format and a valid played-at date within the season through server time; unmapped or ambiguous imports stay pending
 - Scraper settings persist in the `autodarts_score_scrape_settings` cookie; users must clear it after the league format changes
 
 ## Repository Workflows
