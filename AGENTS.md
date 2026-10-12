@@ -28,7 +28,8 @@ This file captures the working context, product rules, and implementation guidan
 - Registration stays open until an admin explicitly starts the season
 - Admins can delete players before the season starts
 - League format is single round-robin
-- Match format is fixed to `501`, first to `3` legs
+- Match format is configured per season (`game_variant` `301`/`501`, `legs_to_win`), editable only until week one is released; default `501`, first to `3`
+- Autodarts imports support only `501`, first to `2` or `3`, double out
 - Scoring is win `2`, loss `0`
 - Future public weeks are visible but locked
 - Locked weeks still show pairings, but details should be visually obscured
@@ -61,8 +62,8 @@ Suggested fixture fields:
 
 - `week_number`
 - `scheduled_at`
-- `game_variant` = `501`
-- `legs_to_win` = `3`
+- `game_variant` (copied from the season when fixtures are generated)
+- `legs_to_win` (copied from the season when fixtures are generated)
 
 ## API Guidance
 
@@ -102,7 +103,7 @@ Write tests before or alongside implementation for:
 - round-robin fixture generation
 - weekly unlock at Monday `09:00 Europe/London`
 - DST edge cases
-- fixed-format result validation (`3-0`, `3-1`, `3-2` only)
+- result validation against the fixture's `legs_to_win` (winner exactly `legs_to_win`, loser fewer)
 - standings calculations and ordering
 - admin auth protection
 - pre-season-only player deletion
@@ -115,6 +116,13 @@ Write tests before or alongside implementation for:
 - Make server-side time logic authoritative
 - Treat season start as effectively irreversible for MVP once fixtures are generated
 - Keep file edits ASCII unless a file already requires otherwise
+
+## Autodarts Score Capture
+
+- `score-scrape/scoreScrape.js` is loaded by the bookmarklet in `scripts/score-scrape.txt` from `main`; merging to `main` changes the live scraper immediately
+- The `legs_to_win` rule is enforced in four places that must stay in sync: the scraper, `backend/internal/autodarts/parse.go`, `backend/internal/league/approval.go`, and `frontend/src/lib/pendingReview.ts`
+- Approval validates against the fixture's own `legs_to_win`; never hardcode a leg count
+- Scraper settings persist in the `autodarts_score_scrape_settings` cookie; users must clear it after the league format changes
 
 ## Repository Workflows
 

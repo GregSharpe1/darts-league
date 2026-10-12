@@ -1,9 +1,9 @@
 # Detailed capture (#40)
 
 Paste `scoreScrape.js` into the completed-match browser tab. It retains the green
-installed indicator and settings-cookie dialog. Old first-to-two configuration
-opens the dialog again with the endpoint retained and the fixed 501/first-to-three
-league format. Clear the `autodarts_score_scrape_settings` cookie to reconfigure.
+installed indicator and settings-cookie dialog. Saved settings outside 501/first to 2 or 3
+open the dialog again with the endpoint retained. The league legs-to-win setting
+defaults to 2 and must match the Autodarts match format. Clear the `autodarts_score_scrape_settings` cookie to reconfigure.
 
 **Sandbox is the default:** confirmations preview but never POST. Production
 submission requires deliberately setting `window.__scoreScrapeSandbox = false`

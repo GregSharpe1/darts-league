@@ -25,7 +25,8 @@
 - Admin result entry, editing, undo, and audit history
 - Admin league closure once every division's fixtures have results, with read-only final boards
 - New-season registration without deleting historical players, divisions, results, or audits
-- Fixed match format: `501`, first to `3` legs
+- Admin-configured match format per season (`301` or `501`, legs to win), locked once week one is released; defaults to `501`, first to `3`
+- Autodarts score capture via a bookmarklet, queued for admin review (`501`, first to `2` or `3`, double out)
 - Frontend and backend version reporting sourced from container image builds
 - Slack app notifications for admin signups and weekly league updates
 
@@ -35,7 +36,8 @@
 - `frontend/` - React app
 - `.agents/skills/` - repo-local agent workflow and skill docs
 - `docs/` - operational guides, including [Slack notifications](docs/notifications.md)
-- `score-scrape/terraform/` - [results relay infrastructure and deployment guide](score-scrape/terraform/README.md)
+- `score-scrape/` - Autodarts score scraper ([capture guide](score-scrape/SCRAPER.md)); `terraform/` holds the [results relay infrastructure and deployment guide](score-scrape/terraform/README.md)
+- `scripts/score-scrape.txt` - bookmarklet that loads `score-scrape/scoreScrape.js` from `main`
 - `docker-compose.yml` - local container stack
 - `Makefile` - common local commands
 - `AGENTS.md` - project/product rules for coding agents
@@ -273,7 +275,8 @@ Some important locked rules in the current MVP:
 - Admins can delete players only before season start
 - One season can contain multiple admin-managed divisions
 - Match scoring is win `2`, loss `0`
-- Match format is fixed to `501`, first to `3` legs
+- Match format is set per season by admins before week one is released; fixtures keep the format they were generated with
+- Results must be a valid win for the fixture's legs to win (for example `2-0`/`2-1` when first to `2`)
 - Display names are unique within each season, case-insensitive; returning players may reuse their names in a new season
 - Public views prefer nickname when available
 - Admins can edit and undo results, and all changes are audited
