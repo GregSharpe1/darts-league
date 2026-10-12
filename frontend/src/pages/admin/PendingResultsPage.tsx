@@ -14,11 +14,13 @@ export function PendingResultsPage() {
   const [selectedId, setSelectedId] = useState<number>()
   const [busy, setBusy] = useState(false)
   const [message, setMessage] = useState('')
+  const [reloadVersion, setReloadVersion] = useState(0)
   const selected = pending.data?.find(item => item.id === selectedId) ?? pending.data?.[0]
   const detail = usePendingDetail(players.isSuccess ? selected?.id : undefined)
   const reload = async () => {
     const results = await Promise.all([detail.refetch(), season.refetch(), players.refetch(), divisions.refetch(), pending.refetch()])
     for (const result of results) if (result.error) throw result.error
+    setReloadVersion(version => version + 1)
   }
 
   return <>
@@ -50,7 +52,7 @@ export function PendingResultsPage() {
           {selected && detail.isPending && <StateNotice message="Loading selected result..." compact />}
           {selected && detail.error && <><StateNotice tone="error" message={readError(detail.error)} compact /><button type="button" onClick={() => void detail.refetch()}>Retry selected result</button></>}
           {(divisions.error || season.error) && <StateNotice tone="error" message={readError(divisions.error ?? season.error)} compact />}
-          {selected && detail.data && !detail.error && <PendingResultCard key={`${selected.id}-${detail.dataUpdatedAt}`} detail={detail.data} players={players.data ?? []} divisions={divisions.data ?? []} season={season.isError ? undefined : season.data} disabled={busy || poll.isPending || detail.isFetching} onReload={reload} onBusy={setBusy} onComplete={setMessage} />}
+          {selected && detail.data && divisions.data && season.data && <PendingResultCard key={`${selected.id}-${reloadVersion}`} detail={detail.data} players={players.data ?? []} divisions={divisions.data} season={season.isError ? undefined : season.data} disabled={busy || poll.isPending || detail.isFetching || detail.isError || divisions.isError} onReload={reload} onBusy={setBusy} onComplete={setMessage} />}
           {!selected && pending.isSuccess && <section className="admin-card"><span className="eyebrow">Inbox clear</span><h2>Ready for the next match</h2><p>Fetch new results to check for new imports.</p></section>}
         </div>
       </section>}

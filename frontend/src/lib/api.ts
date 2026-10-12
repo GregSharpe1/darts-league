@@ -505,6 +505,24 @@ export function useAdminPendingResults(enabled: boolean) {
   })
 }
 
+export type AutodartsMapping = { readonly player_id: number; readonly username: string }
+export type AutodartsMappings = { readonly season_id: number; readonly auto_submit_enabled: boolean; readonly mappings: readonly AutodartsMapping[] }
+
+export function useAutodartsMappings(seasonId: number) {
+  return useQuery({ queryKey: ['admin', 'autodarts-mappings', seasonId], queryFn: () => request<AutodartsMappings>('/api/admin/autodarts-mappings'), retry: false })
+}
+
+export function useSaveAutodartsMapping() {
+  const client = useQueryClient()
+  return useMutation({
+    mutationFn: ({ playerId, seasonId, username }: { readonly playerId: number; readonly seasonId: number; readonly username: string | null }) =>
+      request<AutodartsMapping | void>(`/api/admin/autodarts-mappings/${playerId}`, { method: username === null ? 'DELETE' : 'PUT', body: JSON.stringify({ season_id: seasonId, ...(username === null ? {} : { username }) }) }),
+    onSuccess: async () => {
+      await Promise.all([client.invalidateQueries({ queryKey: ['admin', 'autodarts-mappings'] }), client.invalidateQueries({ queryKey: ['admin', 'pending-results'] })])
+    },
+  })
+}
+
 export function usePendingDetail(pendingId: number | undefined) {
   return useQuery({
     queryKey: ['admin', 'pending-results', pendingId],

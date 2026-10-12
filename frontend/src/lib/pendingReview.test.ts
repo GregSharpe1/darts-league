@@ -10,6 +10,13 @@ export const detail: PendingDetail = {
 }
 
 describe('source match adapter', () => {
+  it('parses partial suggestions separately from approved mappings', () => {
+    const suggestion = { season_id: 1, division_id: null, mapping: { 'source-a': 11 }, fixture_id: null }
+    expect(parsePendingDetail({ ...detail, suggestion })).toEqual({ ...detail, suggestion })
+  })
+  it('rejects malformed suggestion player IDs', () => {
+    expect(() => parsePendingDetail({ ...detail, suggestion: { season_id: 1, division_id: null, mapping: { 'source-a': '11' }, fixture_id: null } })).toThrow(TypeError)
+  })
   it('parses exact source player DTO and keeps optional metrics', () => {
     expect(parsePendingDetail(detail)).toEqual(detail)
   })
