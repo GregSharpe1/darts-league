@@ -20,7 +20,7 @@ function Analysis({ match }: { readonly match: MatchData }) {
   const legId = useId()
   const [playerId, setPlayerId] = useState<string | null>(null)
   const [legNumber, setLegNumber] = useState('all')
-  const player = match.players.find(p => p.id === playerId) ?? match.players.find(p => p.legs_won === 3) ?? match.players[0]
+  const player = match.players.find(p => p.id === playerId) ?? match.players.find(p => p.legs_won === Math.max(...match.players.map(q => q.legs_won))) ?? match.players[0]
   const legs = [...(match.detail?.legs ?? [])].sort((a, b) => a.number - b.number)
   const selectedLeg = legs.some(leg => String(leg.number) === legNumber) ? legNumber : 'all'
   const visits = legs.filter(leg => selectedLeg === 'all' || String(leg.number) === selectedLeg)

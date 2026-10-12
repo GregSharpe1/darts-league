@@ -10,12 +10,13 @@ function checkout(stats: MatchStats | null) {
 }
 
 export function MatchSummary({ match }: MatchSummaryProps) {
+  const legsToWin = Math.max(...match.players.map(player => player.legs_won))
   return <section className="ma ma-panel ma-summary" aria-label="Match summary">
-    <div className="ma-meta"><span>501 <span className="ma-accent">/</span> First to 3 <span className="ma-accent">/</span> Double out</span>
+    <div className="ma-meta"><span>501 <span className="ma-accent">/</span> First to {legsToWin} <span className="ma-accent">/</span> Double out</span>
       <span className="ma-badge">{match.synthetic ? 'Synthetic test fixture' : 'Recorded match'}</span></div>
     <div className="ma-score">
       {match.players.map((player, index) => <div className={`ma-player ma-player-${index}`} key={player.id}>
-        <span className="ma-eyebrow">{player.legs_won === 3 ? 'Winner' : 'Opponent'}</span>
+        <span className="ma-eyebrow">{player.legs_won === legsToWin ? 'Winner' : 'Opponent'}</span>
         <h2>{player.label}</h2>
       </div>)}
       <div className="ma-score-number" aria-label={`${match.players[0].label} ${match.players[0].legs_won}, ${match.players[1].label} ${match.players[1].legs_won}`}>
