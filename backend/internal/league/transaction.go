@@ -47,7 +47,8 @@ func (s *MemoryStore) Transaction(ctx context.Context, fn func(Store) error) err
 		return err
 	}
 	tx := &MemoryStore{
-		activeSeason: values.Season, seasonsByID: values.Seasons,
+		autodartsUsernames: maps.Clone(s.autodartsUsernames),
+		activeSeason:       values.Season, seasonsByID: values.Seasons,
 		divisionsByID: maps.Clone(s.divisionsByID), playersByID: values.Players,
 		fixturesByID: maps.Clone(s.fixturesByID), resultsByID: values.Results,
 		auditByID: values.Audits, pendingByID: values.Pending, importsByID: maps.Clone(s.importsByID),
@@ -61,6 +62,7 @@ func (s *MemoryStore) Transaction(ctx context.Context, fn func(Store) error) err
 		return err
 	}
 	s.activeSeason, s.seasonsByID = tx.activeSeason, tx.seasonsByID
+	s.autodartsUsernames = tx.autodartsUsernames
 	s.divisionsByID, s.playersByID, s.fixturesByID = tx.divisionsByID, tx.playersByID, tx.fixturesByID
 	s.resultsByID, s.auditByID, s.pendingByID, s.importsByID = tx.resultsByID, tx.auditByID, tx.pendingByID, tx.importsByID
 	s.nextDivisionID, s.nextPlayerID, s.nextFixtureID = tx.nextDivisionID, tx.nextPlayerID, tx.nextFixtureID

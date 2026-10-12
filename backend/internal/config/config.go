@@ -1,11 +1,14 @@
 package config
 
 import (
+	"errors"
 	"os"
 	"time"
 )
 
 type Config struct {
+	AutoSubmit          bool
+	autoSubmitValue     string
 	HTTPAddress         string
 	DatabaseURL         string
 	InstanceName        string
@@ -25,6 +28,8 @@ type Config struct {
 
 func Load() Config {
 	return Config{
+		AutoSubmit:          os.Getenv("AUTODARTS_AUTO_SUBMIT") == "true",
+		autoSubmitValue:     os.Getenv("AUTODARTS_AUTO_SUBMIT"),
 		HTTPAddress:         envOrDefault("HTTP_ADDRESS", ":8080"),
 		DatabaseURL:         envOrDefault("DATABASE_URL", "postgres://postgres:postgres@localhost:5432/darts_league?sslmode=disable"),
 		InstanceName:        envOrDefault("INSTANCE_NAME", "Darts League"),
@@ -73,6 +78,13 @@ func envOrDefault(key, fallback string) string {
 	}
 
 	return value
+}
+
+func (c Config) Validate() error {
+	if c.autoSubmitValue != "" && c.autoSubmitValue != "true" && c.autoSubmitValue != "false" {
+		return errors.New("AUTODARTS_AUTO_SUBMIT must be true or false")
+	}
+	return nil
 }
 
 func durationOrDefault(key string, fallback time.Duration) time.Duration {

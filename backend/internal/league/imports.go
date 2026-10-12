@@ -22,15 +22,16 @@ type ImportOutcome struct {
 // ImportRecord is an admin/service DTO, never a public projection. Source IDs
 // join players, leg winners and visits; player array order is not identity.
 type ImportRecord struct {
-	Pending   PendingResult
-	Import    autodarts.Import
-	Changed   bool
-	SeasonID  *int64
-	FixtureID *int64
-	ResultID  *int64
-	Active    bool
-	Mapping   map[string]int64
-	Approval  *ImportAudit
+	Suggestion ImportSuggestion `json:"-"`
+	Pending    PendingResult
+	Import     autodarts.Import
+	Changed    bool
+	SeasonID   *int64
+	FixtureID  *int64
+	ResultID   *int64
+	Active     bool
+	Mapping    map[string]int64
+	Approval   *ImportAudit
 }
 
 type ImportStore interface {
@@ -61,25 +62,54 @@ func (s PendingResultService) IngestDurablePayload(ctx context.Context, body []b
 }
 
 func (s PendingResultService) IngestPayload(ctx context.Context, body []byte) (ImportOutcome, error) {
-	store, ok := s.store.(ImportStore)
-	if !ok {
+	if _, ok := s.store.(ImportStore); !ok {
 		return ImportOutcome{}, ErrImportStoreRequired
 	}
 	parsed, err := autodarts.Parse(body)
 	if err != nil {
 		return ImportOutcome{}, err
 	}
-	outcome, err := store.InsertImport(ctx, parsed, s.now().UTC())
-	if err == nil && !outcome.Duplicate && s.notify != nil {
+	var outcome ImportOutcome
+	err = transact(ctx, s.store, func(tx Store) error {
+		store, ok := tx.(ImportStore)
+		if !ok {
+			return ErrImportStoreRequired
+		}
+		var err error
+		outcome, err = store.InsertImport(ctx, parsed, s.now().UTC())
+		if err != nil {
+			return err
+		}
+		scoped := s
+		scoped.store, scoped.results = tx, NewResultServiceWithNow(tx, s.now)
+		outcome, err = scoped.autoApproveImport(ctx, outcome)
+		return err
+	})
+	if err != nil {
+		return ImportOutcome{}, err
+	}
+	if !outcome.Duplicate && (outcome.Pending.Status == PendingResultStatusPending || outcome.Pending.Status == PendingResultStatusReviewBlocked) && s.notify != nil {
 		s.notify(ctx, outcome.Pending)
 	}
 	return outcome, err
 }
 
 func (s PendingResultService) ImportDetail(ctx context.Context, id int64) (ImportRecord, error) {
-	store, ok := s.store.(ImportStore)
-	if !ok {
-		return ImportRecord{}, ErrImportStoreRequired
-	}
-	return store.GetImport(ctx, id)
+	var record ImportRecord
+	err := transact(ctx, s.store, func(tx Store) error {
+		store, ok := tx.(ImportStore)
+		if !ok {
+			return ErrImportStoreRequired
+		}
+		var err error
+		record, err = store.GetImport(ctx, id)
+		if err != nil {
+			return err
+		}
+		scoped := s
+		scoped.store = tx
+		record.Suggestion, err = scoped.suggestImport(ctx, record)
+		return err
+	})
+	return record, err
 }
