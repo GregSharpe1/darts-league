@@ -1,0 +1,1 @@
+javascript:(async()=>{window.__scoreScrapeSandbox=false;const r=await fetch("https://raw.githubusercontent.com/GregSharpe1/darts-league/4ba72f9ab5a02d06b3c8690e9a2d30d29755ec01/score-scrape/scoreScrape.js",{cache:"no-store"});if(!r.ok)throw new Error("HTTP "+r.status);(0,eval)(await r.text())})().catch(e=>alert("Score scrape failed to load: "+e.message))
