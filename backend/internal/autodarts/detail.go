@@ -55,7 +55,7 @@ func validateDetail(d *Detail) error {
 						return ErrInvalidPayload
 					}
 					for _, s := range []*string{p.Units, p.Origin, p.AxisOrientation} {
-						if s != nil && !label(*s) {
+						if s != nil && !ValidLabel(*s) {
 							return ErrInvalidPayload
 						}
 					}

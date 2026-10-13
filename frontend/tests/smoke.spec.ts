@@ -94,7 +94,7 @@ test('register, assign divisions, start season, enter result, and view division 
   await expectMatchingControlHeights(page)
   await page.getByLabel('League name').fill(leagueName)
   await page.getByRole('button', { name: /save config/i }).click()
-  await expect(page.getByText(leagueName)).toBeVisible()
+  await expect(page.getByText(leagueName, { exact: true })).toBeVisible()
 
   await page.getByLabel('Division count').fill('2')
   await page.getByRole('button', { name: /create divisions/i }).click()

@@ -18,6 +18,7 @@ func (h PendingResultHandler) handleDetail(w http.ResponseWriter, r *http.Reques
 		return
 	}
 	writeJSON(w, http.StatusOK, map[string]any{
+		"suggestion":     record.Suggestion,
 		"pending_result": pendingResultResponse(record.Pending),
 		"source":         record.Import.Source, "digest": record.Import.Digest, "changed_import": record.Changed,
 		"settings_evidence": record.Import.SettingsEvidence, "review_reason": record.Import.ReviewReason,

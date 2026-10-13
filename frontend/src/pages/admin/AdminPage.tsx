@@ -21,6 +21,7 @@ import { StateNotice } from '../../components/StateNotice'
 import { readError } from '../../lib/utils'
 import { PlayerRoster } from './PlayerRoster'
 import { SeasonLifecycle } from './SeasonLifecycle'
+import { AutodartsMappings } from './AutodartsMappings'
 
 export function AdminPage() {
   const seasonQuery = useSeasonSummary()
@@ -121,8 +122,9 @@ export function AdminPage() {
 
           {seasonStartMutation.error ? <StateNotice tone="error" message={readError(seasonStartMutation.error)} compact /> : null}
           {seasonQuery.data?.status === 'started' && !seasonQuery.data?.admin_locked ? <StateNotice message="Registration is locked. League settings and Slack channels stay editable until the first week is released." compact /> : null}
-          {seasonQuery.data?.status === 'started' && seasonQuery.data?.admin_locked ? <StateNotice message="The first week is live. Central season setup is now locked and only division scoring pages remain editable." compact /> : null}
+          {seasonQuery.data?.status === 'started' && seasonQuery.data?.admin_locked ? <StateNotice message="The first week is live. Central season setup is now locked. Division scoring and Autodarts mappings remain editable." compact /> : null}
           {seasonQuery.data ? <SeasonLifecycle key={seasonQuery.data.id} season={seasonQuery.data} /> : null}
+          {seasonQuery.data && !seasonQuery.isError && <AutodartsMappings key={`mappings-${seasonQuery.data.id}`} season={seasonQuery.data} players={playersQuery.data ?? []} />}
 
           <section className="admin-grid admin-grid-wide">
             <article className="admin-card">

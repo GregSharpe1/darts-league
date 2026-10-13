@@ -39,6 +39,7 @@ services:
       SLACK_ADMIN_CHANNEL_ID: ""
       RESULTS_ENDPOINT: https://cicoc33r4h.execute-api.eu-west-1.amazonaws.com/results
       RESULTS_POLL_INTERVAL: 15m
+      AUTODARTS_AUTO_SUBMIT: ${AUTODARTS_AUTO_SUBMIT:-false}
     depends_on:
       postgres:
         condition: service_healthy

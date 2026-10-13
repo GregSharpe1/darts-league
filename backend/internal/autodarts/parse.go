@@ -85,7 +85,7 @@ func Parse(body []byte) (Import, error) {
 	return result, nil
 }
 
-func label(s string) bool {
+func ValidLabel(s string) bool {
 	if n := utf8.RuneCountInString(s); n < 1 || n > 80 {
 		return false
 	}
@@ -115,7 +115,7 @@ func (p Import) validate() error {
 		return ErrInvalidPayload
 	}
 	for _, player := range p.Players {
-		if !identifier.MatchString(player.ID) || !label(player.DisplayName) || (player.AccountID != nil && !identifier.MatchString(*player.AccountID)) {
+		if !identifier.MatchString(player.ID) || !ValidLabel(player.DisplayName) || (player.AccountID != nil && !identifier.MatchString(*player.AccountID)) {
 			return ErrInvalidPayload
 		}
 		s := player.Stats

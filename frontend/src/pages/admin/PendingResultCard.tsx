@@ -16,10 +16,13 @@ type Props = {
   readonly onComplete: (message: string) => void
 }
 
-export function PendingResultCard({ detail, players, divisions, season, disabled, onReload, onBusy, onComplete }: Props) {
-  const [seasonId, setSeasonId] = useState(0)
-  const [divisionId, setDivisionId] = useState('')
-  const [playerIds, setPlayerIds] = useState([0, 0])
+export function PendingResultCard({ detail: latestDetail, players, divisions, season, disabled, onReload, onBusy, onComplete }: Props) {
+  const [detail] = useState(latestDetail)
+  const suggestion = detail.suggestion?.season_id === season?.id ? detail.suggestion : undefined
+  const [seasonId, setSeasonId] = useState(suggestion?.season_id ?? 0)
+  const [divisionId, setDivisionId] = useState(suggestion?.division_id ? String(suggestion.division_id) : '')
+  const [playerIds, setPlayerIds] = useState(() => detail.players.slice(0, 2).map(player => suggestion?.mapping[player.match_player_id] ?? 0))
+  const [prefillPending, setPrefillPending] = useState(Boolean(suggestion?.fixture_id))
   const [fixture, setFixture] = useState<AdminFixture>()
   const [replace, setReplace] = useState(false)
   const [reason, setReason] = useState('')
@@ -38,12 +41,17 @@ export function PendingResultCard({ detail, players, divisions, season, disabled
   const roster = players.filter(player => player.division_id === division?.id && player.status === 'assigned')
   const pairs = (fixtures.data ?? []).flatMap(week => week.fixtures.map(item => ({ ...item, week: week.week_number })))
     .filter(item => playerIds[0] !== playerIds[1] && [item.player_one_id, item.player_two_id].every(id => id !== undefined && playerIds.includes(id)))
+  if (prefillPending && fixtures.isSuccess && !fixtures.isFetching) {
+    setPrefillPending(false)
+    setFixture(pairs.find(item => item.id === suggestion?.fixture_id && item.game_variant === '501' && item.legs_to_win === Math.max(...detail.players.map(player => player.legs_won)) && item.expected_result !== undefined))
+  }
   const selection = { seasonId, playerIds, fixture, replace, reason, attest, missingDateReason }
-  const problem = stale ? 'The review is out of date. Reload source and fixture, then review again.' :
+  const sourceChanged = latestDetail.digest !== detail.digest || latestDetail.pending_result.status !== detail.pending_result.status || latestDetail.review_reason !== detail.review_reason || latestDetail.changed_import !== detail.changed_import
+  const problem = stale || sourceChanged ? 'The review is out of date. Reload source and fixture, then review again.' :
     season?.status === 'completed' || !season?.season_started ? 'The current season must be started and writable.' :
     seasonId !== season.id ? 'Choose the current season explicitly.' : approvalProblem(detail, selection)
   const needsReplacement = Boolean(fixture?.expected_result || detail.changed_import)
-  const clearFixture = () => { setFixture(undefined); setReplace(false); setReason('') }
+  const clearFixture = () => { setPrefillPending(false); setFixture(undefined); setReplace(false); setReason('') }
   const run = async (action: 'approve' | 'reject' | 'reload') => {
     if (locked.current || controlsBusy || (action === 'approve' && problem) || (action === 'reject' && !rejectReason.trim())) return
     locked.current = true; setBusy(true); onBusy(true); setError('')
@@ -78,7 +86,8 @@ export function PendingResultCard({ detail, players, divisions, season, disabled
     <SourceReview detail={detail} />
     <section className="admin-card pending-target">
       <span className="eyebrow">Publish to the league</span><h2>Verify the match</h2>
-      <p>Choose the season, league and both players. Names are not matched automatically.</p>
+      <p>Verify the season, league and both players before approving. You can override every selection.</p>
+      {suggestion && <p className="fixture-meta">Prefilled from saved Autodarts mappings. Verify these suggestions; pending results still require approval.</p>}
       <fieldset disabled={controlsBusy || stale}>
         <legend className="sr-only">Approval mapping</legend>
         <div className="pending-fields">

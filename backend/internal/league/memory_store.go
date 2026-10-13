@@ -11,23 +11,24 @@ var ErrPlayerNotFound = errors.New("player not found")
 var ErrResultNotFound = errors.New("result not found")
 
 type MemoryStore struct {
-	mu             sync.RWMutex
-	activeSeason   Season
-	seasonsByID    map[int64]Season
-	divisionsByID  map[int64]Division
-	playersByID    map[int64]Player
-	fixturesByID   map[int64]Fixture
-	resultsByID    map[int64]Result
-	auditByID      map[int64]AuditLogEntry
-	pendingByID    map[int64]PendingResult
-	importsByID    map[int64][]byte
-	nextDivisionID int64
-	nextPlayerID   int64
-	nextFixtureID  int64
-	nextResultID   int64
-	nextAuditID    int64
-	nextSeasonID   int64
-	nextPendingID  int64
+	mu                 sync.RWMutex
+	activeSeason       Season
+	seasonsByID        map[int64]Season
+	divisionsByID      map[int64]Division
+	playersByID        map[int64]Player
+	fixturesByID       map[int64]Fixture
+	resultsByID        map[int64]Result
+	auditByID          map[int64]AuditLogEntry
+	pendingByID        map[int64]PendingResult
+	importsByID        map[int64][]byte
+	autodartsUsernames map[int64]string
+	nextDivisionID     int64
+	nextPlayerID       int64
+	nextFixtureID      int64
+	nextResultID       int64
+	nextAuditID        int64
+	nextSeasonID       int64
+	nextPendingID      int64
 }
 
 func NewMemoryStore() *MemoryStore {
@@ -35,22 +36,23 @@ func NewMemoryStore() *MemoryStore {
 	season.ID = 1
 
 	return &MemoryStore{
-		activeSeason:   season,
-		seasonsByID:    map[int64]Season{season.ID: season},
-		divisionsByID:  make(map[int64]Division),
-		playersByID:    make(map[int64]Player),
-		fixturesByID:   make(map[int64]Fixture),
-		resultsByID:    make(map[int64]Result),
-		auditByID:      make(map[int64]AuditLogEntry),
-		pendingByID:    make(map[int64]PendingResult),
-		importsByID:    make(map[int64][]byte),
-		nextDivisionID: 1,
-		nextPlayerID:   1,
-		nextFixtureID:  1,
-		nextResultID:   1,
-		nextAuditID:    1,
-		nextSeasonID:   2,
-		nextPendingID:  1,
+		activeSeason:       season,
+		seasonsByID:        map[int64]Season{season.ID: season},
+		divisionsByID:      make(map[int64]Division),
+		playersByID:        make(map[int64]Player),
+		fixturesByID:       make(map[int64]Fixture),
+		resultsByID:        make(map[int64]Result),
+		auditByID:          make(map[int64]AuditLogEntry),
+		pendingByID:        make(map[int64]PendingResult),
+		importsByID:        make(map[int64][]byte),
+		autodartsUsernames: make(map[int64]string),
+		nextDivisionID:     1,
+		nextPlayerID:       1,
+		nextFixtureID:      1,
+		nextResultID:       1,
+		nextAuditID:        1,
+		nextSeasonID:       2,
+		nextPendingID:      1,
 	}
 }
 
@@ -424,6 +426,7 @@ func (s *MemoryStore) DeletePlayer(_ context.Context, seasonID, playerID int64) 
 	}
 
 	delete(s.playersByID, playerID)
+	delete(s.autodartsUsernames, playerID)
 	return nil
 }
 

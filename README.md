@@ -26,7 +26,7 @@
 - Admin league closure once every division's fixtures have results, with read-only final boards
 - New-season registration without deleting historical players, divisions, results, or audits
 - Admin-configured match format per season (`301` or `501`, legs to win), locked once week one is released; defaults to `501`, first to `3`
-- Autodarts score capture via a bookmarklet, queued for admin review (`501`, first to `2` or `3`, double out)
+- Autodarts score capture via a bookmarklet, with admin review by default and opt-in audited automatic approval (`501`, first to `2` or `3`, double out)
 - Frontend and backend version reporting sourced from container image builds
 - Slack app notifications for admin signups and weekly league updates
 
@@ -144,7 +144,43 @@ Admin workflow notes:
 - Admins create divisions, assign players, and then start the season
 - After season start and before the first Monday `09:00 Europe/London` release, admins can still edit league settings, rename divisions, change division count, move players between divisions, and update Slack channel IDs
 - Recreating divisions in that pre-release window resets player assignments back to the waitlist and regenerates fixtures
-- After the first weekly release, central season setup locks and only division scoring remains editable
+- After the first weekly release, central season setup locks; division scoring and Autodarts mappings remain editable
+
+### Autodarts player mappings and automatic approval
+
+In `/admin`, use **Autodarts mappings** to select a league player, enter their
+exact Autodarts name, and save. You can enter expected names before any import,
+edit a mapping, or remove it. Mappings are current-season only and editable at
+any time, including after roster lock or season completion; this does not reopen
+scoring on a completed season. Past mappings are retained but not carried forward.
+
+Autodarts names (`player.name`, imported as `display_name`) are assumed unique.
+Both imported and configured names are trimmed and matched case-sensitively;
+internal whitespace and punctuation must match exactly. There is no account
+lookup, fuzzy matching, nickname fallback, or automatic learning from approvals.
+Each source name maps to one league player and each player has at most one name
+per season. Mappings prefill pending reviews without publishing them.
+
+`AUTODARTS_AUTO_SUBMIT` defaults to `false` (including Docker Compose). To opt in,
+set it to `true` in the backend deployment environment, or set Helm
+`backend.env.autodartsAutoSubmit=true`, and redeploy the backend. This is not an
+admin UI toggle. Automatic approval requires all of the following:
+
+- A new, unchanged import without a source review conflict, at its first successful ingestion into darts-league
+- Both names already mapped at ingestion to distinct current-season players in the same division
+- A started, writable season and exactly one compatible, unscored fixture for that pair
+- Source-reported supported settings (`501`, first to `2` or `3`, double out), a valid score matching the fixture, and a source `played_at` from season start through server time inclusive; manual format attestation or a missing-date explanation cannot qualify
+
+Approval is audit-recorded as `autodarts:auto-submit`. Unmapped, ambiguous, or
+otherwise ineligible imports remain pending for manual admin review. Automatic
+approval never replaces an existing result, and public week-release rules remain
+unchanged. Existing pending imports remain manual even after mapping edits,
+enabling the flag, duplicate deliveries, refetches, or restarts.
+
+To disable, set `AUTODARTS_AUTO_SUBMIT=false` (Helm:
+`backend.env.autodartsAutoSubmit=false`) and redeploy the backend. This affects
+future ingestions only; it does not undo scored results or change audit history.
+Manual result entry, editing, replacement, and undo remain admin-only.
 
 ### Closing a league and opening the next season
 
@@ -280,6 +316,7 @@ Some important locked rules in the current MVP:
 - Display names are unique within each season, case-insensitive; returning players may reuse their names in a new season
 - Public views prefer nickname when available
 - Admins can edit and undo results, and all changes are audited
+- Only explicitly configured automatic Autodarts approval can record results without an admin action; system approvals are audited and never replace scores
 
 ## Next Phase
 

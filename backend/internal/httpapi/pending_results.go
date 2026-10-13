@@ -19,6 +19,9 @@ func NewPendingResultHandler(pending league.PendingResultService) PendingResultH
 }
 
 func (h PendingResultHandler) RegisterRoutes(mux *http.ServeMux, requireAdmin func(http.HandlerFunc) http.HandlerFunc) {
+	mux.HandleFunc("GET /api/admin/autodarts-mappings", requireAdmin(h.handleMappings))
+	mux.HandleFunc("PUT /api/admin/autodarts-mappings/{playerID}", requireAdmin(h.handleMappingWrite))
+	mux.HandleFunc("DELETE /api/admin/autodarts-mappings/{playerID}", requireAdmin(h.handleMappingWrite))
 	mux.HandleFunc("GET /api/admin/pending-results", requireAdmin(h.handleList))
 	mux.HandleFunc("GET /api/admin/pending-results/{pendingID}", requireAdmin(h.handleDetail))
 	mux.HandleFunc("POST /api/admin/pending-results/{pendingID}/confirm", requireAdmin(h.handleConfirm))

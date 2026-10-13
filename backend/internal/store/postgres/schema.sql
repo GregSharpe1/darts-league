@@ -42,6 +42,9 @@ CREATE UNIQUE INDEX IF NOT EXISTS players_season_id_display_name_normalized_key
 
 ALTER TABLE players ADD COLUMN IF NOT EXISTS division_id BIGINT REFERENCES divisions (id) ON DELETE SET NULL;
 ALTER TABLE players ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'waitlist';
+ALTER TABLE players ADD COLUMN IF NOT EXISTS autodarts_username TEXT;
+CREATE UNIQUE INDEX IF NOT EXISTS players_season_autodarts_username_key
+    ON players (season_id, autodarts_username) WHERE autodarts_username IS NOT NULL;
 
 CREATE TABLE IF NOT EXISTS fixtures (
     id BIGSERIAL PRIMARY KEY,
@@ -115,4 +118,3 @@ CREATE TABLE IF NOT EXISTS pending_results (
 );
 
 CREATE INDEX IF NOT EXISTS pending_results_status_idx ON pending_results (status, received_at);
-

@@ -152,6 +152,10 @@ func toPlayerResponse(player league.Player) playerResponse {
 
 func writeDomainError(w http.ResponseWriter, err error) {
 	switch {
+	case errors.Is(err, league.ErrAutodartsUsernameInvalid):
+		writeError(w, http.StatusBadRequest, "invalid_autodarts_username", "Username must contain 1 to 80 characters without control characters.")
+	case errors.Is(err, league.ErrAutodartsUsernameConflict):
+		writeError(w, http.StatusConflict, "autodarts_username_conflict", "Username is already mapped in this season.")
 	case errors.Is(err, league.ErrSeasonCompleted):
 		writeError(w, http.StatusConflict, "season_completed", "This completed league is read-only.")
 	case errors.Is(err, league.ErrSeasonIncomplete):

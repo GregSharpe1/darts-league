@@ -51,6 +51,7 @@ backend:
     slackAdminChannelId: ""
     resultsEndpoint: ""
     resultsPollInterval: "15m"
+    autodartsAutoSubmit: false
   auth:
     existingSecret: ""
     existingSecretKeys:

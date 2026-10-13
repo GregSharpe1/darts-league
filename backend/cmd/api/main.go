@@ -18,6 +18,9 @@ import (
 
 func main() {
 	cfg := config.Load()
+	if err := cfg.Validate(); err != nil {
+		log.Fatal(err)
+	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -40,7 +43,7 @@ func main() {
 	seasonHandler := httpapi.NewSeasonHandler(league.NewSeasonServiceWithNow(store, now), league.NewFixtureServiceWithNow(store, now), cfg.InstanceName)
 	resultService := league.NewResultServiceWithNow(store, now)
 	resultHandler := httpapi.NewResultHandler(resultService)
-	pendingResultHandler := httpapi.NewPendingResultHandler(league.NewPendingResultServiceWithNow(store, resultService, now))
+	pendingResultHandler := httpapi.NewPendingResultHandler(league.NewPendingResultServiceWithNow(store, resultService, now).WithAutoSubmit(cfg.AutoSubmit))
 	versionHandler := httpapi.NewVersionHandler(cfg.Version)
 	authHandler.RegisterRoutes(mux)
 	registrationHandler.RegisterRoutes(mux, authHandler.RequireAdmin)
@@ -141,7 +144,7 @@ func startResultPoller(cfg config.Config, store league.Store, resultService leag
 		loc = time.UTC
 	}
 
-	pendingResults := league.NewPendingResultServiceWithNow(store, resultService, now).WithNotifier(
+	pendingResults := league.NewPendingResultServiceWithNow(store, resultService, now).WithAutoSubmit(cfg.AutoSubmit).WithNotifier(
 		notifications.NewPendingResultNotifier(slack.NewClient(cfg.SlackBotToken), cfg.SlackAdminChannel, cfg.PublicBaseURL),
 	)
 	poller := resultsrelay.NewPoller(client, pendingResults, loc, cfg.ResultsPollInterval, log.Default())

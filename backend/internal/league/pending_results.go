@@ -39,10 +39,11 @@ type PendingResult struct {
 }
 
 type PendingResultService struct {
-	store   Store
-	results ResultService
-	now     func() time.Time
-	notify  func(context.Context, PendingResult)
+	autoSubmit bool
+	store      Store
+	results    ResultService
+	now        func() time.Time
+	notify     func(context.Context, PendingResult)
 }
 
 func NewPendingResultService(store Store, results ResultService) PendingResultService {
@@ -58,20 +59,15 @@ func (s PendingResultService) WithNotifier(notify func(context.Context, PendingR
 	return s
 }
 
+func (s PendingResultService) WithAutoSubmit(enabled bool) PendingResultService {
+	s.autoSubmit = enabled
+	return s
+}
+
 // Ingest records a match reported by an external scoring source as pending
 // admin confirmation. Matches already ingested (by external match id) are
 // rejected so repeated polling does not create duplicates.
 func (s PendingResultService) Ingest(ctx context.Context, externalMatchID, playerOneName string, playerOneLegs int, playerOneAverage *float64, playerTwoName string, playerTwoLegs int, playerTwoAverage *float64) (PendingResult, error) {
-	if externalMatchID != "" {
-		exists, err := s.store.PendingResultExistsForExternalMatch(ctx, externalMatchID)
-		if err != nil {
-			return PendingResult{}, err
-		}
-		if exists {
-			return PendingResult{}, ErrDuplicateExternalMatch
-		}
-	}
-
 	pending := PendingResult{
 		ExternalMatchID:  externalMatchID,
 		PlayerOneName:    playerOneName,
@@ -84,7 +80,21 @@ func (s PendingResultService) Ingest(ctx context.Context, externalMatchID, playe
 		ReceivedAt:       s.now().UTC(),
 	}
 
-	created, err := s.store.CreatePendingResult(ctx, pending)
+	var created PendingResult
+	err := transact(ctx, s.store, func(tx Store) error {
+		if externalMatchID != "" {
+			exists, err := tx.PendingResultExistsForExternalMatch(ctx, externalMatchID)
+			if err != nil {
+				return err
+			}
+			if exists {
+				return ErrDuplicateExternalMatch
+			}
+		}
+		var err error
+		created, err = tx.CreatePendingResult(ctx, pending)
+		return err
+	})
 	if err != nil {
 		return PendingResult{}, err
 	}

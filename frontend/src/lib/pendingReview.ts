@@ -36,6 +36,12 @@ export type PendingDetail = {
   readonly source_active: boolean
   readonly mapping: Readonly<Record<string, number>> | null
   readonly approval: Readonly<Record<string, unknown>> | null
+  readonly suggestion?: {
+    readonly season_id: number | null
+    readonly division_id: number | null
+    readonly mapping: Readonly<Record<string, number>>
+    readonly fixture_id: number | null
+  }
 }
 
 export type ConfirmPendingRequest = {

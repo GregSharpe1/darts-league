@@ -57,6 +57,11 @@ export function parsePendingDetail(value: unknown): PendingDetail {
   const data = object(value)
   return {
     pending_result: summary(data.pending_result), source: text(data.source), digest: text(data.digest), changed_import: bool(data.changed_import), settings_evidence: text(data.settings_evidence), review_reason: text(data.review_reason), played_at: nullable(data.played_at, text),
+    ...(data.suggestion === undefined ? {} : { suggestion: (() => {
+      const suggestion = object(data.suggestion)
+      return { season_id: nullable(suggestion.season_id, number), division_id: nullable(suggestion.division_id, number), fixture_id: nullable(suggestion.fixture_id, number),
+        mapping: Object.fromEntries(Object.entries(object(suggestion.mapping)).map(([key, value]) => [key, number(value)])) }
+    })() }),
     players: array(data.players).map(value => {
       const player = object(value)
       return { match_player_id: text(player.match_player_id), account_id: nullable(player.account_id, text), display_name: text(player.display_name), legs_won: number(player.legs_won), stats: nullable(player.stats, stats) }
