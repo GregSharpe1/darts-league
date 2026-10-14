@@ -97,12 +97,12 @@
             requireValue(Boolean(bed));
             const number = bed === "miss" ? 0 : dart.segment.number;
             requireValue(bed === "miss" || (bed.endsWith("bull") ? number === 25 : Number.isInteger(number) && number >= 1 && number <= 20));
-            const entry = ({ manual_coords: "manual", manual: "manual", manual_segment: "manual", auto: "automatic", automatic: "automatic" })[dart.entry] ?? "unknown";
+            const entry = ({ manual_coords: "manual", manual: "manual", manual_segment: "manual", auto: "automatic", automatic: "automatic", detected: "automatic" })[dart.entry] ?? "unknown";
             let position = null;
             if (dart.coords?.x != null && dart.coords?.y != null) {
               requireValue(Number.isFinite(dart.coords.x) && Number.isFinite(dart.coords.y));
-              const manualCoordinates = dart.entry === "manual_coords";
-              position = { x: dart.coords.x, y: dart.coords.y, units: manualCoordinates ? "board-radius" : null, origin: manualCoordinates ? "bull" : null, axis_orientation: manualCoordinates ? "x-right-y-up" : null, provenance: entry };
+              const boardCoordinates = ["manual_coords", "detected", "corrected"].includes(dart.entry);
+              position = { x: dart.coords.x, y: dart.coords.y, units: boardCoordinates ? "board-radius" : null, origin: boardCoordinates ? "bull" : null, axis_orientation: boardCoordinates ? "x-right-y-up" : null, provenance: entry };
             }
             return { number: index + 1, segment: { bed, number }, entry_type: entry, position };
           });

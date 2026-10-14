@@ -1,0 +1,40 @@
+{
+  "synthetic": true,
+  "provenance": "Operator-authorized Autodarts browser-click game; sanitized response projection, not physical darts or a relay payload",
+  "settings": {"variant":"X01","baseScore":501,"inMode":"Straight","outMode":"Double","targetLegs":2},
+  "scores": [2,1],
+  "visit_fields": ["turn_zero_based","player_alias","score_remaining","points","busted","throws"],
+  "throw_fields": ["throw_zero_based","segment_name","segment_bed","entry","coords"],
+  "coordinate_encoding": "Absent source coords (the two fill_miss entries) are represented as null in these fixed-length tuples; present coordinates are unchanged",
+  "legs": [
+    {"number":1,"winner":"p1","visits":[
+      [0,"p1",366,135,false,[[0,"T20","Triple","manual_coords",{"x":0,"y":0.6000414249281983}],[1,"T19","Triple","manual_coords",{"x":-0.18543187691379945,"y":-0.5706152817667572}],[2,"S18","SingleOuter","manual_coords",{"x":0.4512060837695519,"y":0.6210591274146873}]]],
+      [1,"p2",462,39,false,[[0,"S20","SingleOuter","manual_coords",{"x":0,"y":0.7676515871502825}],[1,"S19","SingleInner","manual_coords",{"x":-0.10634843363246477,"y":-0.3272632385310763}],[2,"M1","Outside","manual_coords",{"x":0.34355014012458485,"y":1.057397993232654}]]],
+      [2,"p1",186,180,false,[[0,"T20","Triple","manual_coords",{"x":0,"y":0.6000414249281983}],[1,"T20","Triple","manual_coords",{"x":0,"y":0.6000414249281983}],[2,"T20","Triple","manual_coords",{"x":0,"y":0.6000414249281983}]]],
+      [3,"p2",412,50,false,[[0,"25","Single","manual_coords",{"x":-0.022131753630858852,"y":0.06800855119397539}],[1,"S18","SingleOuter","manual_coords",{"x":0.4512060837695519,"y":0.6210591274146873}],[2,"S7","SingleInner","manual_coords",{"x":-0.20228481935142273,"y":-0.2783505111977755}]]],
+      [4,"p1",52,134,false,[[0,"T20","Triple","manual_coords",{"x":0,"y":0.6000414249281983}],[1,"T18","Triple","manual_coords",{"x":0.35265467802558975,"y":0.48541179896719994}],[2,"S20","SingleOuter","manual_coords",{"x":0,"y":0.7676515871502825}]]],
+      [5,"p2",372,40,false,[[0,"S5","SingleOuter","manual_coords",{"x":-0.23725003426131755,"y":0.7301196799845803}],[1,"D10","Double","manual_coords",{"x":0.9230426567066422,"y":-0.2999011492675223}],[2,"S15","SingleOuter","manual_coords",{"x":0.6209955771371495,"y":-0.4511910090525547}]]],
+      [6,"p1",0,52,false,[[0,"S20","SingleOuter","manual_coords",{"x":0,"y":0.7676515871502825}],[1,"D16","Double","manual_coords",{"x":-0.785264324882839,"y":-0.5704698550851361}]]]
+    ]},
+    {"number":2,"winner":"p2","visits":[
+      [0,"p2",330,171,false,[[0,"T19","Triple","manual_coords",{"x":-0.18543187691379945,"y":-0.5706152817667572}],[1,"T19","Triple","manual_coords",{"x":-0.18543187691379945,"y":-0.5706152817667572}],[2,"T19","Triple","manual_coords",{"x":-0.18543187691379945,"y":-0.5706152817667572}]]],
+      [1,"p1",480,21,false,[[0,"S1","SingleInner","manual_coords",{"x":0.10630010586326745,"y":0.3272933879650711}],[1,"S20","SingleOuter","manual_coords",{"x":0,"y":0.7676515871502825}],[2,"M20","Outside","manual_coords",{"x":0,"y":1.1117828428359795}]]],
+      [2,"p2",190,140,false,[[0,"T20","Triple","manual_coords",{"x":0,"y":0.6000414249281983}],[1,"T20","Triple","manual_coords",{"x":0,"y":0.6000414249281983}],[2,"S20","SingleOuter","manual_coords",{"x":0,"y":0.7676515871502825}]]],
+      [3,"p1",433,47,false,[[0,"D5","Double","manual_coords",{"x":-0.29996469954506016,"y":0.9231063547755233}],[1,"S12","SingleInner","manual_coords",{"x":-0.20228481935142273,"y":0.2784291361923105}],[2,"25","Single","manual_coords",{"x":-0.022131753630858852,"y":0.06800855119397539}]]],
+      [4,"p2",50,140,false,[[0,"T20","Triple","manual_coords",{"x":0,"y":0.6000414249281983}],[1,"T20","Triple","manual_coords",{"x":0,"y":0.6000414249281983}],[2,"S20","SingleOuter","manual_coords",{"x":0,"y":0.7676515871502825}]]],
+      [5,"p1",391,42,false,[[0,"S18","SingleOuter","manual_coords",{"x":0.4512060837695519,"y":0.6210591274146873}],[1,"T7","Triple","manual_coords",{"x":-0.3527030057947869,"y":-0.4853813539505189}],[2,"S3","SingleInner","manual_coords",{"x":0,"y":-0.3441161809686997}]]],
+      [6,"p2",0,50,false,[[0,"Bull","Double","manual_coords",{"x":0,"y":0.00001507471699732284}]]]
+    ]},
+    {"number":3,"winner":"p1","visits":[
+      [0,"p1",366,135,false,[[0,"T20","Triple","manual_coords",{"x":0,"y":0.6000414249281983}],[1,"T19","Triple","manual_coords",{"x":-0.18543187691379945,"y":-0.5706152817667572}],[2,"S18","SingleOuter","manual_coords",{"x":0.4512060837695519,"y":0.6210591274146873}]]],
+      [1,"p2",459,42,false,[[0,"25","Single","manual_coords",{"x":-0.022131753630858852,"y":0.06800855119397539}],[1,"S5","SingleInner","manual_coords",{"x":-0.10634843363246477,"y":0.3272933879650711}],[2,"S12","SingleOuter","manual_coords",{"x":-0.45125455933009245,"y":0.6210591274146873}]]],
+      [2,"p1",186,180,false,[[0,"T20","Triple","manual_coords",{"x":0,"y":0.6000414249281983}],[1,"T20","Triple","manual_coords",{"x":0,"y":0.6000414249281983}],[2,"T20","Triple","manual_coords",{"x":0,"y":0.6000414249281983}]]],
+      [3,"p2",423,36,false,[[0,"M5","Outside","manual_coords",{"x":-0.34359861568512556,"y":1.057397993232654}],[1,"S19","SingleOuter","manual_coords",{"x":-0.23725003426131755,"y":-0.7300410549900453}],[2,"S17","SingleInner","manual_coords",{"x":0.10630010586326745,"y":-0.3272632385310763}]]],
+      [4,"p1",52,134,false,[[0,"T20","Triple","manual_coords",{"x":0,"y":0.6000414249281983}],[1,"T18","Triple","manual_coords",{"x":0.35265467802558975,"y":0.48541179896719994}],[2,"S20","SingleOuter","manual_coords",{"x":0,"y":0.7676515871502825}]]],
+      [5,"p2",389,34,false,[[0,"D7","Double","manual_coords",{"x":-0.5705334053626739,"y":-0.7852009223966443}],[1,"S9","SingleInner","manual_coords",{"x":-0.2784140614753134,"y":0.20230004185976314}],[2,"S11","SingleOuter","manual_coords",{"x":-0.7676848402024824,"y":0.00001507471699732284}]]],
+      [6,"p1",52,0,true,[[0,"T20","Triple","manual_coords",{"x":0,"y":0.6000414249281983}],[1,"Miss","Outside","fill_miss",null],[2,"Miss","Outside","fill_miss",null]]],
+      [7,"p2",365,24,false,[[0,"S16","SingleOuter","manual_coords",{"x":-0.6210440526976899,"y":-0.4511910090525547}],[1,"S8","SingleInner","manual_coords",{"x":-0.3272781654567307,"y":-0.10633321112412435}],[2,"M2","Outside","manual_coords",{"x":0.6534425753517775,"y":-0.8993945638954656}]]],
+      [8,"p1",0,52,false,[[0,"S20","SingleOuter","manual_coords",{"x":0,"y":0.7676515871502825}],[1,"D16","Double","manual_coords",{"x":-0.785264324882839,"y":-0.5704698550851361}]]]
+    ]}
+  ]
+}
