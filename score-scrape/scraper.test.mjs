@@ -95,9 +95,39 @@ test('offline intercepted XHR: exact detail, privacy, retries and filtering', as
     const resultDarts = posts.at(-1).detail.legs[0].visits[0].throws;
     assert.equal(resultDarts[0].entry_type, 'unknown');
     assert.equal(resultDarts[0].position.provenance, 'unknown');
+    assert.equal(resultDarts[0].position.units, null);
+    assert.equal(resultDarts[0].position.origin, null);
+    assert.equal(resultDarts[0].position.axis_orientation, null);
     assert.equal(resultDarts[1].entry_type, 'automatic');
     assert.equal(resultDarts[1].position.units, null);
     assert.equal(resultDarts[2].position, null);
+    response = source(); response.id = 'detected-corrected-all-legs';
+    for (const game of response.games) {
+      for (const turn of game.turns) {
+        for (const dart of turn.throws) dart.entry = dart.throw === 0 ? 'corrected' : 'detected';
+      }
+    }
+    response.games[0].turns[0].throws[0].entry = 'manual_coords';
+    await emit(); await confirm(); await close();
+    const captured = posts.at(-1).detail.legs;
+    assert.deepEqual(captured.map(leg => leg.visits.flatMap(v => v.throws).filter(d => d.position?.units === 'board-radius').length), [15, 18, 15]);
+    for (const [legIndex, game] of response.games.entries()) {
+      for (const [visitIndex, turn] of game.turns.entries()) {
+        for (const [dartIndex, dart] of turn.throws.entries()) {
+          const actual = captured[legIndex].visits[visitIndex].throws[dartIndex];
+          const provenance = dart.entry === 'detected' ? 'automatic' : dart.entry === 'manual_coords' ? 'manual' : 'unknown';
+          assert.equal(actual.entry_type, provenance);
+          assert.deepEqual(actual.position, { ...dart.coords, units: 'board-radius', origin: 'bull', axis_orientation: 'x-right-y-up', provenance });
+        }
+      }
+    }
+    response.id = 'detected-corrected-missing-coordinates';
+    delete response.games[1].turns[0].throws[0].coords;
+    response.games[1].turns[0].throws[1].coords = { x: 0, y: null };
+    response.games[1].turns[0].throws[2].entry = 'fill_miss';
+    delete response.games[1].turns[0].throws[2].coords;
+    await emit(); await confirm(); await close();
+    assert.deepEqual(posts.at(-1).detail.legs[1].visits[0].throws.map(d => d.position), [null, null, null]);
     for (const [bed, y] of [['SingleOuter', 0.8], ['SingleInner', 0.3]]) {
       response = source(); response.id = `manual-${bed}`;
       Object.assign(response.matchStats[1], { average: 60, first9Average: 60 });

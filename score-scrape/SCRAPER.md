@@ -55,25 +55,37 @@ responses must have the matching ID, X01/501/Double, targetLegs=2 or 3 (must mat
   becomes contract miss/0. Single/Double 25 and OuterBull/InnerBull map to bulls.
   The observed `SingleOuter` and `SingleInner` beds map to `single`, preserving their number and coordinates.
   Unknown beds reject rather than silently dropping darts.
-- `manual_coords`, `manual_segment`, `manual` map to manual; `auto`/`automatic`
-  to automatic; other entry values remain unknown. The capture specifically
-  observed `manual_coords`; physical automatic entry names remain unverified.
+- `manual_coords`, `manual_segment`, `manual` map to manual;
+  `detected`/`auto`/`automatic` map to automatic. `corrected` retains unknown
+  provenance: the entry value alone does not establish who or what corrected it.
+  Other entry values, including source-generated `fill_miss`, remain unknown.
 - `coords.x/y` are unchanged. Missing/incomplete pairs become null, never (0,0).
-  The observed `manual_coords` browser input uses the outer double-ring radius
+  `manual_coords`, `detected` and `corrected` use the outer double-ring radius
   as one unit, the bull as origin, x right and y up. Declare that supported
-  `board-radius` geometry so the recorded browser clicks can be plotted.
+  `board-radius` geometry independently of entry provenance. The observed raw
+  responses and upstream renderer are documented in
+  `docs/autodarts/heatmap-investigation-2026-10-14.md`.
   The captured T20 radius is about 0.60; the D12 radius is about 0.97;
   misses may exceed 1. No values are rescaled or inferred from the segment.
-  Automatic and other entry modes retain unknown geometry until separately
-  verified; manual plotting is not evidence of physical throwing accuracy.
+  Other entry modes, including legacy `auto`/`automatic`, retain unknown geometry
+  until separately verified; plotting is not evidence of physical accuracy.
 - Detail coverage is conservatively partial even when all source games appear
   present. The producer does not claim total reconciliation; backend #39 owns
   semantic conflict detection. Invalid structure rejects; detail is not truncated.
 
-The golden contract/examples and shared fixtures are unchanged. Physical-board
-automatic entry, coordinate scale/orientation, and arbitrary bust/correction
-history still need operator-approved real-board acceptance. No live match was
-created for this change.
+The historical response establishes the `detected`/`corrected` entry names and
+the upstream renderer establishes their coordinate convention. Physical-board
+calibration and arbitrary correction history still need operator-approved
+real-board acceptance; the new browser-click test is not a hardware test.
+
+## Previously imported matches
+
+This fixes new captures; it does not reinterpret unknown stored coordinates or
+mutate immutable source payloads. Reload Autodarts and install the updated
+bookmarklet script before capturing again (an already-installed script is not
+replaced in place). Re-capturing an affected match produces changed source content,
+which requires admin review and explicit replacement of the active result source;
+it must not silently overwrite scores or bypass the existing approval rules.
 
 ## Offline checks
 
