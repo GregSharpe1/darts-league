@@ -49,10 +49,11 @@ func (s PendingResultService) autoApproveImport(ctx context.Context, outcome Imp
 	if !errors.Is(err, ErrResultNotFound) {
 		return outcome, err
 	}
-	_, err = s.approve(ctx, ApprovalRequest{PendingID: record.Pending.ID, SeasonID: season.ID, FixtureID: *suggestion.FixtureID, Mapping: suggestion.Mapping, Actor: "autodarts:auto-submit"})
+	result, err := s.approve(ctx, ApprovalRequest{PendingID: record.Pending.ID, SeasonID: season.ID, FixtureID: *suggestion.FixtureID, Mapping: suggestion.Mapping, Actor: "autodarts:auto-submit"})
 	if err != nil {
 		return outcome, err
 	}
+	outcome.AutoSubmitted = &result
 	outcome.Pending, err = s.store.GetPendingResult(ctx, outcome.Pending.ID)
 	return outcome, err
 }

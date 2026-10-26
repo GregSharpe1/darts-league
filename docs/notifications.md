@@ -10,7 +10,9 @@ commands scheduled by the [Helm chart](../deploy/helm/darts-league/README.md).
 | Message | Trigger | Destination | Content |
 | --- | --- | --- | --- |
 | New player signup | Successful player registration | Admin channel | Player label, registration time, total registered players |
-| New pending score | New result saved by scheduled or manual relay polling | Admin channel | Reported player names, leg scores, pending-results page link |
+| New pending score | New result saved by scheduled or manual relay polling that needs admin review (auto-submit disabled, or the import is ineligible: unmapped players, ambiguous fixture, etc.) | Admin channel | Reported player names, leg scores, pending-results page link |
+| Autodarts auto-submit | `AUTODARTS_AUTO_SUBMIT=true` and an eligible import was approved, after the transaction commits | Admin channel | Players, leg score, division, `/admin/matches/{fixtureId}` link |
+| Autodarts import failure | A relay message fails ingestion or automatic approval during scheduled or manual polling | Admin channel | Safe failure reason, Autodarts match ID and relay message ID when available, pending-results link |
 | Weekly fixtures | Monday 09:00 by default | Each division's channel, or public fallback | Current public week's pairings and division standings link |
 | Weekly summary | Friday 09:00 by default | Each division's channel, or public fallback | Current week's results, leader, pending results, cumulative standings and link |
 
@@ -69,6 +71,30 @@ Set `PUBLIC_BASE_URL` to include the clickable review link. Repeated external ma
 IDs do not send another notification. Delivery is best-effort, like signup
 notifications: Slack failures are logged without losing the saved pending score,
 and failed notifications are not retried.
+
+### Autodarts auto-submit and failure alerts
+
+- **Success** is posted only after an automatic approval (`autodarts:auto-submit`
+  audit entry) has committed. Receiving or importing a match never produces a
+  success message, and replayed imports do not post again. Imports that stay
+  pending get the pending-score message instead; they are never reported as
+  submitted or as failures.
+- **Failure** alerts cover any relay message that fails ingestion or automatic
+  approval, from scheduled or manual (`POST /api/admin/results/poll`) polling.
+  The reason is chosen from a fixed list (invalid payload, timeout, no durable
+  store, unexpected error); raw errors, payloads and receipts are never posted
+  or logged. The message stays unacknowledged, so SQS redelivers it up to
+  `maxReceiveCount` (5) times before moving it to the dead-letter queue.
+- **Deduplication:** each failed message (by relay message ID) alerts at most
+  once per backend process. A restart can repeat an alert for a message that is
+  still being redelivered, bounded by the remaining SQS receives.
+- **Slack outages** never roll back a committed result or discard an import;
+  delivery errors are logged without secrets and are not retried or re-alerted.
+  To recover, check the backend logs (`slack auto-submit notification failed`,
+  `slack relay failure notification failed`, `results relay: message failed`),
+  then review `/admin/pending-results`, the admin audit log, and the relay DLQ.
+- Relay receive/transport failures (as opposed to per-message failures) are not
+  alerted here; see issue #38.
 
 `PUBLIC_BASE_URL` must be an absolute frontend URL including `https://` (or
 `http://` for local testing), not the backend API address. Surrounding whitespace
@@ -239,6 +265,7 @@ Compose does not schedule the weekly commands.
 ## Implementation references
 
 - [Message composition and routing](../backend/internal/notifications/service.go)
+- [Autodarts auto-submit and failure alerts](../backend/internal/notifications/autodarts.go)
 - [Notification command and signup wiring](../backend/cmd/api/main.go)
 - [Slack client and retries](../backend/internal/slack/client.go)
 - [Backend configuration](../backend/internal/config/config.go)
