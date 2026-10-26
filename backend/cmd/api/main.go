@@ -144,10 +144,15 @@ func startResultPoller(cfg config.Config, store league.Store, resultService leag
 		loc = time.UTC
 	}
 
+	slackClient := slack.NewClient(cfg.SlackBotToken)
 	pendingResults := league.NewPendingResultServiceWithNow(store, resultService, now).WithAutoSubmit(cfg.AutoSubmit).WithNotifier(
-		notifications.NewPendingResultNotifier(slack.NewClient(cfg.SlackBotToken), cfg.SlackAdminChannel, cfg.PublicBaseURL),
+		notifications.NewPendingResultNotifier(slackClient, cfg.SlackAdminChannel, cfg.PublicBaseURL),
+	).WithAutoSubmitNotifier(
+		notifications.NewAutoSubmitNotifier(store, slackClient, cfg.SlackAdminChannel, cfg.PublicBaseURL),
 	)
-	poller := resultsrelay.NewPoller(client, pendingResults, loc, cfg.ResultsPollInterval, log.Default())
+	poller := resultsrelay.NewPoller(client, pendingResults, loc, cfg.ResultsPollInterval, log.Default()).WithFailureNotifier(
+		notifications.NewRelayFailureNotifier(slackClient, cfg.SlackAdminChannel, cfg.PublicBaseURL),
+	)
 	if _, ok := store.(*pgstore.Store); ok {
 		poller = poller.WithDurableIngest(func(ctx context.Context, message resultsrelay.Message) error {
 			_, err := pendingResults.IngestDurablePayload(ctx, []byte(message.Body))
