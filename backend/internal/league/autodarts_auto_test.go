@@ -56,18 +56,24 @@ func TestAutoSubmitOnlyNewEligibleImports(t *testing.T) {
 	ctx := context.Background()
 	store, s, p := mappedSetup(t)
 	notifications := 0
-	s = s.WithNotifier(func(context.Context, PendingResult) { notifications++ })
+	var submitted []Result
+	s = s.WithNotifier(func(context.Context, PendingResult) { notifications++ }).WithAutoSubmitNotifier(func(ctx context.Context, r Result) {
+		if _, err := store.GetResultByFixture(ctx, r.FixtureID); err != nil {
+			t.Errorf("auto-submit notified before commit: %v", err)
+		}
+		submitted = append(submitted, r)
+	})
 	out := ingestTestPayload(t, s, p)
-	if out.Pending.Status != PendingResultStatusConfirmed || notifications != 0 {
-		t.Fatalf("outcome %+v notifications %d", out, notifications)
+	if out.Pending.Status != PendingResultStatusConfirmed || notifications != 0 || len(submitted) != 1 || submitted[0].FixtureID != 1 {
+		t.Fatalf("outcome %+v notifications %d submitted %+v", out, notifications, submitted)
 	}
 	r, err := store.GetResultByFixture(ctx, 1)
 	if err != nil || r.PlayerOneLegs != 1 || r.PlayerTwoLegs != 3 || r.WinnerID != 2 {
 		t.Fatalf("source order: %+v %v", r, err)
 	}
 	out = ingestTestPayload(t, s, p)
-	if !out.Duplicate || out.Pending.Status != PendingResultStatusConfirmed {
-		t.Fatal(out)
+	if !out.Duplicate || out.Pending.Status != PendingResultStatusConfirmed || out.AutoSubmitted != nil || len(submitted) != 1 {
+		t.Fatal(out, submitted)
 	}
 	audits, _ := store.ListAuditLogsBySeason(ctx, 1)
 	if len(audits) != 1 || audits[0].Actor != "autodarts:auto-submit" {
@@ -128,11 +134,11 @@ func TestAutoSubmitFallsBackToPending(t *testing.T) {
 				ingestTestPayload(t, s.WithAutoSubmit(false), p)
 				p.Players[1].LegsWon = 2
 			}
-			notifications := 0
-			s = s.WithNotifier(func(context.Context, PendingResult) { notifications++ })
+			notifications, submitted := 0, 0
+			s = s.WithNotifier(func(context.Context, PendingResult) { notifications++ }).WithAutoSubmitNotifier(func(context.Context, Result) { submitted++ })
 			out := ingestTestPayload(t, s, p)
-			if out.Pending.Status != PendingResultStatusPending || notifications != 1 {
-				t.Fatalf("%+v notifications %d", out, notifications)
+			if out.Pending.Status != PendingResultStatusPending || notifications != 1 || submitted != 0 {
+				t.Fatalf("%+v notifications %d submitted %d", out, notifications, submitted)
 			}
 		})
 	}

@@ -17,6 +17,8 @@ type ImportOutcome struct {
 	Pending   PendingResult
 	Duplicate bool
 	Changed   bool
+	// AutoSubmitted is the result recorded by automatic approval, if any.
+	AutoSubmitted *Result
 }
 
 // ImportRecord is an admin/service DTO, never a public projection. Source IDs
@@ -90,6 +92,9 @@ func (s PendingResultService) IngestPayload(ctx context.Context, body []byte) (I
 	}
 	if !outcome.Duplicate && (outcome.Pending.Status == PendingResultStatusPending || outcome.Pending.Status == PendingResultStatusReviewBlocked) && s.notify != nil {
 		s.notify(ctx, outcome.Pending)
+	}
+	if outcome.AutoSubmitted != nil && s.notifyAutoSubmit != nil {
+		s.notifyAutoSubmit(ctx, *outcome.AutoSubmitted)
 	}
 	return outcome, err
 }

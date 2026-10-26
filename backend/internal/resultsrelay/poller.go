@@ -2,10 +2,14 @@ package resultsrelay
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"errors"
 	"log"
+	"sync"
 	"time"
 
+	"github.com/greg/darts-league/backend/internal/autodarts"
 	"github.com/greg/darts-league/backend/internal/league"
 )
 
@@ -19,6 +23,9 @@ type Poller struct {
 	now           func() time.Time
 	logger        *log.Logger
 	durableIngest func(context.Context, Message) error
+	onFailure     func(context.Context, Message, string)
+	alertMu       *sync.Mutex
+	alerted       map[string]bool
 }
 
 var ErrDurableIngestRequired = errors.New("relay acknowledgement requires a durable ingestion callback")
@@ -31,6 +38,55 @@ func (p *Poller) WithDurableIngest(ingest func(context.Context, Message) error) 
 	configured := *p
 	configured.durableIngest = ingest
 	return &configured
+}
+
+// WithFailureNotifier returns a configured copy that reports each failed
+// message once per process with a safe reason (see FailureReason). SQS
+// redelivers the same message ID until maxReceiveCount moves it to the DLQ.
+func (p *Poller) WithFailureNotifier(notify func(ctx context.Context, message Message, reason string)) *Poller {
+	configured := *p
+	configured.onFailure = notify
+	configured.alertMu, configured.alerted = &sync.Mutex{}, map[string]bool{}
+	return &configured
+}
+
+// FailureReason maps an ingestion error to an allowlisted, payload-free reason.
+func FailureReason(err error) string {
+	switch {
+	case errors.Is(err, autodarts.ErrInvalidJSON), errors.Is(err, autodarts.ErrInvalidPayload), errors.Is(err, autodarts.ErrPayloadTooLarge), errors.Is(err, autodarts.ErrUnsupportedVersion), errors.Is(err, ErrInvalidDelivery):
+		return "payload rejected as invalid; fix the scraper output or resubmit the match"
+	case errors.Is(err, context.DeadlineExceeded), errors.Is(err, context.Canceled):
+		return "processing timed out; it will be retried automatically"
+	case errors.Is(err, ErrDurableIngestRequired), errors.Is(err, league.ErrDurableStoreRequired), errors.Is(err, league.ErrImportStoreRequired):
+		return "backend has no durable database store; check DATABASE_URL"
+	default:
+		return "unexpected processing error; check database health, it will be retried automatically"
+	}
+}
+
+func (p *Poller) reportFailure(ctx context.Context, message Message, err error) {
+	reason := FailureReason(err)
+	p.logger.Printf("results relay: message failed: %s", reason)
+	if p.onFailure == nil {
+		return
+	}
+	key := message.MessageID
+	if key == "" {
+		sum := sha256.Sum256([]byte(message.Body))
+		key = hex.EncodeToString(sum[:])
+	}
+	p.alertMu.Lock()
+	seen := p.alerted[key]
+	// ponytail: per-process dedup, a restart can re-alert at most once per remaining SQS redelivery.
+	if !seen && len(p.alerted) >= 1000 {
+		clear(p.alerted)
+	}
+	p.alerted[key] = true
+	p.alertMu.Unlock()
+	if seen {
+		return
+	}
+	p.onFailure(ctx, message, reason)
 }
 
 // PollWindow describes the weekday/hour window during which polling occurs.
@@ -94,6 +150,7 @@ func (p *Poller) pollOnce(ctx context.Context) error {
 	var committed []Message
 	for _, message := range messages {
 		if err := p.processMessage(ctx, message); err != nil {
+			p.reportFailure(ctx, message, err)
 			failures = append(failures, err)
 			continue
 		}

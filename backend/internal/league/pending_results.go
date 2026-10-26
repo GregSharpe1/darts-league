@@ -44,6 +44,8 @@ type PendingResultService struct {
 	results    ResultService
 	now        func() time.Time
 	notify     func(context.Context, PendingResult)
+	// notifyAutoSubmit runs only after an automatic approval has committed.
+	notifyAutoSubmit func(context.Context, Result)
 }
 
 func NewPendingResultService(store Store, results ResultService) PendingResultService {
@@ -56,6 +58,11 @@ func NewPendingResultServiceWithNow(store Store, results ResultService, now func
 
 func (s PendingResultService) WithNotifier(notify func(context.Context, PendingResult)) PendingResultService {
 	s.notify = notify
+	return s
+}
+
+func (s PendingResultService) WithAutoSubmitNotifier(notify func(context.Context, Result)) PendingResultService {
+	s.notifyAutoSubmit = notify
 	return s
 }
 
