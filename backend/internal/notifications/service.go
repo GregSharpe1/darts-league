@@ -173,7 +173,7 @@ func (s WeeklyService) ComposeWeeklySummaryMessage(ctx context.Context, division
 		builder.WriteString("- No results recorded yet\n")
 	}
 
-	standings := league.BuildStandings(data.players, data.fixtures, data.results)
+	standings := league.DivisionStandings(division.ID, data.players, data.fixtures, data.results, data.now, data.location)
 	if len(standings) > 0 {
 		builder.WriteString(fmt.Sprintf("\n👑 Leader: %s on %d pts\n", escapePlayerLabel(standings[0].PreferredName), standings[0].Points))
 	}

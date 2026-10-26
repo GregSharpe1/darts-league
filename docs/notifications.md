@@ -32,7 +32,8 @@ current-week fixtures have results.
 Fixture and result labels use `Nickname (Display Name)` where a nickname exists,
 otherwise just the display name. The leader and standings use nickname only,
 falling back to display name. Standings are cumulative, not limited to the week
-shown in the results section; see the division-scoping limitation below.
+shown in the results section, and match the division's public standings page:
+only players assigned to that division and results from unlocked weeks count.
 
 ## Setup
 
@@ -255,10 +256,6 @@ Compose does not schedule the weekly commands.
   Weekly selection remains on the last unlocked week after the final fixture
   week until an admin closes the season. CronJobs continue running after closure,
   but completed seasons do not produce messages.
-- **Division standings bug:** Fixtures/results are division-scoped, but the
-  summary currently builds standings from all season players. Other divisions'
-  players can appear with zero statistics and can affect the displayed leader
-  when tied. This is a known limitation, not intended division-only behavior.
 - **Manual summary dates:** The summary date format contains a literal `Fri`.
   Running it on another weekday still produces a Friday label.
 

@@ -278,3 +278,84 @@ func (p *stubPoster) PostMessage(_ context.Context, channelID, text string) erro
 	p.messages = append(p.messages, postedMessage{channelID: channelID, text: text})
 	return p.err
 }
+
+func TestWeeklyMessagesAreScopedToEachDivision(t *testing.T) {
+	for name, channels := range map[string][]string{
+		"shared channel":  {"CSHARED", "CSHARED", "CSHARED"},
+		"public fallback": {"", "", ""},
+		"mixed":           {"CDIV1", "", "CDIV1"},
+	} {
+		t.Run(name, func(t *testing.T) {
+			ctx := context.Background()
+			store := league.NewMemoryStore()
+			now := time.Date(2026, 3, 18, 12, 0, 0, 0, time.UTC)
+			registration := league.NewRegistrationServiceWithNow(store, func() time.Time { return now })
+			season := league.NewSeasonServiceWithNow(store, func() time.Time { return now })
+			divisions, err := season.ProvisionDivisions(ctx, 3)
+			if err != nil {
+				t.Fatal(err)
+			}
+			for i, division := range divisions {
+				if _, err := season.UpdateDivision(ctx, division.ID, division.Name, division.Slug, channels[i]); err != nil {
+					t.Fatal(err)
+				}
+			}
+			roster := [][]league.Player{
+				{{DisplayName: "Aaron Able"}, {DisplayName: "Bob Brown", Nickname: "Bravo"}},
+				{{DisplayName: "Carl Cole", Nickname: "Charlie"}, {DisplayName: "Dan Dee"}},
+			}
+			for i, players := range roster {
+				for _, player := range players {
+					registered, err := registration.RegisterPlayer(ctx, player)
+					if err != nil {
+						t.Fatal(err)
+					}
+					if _, err := registration.AssignPlayer(ctx, registered.ID, &divisions[i].ID); err != nil {
+						t.Fatal(err)
+					}
+				}
+			}
+			if _, err := season.StartSeason(ctx); err != nil {
+				t.Fatal(err)
+			}
+			fixtures, err := store.ListFixturesByDivision(ctx, divisions[0].ID)
+			if err != nil || len(fixtures) != 1 {
+				t.Fatalf("division 1 fixtures: %v %v", fixtures, err)
+			}
+			legs := map[bool][2]int{true: {0, 3}, false: {3, 0}}[fixtures[0].PlayerOneID == 1]
+			if _, err := league.NewResultService(store).RecordResult(ctx, fixtures[0].ID, legs[0], legs[1], nil, nil); err != nil {
+				t.Fatal(err)
+			}
+
+			poster := &stubPoster{}
+			weekly := NewWeeklyService(store, func() time.Time { return time.Date(2026, 3, 23, 10, 0, 0, 0, time.UTC) }, poster, "CPUBLIC", "https://darts.example.com")
+			if posted, err := weekly.PostWeeklySummary(ctx); err != nil || !posted {
+				t.Fatalf("summary: %v %v", posted, err)
+			}
+			if len(poster.messages) != 2 {
+				t.Fatalf("expected one message per non-empty division, got %+v", poster.messages)
+			}
+			want := []struct{ channel, slug, leader, other string }{
+				{channels[0], "division-1", "Leader: Bravo on 2 pts", "Charlie"},
+				{channels[1], "division-2", "Leader: Charlie on 0 pts", "Aaron"},
+			}
+			for i, w := range want {
+				message := poster.messages[i]
+				if w.channel == "" {
+					w.channel = "CPUBLIC"
+				}
+				if message.channelID != w.channel {
+					t.Fatalf("message %d channel = %q, want %q", i, message.channelID, w.channel)
+				}
+				for _, s := range []string{divisions[i].Name, "/divisions/" + w.slug + "/standings", w.leader} {
+					if !strings.Contains(message.text, s) {
+						t.Fatalf("message %d missing %q: %s", i, s, message.text)
+					}
+				}
+				if strings.Contains(message.text, w.other) || strings.Contains(message.text, "Division 3") {
+					t.Fatalf("message %d leaks another division: %s", i, message.text)
+				}
+			}
+		})
+	}
+}
