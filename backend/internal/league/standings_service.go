@@ -30,8 +30,13 @@ func (s ResultService) Standings(ctx context.Context, divisionSlug string) ([]St
 	if err != nil {
 		return nil, err
 	}
+	return DivisionStandings(division.ID, players, fixtures, results, s.now(), loc), nil
+}
+
+// DivisionStandings builds cumulative standings for one division from its assigned
+// players and the results of fixtures in weeks unlocked at now.
+func DivisionStandings(divisionID int64, players []Player, fixtures []Fixture, results []Result, now time.Time, loc *time.Location) []StandingRow {
 	visible := make(map[int64]bool)
-	now := s.now()
 	for _, week := range GroupFixturesByWeek(fixtures, loc) {
 		if !now.Before(week.RevealAt) {
 			for _, fixture := range week.Fixtures {
@@ -47,9 +52,9 @@ func (s ResultService) Standings(ctx context.Context, divisionSlug string) ([]St
 	}
 	divisionPlayers := make([]Player, 0)
 	for _, player := range players {
-		if player.DivisionID != nil && *player.DivisionID == division.ID && player.Status == PlayerStatusAssigned {
+		if player.DivisionID != nil && *player.DivisionID == divisionID && player.Status == PlayerStatusAssigned {
 			divisionPlayers = append(divisionPlayers, player)
 		}
 	}
-	return BuildStandings(divisionPlayers, fixtures, publicResults), nil
+	return BuildStandings(divisionPlayers, fixtures, publicResults)
 }
