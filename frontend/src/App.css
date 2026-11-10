@@ -577,6 +577,10 @@
   gap: 0.7rem;
 }
 
+.player-cell a {
+  color: var(--color-text);
+}
+
 .position-badge {
   display: inline-flex;
   align-items: center;
