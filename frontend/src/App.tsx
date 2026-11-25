@@ -7,6 +7,8 @@ import { HomePage } from './pages/home/HomePage'
 import { DivisionHomePage } from './pages/home/DivisionHomePage'
 import { StandingsPage } from './pages/standings/StandingsPage'
 import { RegisterPage } from './pages/register/RegisterPage'
+import { AdminTournamentsPage } from './pages/tournaments/AdminTournamentsPage'
+import { TournamentPage } from './pages/tournaments/TournamentPage'
 import { AdminPage } from './pages/admin/AdminPage'
 import { DivisionAdminPage } from './pages/admin/DivisionAdminPage'
 import { PendingResultsPage } from './pages/admin/PendingResultsPage'
@@ -57,6 +59,7 @@ function App() {
               {!onAdminPage && seasonQuery.data?.registration_open ? <NavLink to="/register">Register</NavLink> : null}
               {onAdminPage && !onAdminHome ? <NavLink to="/admin">Admin home</NavLink> : null}
               {onAdminHome && adminAuthenticated ? <NavLink to="/admin/pending-results">Pending results</NavLink> : null}
+              {onAdminHome && adminAuthenticated ? <NavLink to="/admin/tournaments">Tournaments</NavLink> : null}
               {onAdminPage && adminAuthenticated ? (
                 <button
                   type="button"
@@ -80,16 +83,17 @@ function App() {
           <Route path="/divisions/:slug" element={<DivisionHomePage />} />
           <Route path="/divisions/:slug/standings" element={<StandingsPage />} />
           <Route path="/register" element={<RegisterPage />} />
+          <Route path="/tournaments/:slug" element={<TournamentPage />} />
           <Route path="/matches/:fixtureId" element={<MatchPage />} />
           <Route path="/seasons/:seasonId/players/:playerId" element={<PlayerPage />} />
           <Route path="/admin/seasons/:seasonId/players/:playerId" element={<PlayerPage admin />} />
           <Route path="/admin/matches/:fixtureId" element={<MatchPage admin />} />
           <Route path="/admin" element={<AdminPage />} />
           <Route path="/admin/pending-results" element={<PendingResultsPage />} />
+          <Route path="/admin/tournaments/:slug?" element={<AdminTournamentsPage />} />
           <Route path="/admin/divisions/:slug" element={<DivisionAdminPage />} />
         </Routes>
         <footer className="footer-note" aria-label="Application build details">
-          <p>Built for one active season, admin-managed divisions, weekly reveals, and division-specific score entry.</p>
           <p className="footer-version">Frontend {frontendVersion} | Backend {backendVersionQuery.data?.version ?? 'unavailable'}</p>
         </footer>
       </main>

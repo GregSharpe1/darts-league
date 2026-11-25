@@ -838,6 +838,28 @@
   border: 1px solid rgba(255, 255, 255, 0.12);
 }
 
+.tournament-link {
+  color: var(--color-accent-soft);
+}
+
+.tournament-list-label {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.tournament-registration-actions {
+  margin-top: 1rem;
+}
+
+.tournament-registration-actions button {
+  padding-inline: 1.1rem;
+}
+
+.tournament-remove-entry {
+  align-self: start;
+  flex-shrink: 0;
+}
+
 .roster-assignment-field {
   min-width: 13rem;
 }

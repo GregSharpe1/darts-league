@@ -302,3 +302,71 @@ test('register, assign divisions, start season, enter result, and view division 
   await expect(page.locator('.admin-fixture-card.recorded')).toHaveCount(0)
   await expect(page.locator('input[id^="p1-"]')).toHaveValue('')
 })
+
+test('admins open a tournament and manage public entries independently of the league', async ({ page, browser }) => {
+  const eventName = 'Cardiff Winter Knockout'
+  const eventPath = '/tournaments/cardiff-winter-knockout'
+  const leagueBefore = await (await page.request.get('/api/season')).json()
+
+  await page.goto('/admin/tournaments')
+  await expect(page.getByRole('link', { name: 'Log in to manage tournaments' })).toBeVisible()
+  await page.getByRole('link', { name: 'Log in to manage tournaments' }).click()
+  await page.getByLabel('Username').fill('admin')
+  await page.getByLabel('Password').fill('change-me')
+  await page.getByRole('button', { name: 'Unlock admin tools' }).click()
+  await page.getByRole('link', { name: 'Tournaments', exact: true }).click()
+  await expect(page.getByRole('heading', { name: 'Create tournament' })).toBeVisible()
+  await captureScreenshot(page, 'tournament-admin-create.png')
+  await page.getByLabel('Tournament name').fill(eventName)
+  await page.getByLabel('Start date').fill('2027-02-06')
+  await page.getByLabel('Event link slug').fill('cardiff-winter-knockout')
+  await page.getByRole('button', { name: 'Create tournament' }).click()
+  await expect(page.getByRole('heading', { name: eventName })).toBeVisible()
+  await expect(page.getByRole('link', { name: 'Public sign-up page' })).toHaveAttribute('href', eventPath)
+  await expect(page.getByRole('heading', { name: 'Registration closed' })).toBeVisible()
+
+  const publicPage = await browser.newPage({ baseURL: new URL(page.url()).origin })
+  try {
+    await publicPage.goto(eventPath)
+    await expect(publicPage.getByRole('heading', { name: 'Registration closed' })).toBeVisible()
+    await page.getByRole('button', { name: 'Open registration' }).click()
+    await expect(page.getByRole('heading', { name: 'Registration open' })).toBeVisible()
+
+    await publicPage.reload()
+    await expect(publicPage.getByText('6 February 2027')).toBeVisible()
+    await expect(publicPage.getByRole('button', { name: 'Enter tournament' })).toBeEnabled()
+    await captureScreenshot(publicPage, 'tournament-signup-open.png')
+    await publicPage.setViewportSize({ width: 375, height: 850 })
+    expect(await publicPage.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
+    await publicPage.getByLabel('Display name').fill('Luke Humphries')
+    await publicPage.getByLabel('Nickname').fill('The Freeze')
+    await publicPage.getByRole('button', { name: 'Enter tournament' }).click()
+    await expect(publicPage.getByText('The Freeze is registered for Cardiff Winter Knockout.')).toBeVisible()
+
+    await publicPage.getByLabel('Display name').fill('luke  HUMPHRIES')
+    await publicPage.getByRole('button', { name: 'Enter tournament' }).click()
+    await expect(publicPage.getByText('Display name is already registered for this tournament.')).toBeVisible()
+    await page.reload()
+    await expect(page.getByRole('heading', { name: 'Entrants (1)' })).toBeVisible()
+    await expect(page.getByText('The Freeze', { exact: true })).toBeVisible()
+    await captureScreenshot(page, 'tournament-admin-roster.png')
+    await page.setViewportSize({ width: 375, height: 850 })
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
+
+    await page.getByRole('button', { name: 'Close registration' }).click()
+    await expect(page.getByRole('heading', { name: 'Registration closed' })).toBeVisible()
+    await publicPage.getByLabel('Display name').fill('Maya Evans')
+    await publicPage.getByRole('button', { name: 'Enter tournament' }).click()
+    await expect(publicPage.getByRole('heading', { name: 'Registration closed' })).toBeVisible()
+    await publicPage.setViewportSize({ width: 1280, height: 720 })
+    await captureScreenshot(publicPage, 'tournament-signup-closed.png')
+
+    page.once('dialog', (dialog) => dialog.accept())
+    await page.getByRole('button', { name: 'Remove Luke Humphries' }).click()
+    await expect(page.getByText('No entries yet.')).toBeVisible()
+    const leagueAfter = await (await page.request.get('/api/season')).json()
+    expect(leagueAfter).toEqual(leagueBefore)
+  } finally {
+    await publicPage.close()
+  }
+})

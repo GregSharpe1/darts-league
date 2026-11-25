@@ -5,7 +5,6 @@ import (
 	"errors"
 	"sort"
 	"strconv"
-	"strings"
 	"time"
 )
 
@@ -99,8 +98,8 @@ func (s RegistrationService) RegisterPlayer(ctx context.Context, player Player) 
 	}
 
 	player.SeasonID = season.ID
-	player.DisplayName = normalizeSpacing(player.DisplayName)
-	player.Nickname = normalizeSpacing(player.Nickname)
+	player.DisplayName = NormalizeWhitespace(player.DisplayName)
+	player.Nickname = NormalizeWhitespace(player.Nickname)
 	player.Status = PlayerStatusWaitlist
 	player.RegisteredAt = s.now().UTC()
 
@@ -248,10 +247,6 @@ func activeSeasonAndPlayers(ctx context.Context, store Store) (Season, []Player,
 	}
 
 	return season, players, nil
-}
-
-func normalizeSpacing(value string) string {
-	return strings.Join(strings.Fields(value), " ")
 }
 
 type SeasonSummary struct {
@@ -666,7 +661,7 @@ func (s SeasonService) UpdateDivision(ctx context.Context, divisionID int64, nam
 			if season.RegistrationOpen() {
 				division.Slug = NormalizeDivisionSlug(slug)
 			}
-			division.SlackPublicChannelID = normalizeSpacing(slackPublicChannelID)
+			division.SlackPublicChannelID = NormalizeWhitespace(slackPublicChannelID)
 			return s.store.UpdateDivision(ctx, division)
 		}
 	}
