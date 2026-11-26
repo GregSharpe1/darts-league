@@ -7,7 +7,8 @@ import { source } from './test-source.mjs';
 const require = createRequire(import.meta.url);
 const { chromium } = require(process.env.PLAYWRIGHT_MODULE || '../frontend/node_modules/playwright');
 const script = await readFile(new URL('./scoreScrape.js', import.meta.url), 'utf8');
-const expected = state => ({
+const expected = (state, competition = 'league') => ({
+  competition_type: competition,
   schema_version: 'autodarts.import.v1', source: 'autodarts', external_match_id: state.id,
   playedAt: state.createdAt, settings: { base_score: 501, legs_to_win: 3, out: 'double' }, completed: true,
   players: state.players.map((p, i) => {
@@ -51,22 +52,26 @@ test('offline intercepted XHR: exact detail, privacy, retries and filtering', as
       await new Promise(resolve => { const xhr = new XMLHttpRequest(); xhr.open('GET', url); if (json) xhr.responseType = 'json'; xhr.addEventListener('loadend', resolve); xhr.send(); });
     }, { url, json });
     const button = name => page.getByRole('button', { name, exact: true });
-    const confirm = async () => { await button('Submit').click(); };
+    const choose = async (competition = 'League match') => {
+      await page.getByRole('dialog', { name: 'Was this a league match or a tournament match?' }).waitFor();
+      await button(competition).click();
+      await page.getByRole('dialog', { name: 'Submit result' }).getByText(new RegExp(competition)).waitFor();
+    };
+    const confirm = async (competition) => { await choose(competition); await button('Submit result').click(); };
     const close = async () => { await button('Close').click(); };
     await install(true, true);
-    assert.equal(await page.locator('[name=winningLegs]').inputValue(), '2');
-    await page.locator('[name=winningLegs]').fill('3');
-    await button('Save').click();
+    assert.equal(await page.locator('[name=winningLegs]').count(), 0);
     assert.equal(await page.locator('#autodarts-wrapper-installed-indicator').count(), 1);
     await emit(); await emit();
-    assert.equal(await button('Submit').count(), 1);
+    assert.equal(await button('League match').count(), 1);
     await button('Cancel').click();
     await emit();
-    await button('Submit').evaluate(el => { el.click(); el.click(); });
+    await choose();
+    await button('Submit result').evaluate(el => { el.click(); el.click(); });
     await page.getByText('Accepted for delivery.', { exact: false }).waitFor();
     assert.deepEqual(posts, [expected(response)]);
     await close(); await emit();
-    assert.equal(await button('Submit').count(), 0);
+    assert.equal(await button('League match').count(), 0);
     response.createdAt = '2026-06-16T10:00:00+01:00';
     fail = true; await emit(); await confirm();
     await button('Retry').waitFor();
@@ -143,7 +148,7 @@ test('offline intercepted XHR: exact detail, privacy, retries and filtering', as
           turn.score = remaining;
         }
       }
-      await emit(); await button('Submit').waitFor({ timeout: 2000 }); await confirm(); await close();
+      await emit(); await confirm(); await close();
       assert.deepEqual(posts.at(-1), expected(response));
       const single = posts.at(-1).detail.legs[0].visits.find(visit => visit.player_id === response.players[1].id).throws[0];
       assert.deepEqual(single.segment, { bed: 'single', number: 20 });
@@ -172,16 +177,28 @@ test('offline intercepted XHR: exact detail, privacy, retries and filtering', as
     for (const [field, max] of [['first9Average', 180], ['averageUntil170', 180], ['checkoutPoints', 170], ['total180', 1000], ['less60', 1000], ['plus60', 1000], ['plus100', 1000], ['plus140', 1000], ['plus170', 1000]]) {
       for (const value of [-1, max + 1, '1', {}, ...(max === 180 ? [] : [1.5])]) {
         response = source(); response.id = `invalid-${field}`; response.matchStats[0][field] = value;
-        await emit(); assert.equal(await button('Submit').count(), 0);
+        await emit(); assert.equal(await button('League match').count(), 0);
       }
     }
     for (const change of [s => { s.targetLegs = 2; }, s => { s.finishedAt = null; }, s => { s.variant = 'Cricket'; }, s => { s.scores[1].legs = 3; }, s => { s.players[1].id = s.players[0].id; }, s => { s.settings.outMode = 'Straight'; }]) {
-      response = source(); change(response); await emit(); assert.equal(await button('Submit').count(), 0);
+      response = source(); change(response); await emit(); assert.equal(await button('League match').count(), 0);
     }
     response = source();
     for (const url of ['https://evil.invalid/as/v0/matches/offline-match/stats', 'https://api.autodarts.com/as/v0/matches/wrong/stats', 'https://api.autodarts.com/as/v0/matches/offline-match/stats/extra']) {
-      await emit(url); assert.equal(await button('Submit').count(), 0);
+      await emit(url); assert.equal(await button('League match').count(), 0);
     }
+    response = source(); response.id = 'first-to-two-tournament';
+    response.targetLegs = 2; response.scores[0].legs = 2;
+    delete response.games; delete response.matchStats;
+    await emit(); await confirm('Tournament match'); await close();
+    assert.deepEqual(posts.at(-1), {
+      ...expected({ ...response, games: [] }, 'tournament'),
+      settings: { base_score: 501, legs_to_win: 2, out: 'double' }, detail: null,
+    });
+    response = source(); response.id = 'cancel-confirmation';
+    await emit(); await choose('Tournament match'); await button('Cancel').click();
+    await emit(); await confirm(); await close();
+    assert.deepEqual(posts.at(-1), expected(response));
     const before = posts.length;
     await install(false); await emit(); await confirm(); await close(); assert.equal(posts.length, before);
     await install(); response.synthetic = true; await emit(); await confirm(); await close(); assert.equal(posts.length, before);

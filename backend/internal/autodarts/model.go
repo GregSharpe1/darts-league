@@ -2,7 +2,15 @@ package autodarts
 
 import "encoding/json"
 
+type CompetitionType string
+
+const (
+	LeagueMatch     CompetitionType = "league"
+	TournamentMatch CompetitionType = "tournament"
+)
+
 type Import struct {
+	CompetitionType  CompetitionType
 	Payload          json.RawMessage
 	Digest           string
 	Source           string
@@ -15,14 +23,15 @@ type Import struct {
 }
 
 type Payload struct {
-	SchemaVersion   string   `json:"schema_version"`
-	Source          string   `json:"source"`
-	ExternalMatchID string   `json:"external_match_id"`
-	PlayedAt        *string  `json:"playedAt"`
-	Settings        Settings `json:"settings"`
-	Completed       bool     `json:"completed"`
-	Players         []Player `json:"players"`
-	Detail          *Detail  `json:"detail"`
+	CompetitionType CompetitionType `json:"competition_type,omitempty" optional:"true"`
+	SchemaVersion   string          `json:"schema_version"`
+	Source          string          `json:"source"`
+	ExternalMatchID string          `json:"external_match_id"`
+	PlayedAt        *string         `json:"playedAt"`
+	Settings        Settings        `json:"settings"`
+	Completed       bool            `json:"completed"`
+	Players         []Player        `json:"players"`
+	Detail          *Detail         `json:"detail"`
 }
 type Settings struct {
 	BaseScore int    `json:"base_score"`

@@ -3,6 +3,8 @@ package league
 import (
 	"context"
 	"strings"
+
+	"github.com/greg/darts-league/backend/internal/autodarts"
 )
 
 func (s PendingResultService) RejectWithReason(ctx context.Context, id int64, actor, reason string) error {
@@ -18,6 +20,16 @@ func (s PendingResultService) RejectWithReason(ctx context.Context, id int64, ac
 		if r.Pending.Status != PendingResultStatusPending && r.Pending.Status != PendingResultStatusReviewBlocked {
 			return ErrPendingResultNotPending
 		}
+		if strings.TrimSpace(actor) == "" {
+			return ErrApprovalConflict
+		}
+		now := s.now().UTC()
+		r.Pending.Status, r.Pending.ConfirmedAt, r.Pending.ConfirmedBy = PendingResultStatusRejected, &now, actor
+		meta := &ImportAudit{PendingID: id, Source: r.Import.Source, ExternalMatchID: r.Import.ExternalMatchID, Digest: r.Import.Digest, Reason: strings.TrimSpace(reason)}
+		r.Approval = meta
+		if r.Import.CompetitionType == autodarts.TournamentMatch {
+			return imports.SaveImportApproval(ctx, r)
+		}
 		season, err := tx.GetActiveSeason(ctx)
 		if err != nil {
 			return err
@@ -25,14 +37,7 @@ func (s PendingResultService) RejectWithReason(ctx context.Context, id int64, ac
 		if season.Status == SeasonStatusCompleted || (r.SeasonID != nil && *r.SeasonID != season.ID) {
 			return ErrSeasonCompleted
 		}
-		if strings.TrimSpace(actor) == "" {
-			return ErrApprovalConflict
-		}
-		now := s.now().UTC()
-		r.Pending.Status, r.Pending.ConfirmedAt, r.Pending.ConfirmedBy = PendingResultStatusRejected, &now, actor
 		r.SeasonID = &season.ID
-		meta := &ImportAudit{PendingID: id, Source: r.Import.Source, ExternalMatchID: r.Import.ExternalMatchID, Digest: r.Import.Digest, Reason: strings.TrimSpace(reason)}
-		r.Approval = meta
 		if err := imports.SaveImportApproval(ctx, r); err != nil {
 			return err
 		}

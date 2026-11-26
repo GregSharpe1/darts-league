@@ -45,6 +45,7 @@ func autoPG(t *testing.T) (*Store, league.PendingResultService, []byte, league.A
 		t.Fatal(err)
 	}
 	payload.ExternalMatchID = "new-auto"
+	payload.CompetitionType = autodarts.LeagueMatch
 	body, err := json.Marshal(payload)
 	if err != nil {
 		t.Fatal(err)

@@ -10,7 +10,9 @@ this conversion does not introduce an identity service.
 This is the supported standalone deployment root. The obsolete SAM template and
 saved deployment configuration have been removed; their history remains in Git.
 Removing these files does not delete or change any existing AWS stack or queue.
-Reader source and receive/commit/ack semantics are unchanged.
+The relay forwards the JSON body, including the scraper's
+`competition_type` field. Existing queued receipts without the field are still
+delivered and require manual destination selection in Pending Results.
 See [Stage 02](../../../docs/rollout/stage-02.md) for the delivery contract.
 
 ## Build and offline verification

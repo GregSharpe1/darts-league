@@ -687,16 +687,16 @@ func isUniqueViolation(err error) bool {
 
 func (s *Store) CreatePendingResult(ctx context.Context, pending league.PendingResult) (league.PendingResult, error) {
 	row := s.pool.QueryRow(ctx, `
-		INSERT INTO pending_results (external_match_id, player_one_name, player_one_legs, player_one_average, player_two_name, player_two_legs, player_two_average, status, received_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-		RETURNING id, external_match_id, player_one_name, player_one_legs, player_one_average, player_two_name, player_two_legs, player_two_average, status, received_at, confirmed_at, confirmed_by
-	`, nullIfBlank(pending.ExternalMatchID), pending.PlayerOneName, pending.PlayerOneLegs, nullableFloat(pending.PlayerOneAverage), pending.PlayerTwoName, pending.PlayerTwoLegs, nullableFloat(pending.PlayerTwoAverage), pending.Status, pending.ReceivedAt)
+		INSERT INTO pending_results (external_match_id, player_one_name, player_one_legs, player_one_average, player_two_name, player_two_legs, player_two_average, status, received_at, pending_reason)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+		RETURNING id, external_match_id, player_one_name, player_one_legs, player_one_average, player_two_name, player_two_legs, player_two_average, status, received_at, confirmed_at, confirmed_by, competition_type, pending_reason
+	`, nullIfBlank(pending.ExternalMatchID), pending.PlayerOneName, pending.PlayerOneLegs, nullableFloat(pending.PlayerOneAverage), pending.PlayerTwoName, pending.PlayerTwoLegs, nullableFloat(pending.PlayerTwoAverage), pending.Status, pending.ReceivedAt, pending.PendingReason)
 	return scanPendingResult(row)
 }
 
 func (s *Store) ListPendingResults(ctx context.Context, status league.PendingResultStatus) ([]league.PendingResult, error) {
 	rows, err := s.pool.Query(ctx, `
-		SELECT id, external_match_id, player_one_name, player_one_legs, player_one_average, player_two_name, player_two_legs, player_two_average, status, received_at, confirmed_at, confirmed_by
+		SELECT id, external_match_id, player_one_name, player_one_legs, player_one_average, player_two_name, player_two_legs, player_two_average, status, received_at, confirmed_at, confirmed_by, competition_type, pending_reason
 		FROM pending_results
 		WHERE status = $1
 		ORDER BY received_at ASC, id ASC
@@ -719,7 +719,7 @@ func (s *Store) ListPendingResults(ctx context.Context, status league.PendingRes
 
 func (s *Store) GetPendingResult(ctx context.Context, pendingID int64) (league.PendingResult, error) {
 	row := s.pool.QueryRow(ctx, `
-		SELECT id, external_match_id, player_one_name, player_one_legs, player_one_average, player_two_name, player_two_legs, player_two_average, status, received_at, confirmed_at, confirmed_by
+		SELECT id, external_match_id, player_one_name, player_one_legs, player_one_average, player_two_name, player_two_legs, player_two_average, status, received_at, confirmed_at, confirmed_by, competition_type, pending_reason
 		FROM pending_results
 		WHERE id = $1
 	`, pendingID)
@@ -733,10 +733,10 @@ func (s *Store) GetPendingResult(ctx context.Context, pendingID int64) (league.P
 func (s *Store) UpdatePendingResult(ctx context.Context, pending league.PendingResult) (league.PendingResult, error) {
 	row := s.pool.QueryRow(ctx, `
 		UPDATE pending_results
-		SET status = $2, confirmed_at = $3, confirmed_by = $4
+		SET status = $2, confirmed_at = $3, confirmed_by = $4, pending_reason = $5
 		WHERE id = $1
-		RETURNING id, external_match_id, player_one_name, player_one_legs, player_one_average, player_two_name, player_two_legs, player_two_average, status, received_at, confirmed_at, confirmed_by
-	`, pending.ID, pending.Status, pending.ConfirmedAt, nullIfBlank(pending.ConfirmedBy))
+		RETURNING id, external_match_id, player_one_name, player_one_legs, player_one_average, player_two_name, player_two_legs, player_two_average, status, received_at, confirmed_at, confirmed_by, competition_type, pending_reason
+	`, pending.ID, pending.Status, pending.ConfirmedAt, nullIfBlank(pending.ConfirmedBy), pending.PendingReason)
 	updated, err := scanPendingResult(row)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return league.PendingResult{}, league.ErrPendingResultNotFound
@@ -770,7 +770,7 @@ func scanPendingResultRow(row pendingResultRow) (league.PendingResult, error) {
 	if err := row.Scan(
 		&pending.ID, &externalMatchID, &pending.PlayerOneName, &pending.PlayerOneLegs, &playerOneAverage,
 		&pending.PlayerTwoName, &pending.PlayerTwoLegs, &playerTwoAverage, &pending.Status, &pending.ReceivedAt,
-		&pending.ConfirmedAt, &confirmedBy,
+		&pending.ConfirmedAt, &confirmedBy, &pending.CompetitionType, &pending.PendingReason,
 	); err != nil {
 		return league.PendingResult{}, err
 	}

@@ -39,6 +39,8 @@ func pendingResultResponse(pending league.PendingResult) map[string]any {
 		"player_two_legs":    pending.PlayerTwoLegs,
 		"player_two_average": pending.PlayerTwoAverage,
 		"status":             pending.Status,
+		"competition_type":   pending.CompetitionType,
+		"pending_reason":     pending.ReviewExplanation(),
 		"received_at":        pending.ReceivedAt.UTC().Format(http.TimeFormat),
 	}
 	if pending.ConfirmedAt != nil {
@@ -102,6 +104,15 @@ func (h PendingResultHandler) handleConfirm(w http.ResponseWriter, r *http.Reque
 	}
 
 	req.PendingID, req.Actor = pendingID, actor
+	if req.TournamentSlug != "" || req.MatchNumber != 0 {
+		result, err := h.pending.ApproveTournament(r.Context(), req)
+		if err != nil {
+			writeDomainError(w, err)
+			return
+		}
+		writeJSON(w, http.StatusOK, result)
+		return
+	}
 	result, err := h.pending.Approve(r.Context(), req)
 	if err != nil {
 		writeDomainError(w, err)

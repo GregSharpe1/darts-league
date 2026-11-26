@@ -13,3 +13,13 @@ BEGIN
 END $$;
 CREATE OR REPLACE TRIGGER pending_results_immutable_target
 BEFORE UPDATE ON pending_results FOR EACH ROW EXECUTE FUNCTION protect_import_target();
+
+CREATE TABLE IF NOT EXISTS tournament_import_results (
+    tournament_slug TEXT NOT NULL REFERENCES tournaments(slug),
+    match_number INTEGER NOT NULL CHECK (match_number > 0),
+    pending_result_id BIGINT NOT NULL UNIQUE REFERENCES pending_results(id),
+    source TEXT NOT NULL,
+    external_match_id TEXT NOT NULL,
+    PRIMARY KEY (tournament_slug, match_number),
+    UNIQUE (source, external_match_id)
+);

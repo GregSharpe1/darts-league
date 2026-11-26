@@ -31,3 +31,7 @@ CREATE TABLE IF NOT EXISTS import_players (
     UNIQUE (pending_result_id,source_order),
     UNIQUE (pending_result_id,fixture_slot)
 );
+
+ALTER TABLE pending_results ADD COLUMN IF NOT EXISTS competition_type TEXT NOT NULL DEFAULT ''
+    CHECK (competition_type IN ('', 'league', 'tournament'));
+ALTER TABLE pending_results ADD COLUMN IF NOT EXISTS pending_reason TEXT NOT NULL DEFAULT '';

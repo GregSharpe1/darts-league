@@ -8,12 +8,6 @@
 
   const SETTINGS_COOKIE_NAME = "autodarts_score_scrape_settings";
   const SETTINGS_COOKIE_DAYS = 365;
-  const DEFAULT_SETTINGS = {
-    endpoint: "",
-    baseScore: 501,
-    winningLegs: 2
-  };
-
   const open = XMLHttpRequest.prototype.open;
   const send = XMLHttpRequest.prototype.send;
   const INSTALL_INDICATOR_ID = "autodarts-wrapper-installed-indicator";
@@ -139,8 +133,8 @@
 
     try {
       const parsed = JSON.parse(raw);
-      if (typeof parsed.endpoint === "string" && parsed.endpoint && Number.isFinite(parsed.baseScore) && Number.isFinite(parsed.winningLegs)) {
-        return { endpoint: parsed.endpoint, baseScore: parsed.baseScore, winningLegs: parsed.winningLegs };
+      if (typeof parsed.endpoint === "string" && parsed.endpoint) {
+        return { endpoint: parsed.endpoint };
       }
     } catch {
       /* fall through to null */
@@ -235,19 +229,9 @@
         Submit Endpoint URL
         <input name="endpoint" type="url" required />
       </label>
-      <label style="display: flex; flex-direction: column; gap: 4px; font-size: 13px;">
-        Required Base Score
-        <input name="baseScore" type="number" value="501" readonly required />
-      </label>
-      <label style="display: flex; flex-direction: column; gap: 4px; font-size: 13px;">
-        League Legs To Win
-        <input name="winningLegs" type="number" value="2" min="2" max="3" required />
-      </label>
     `,
     onMount: (dialog) => {
       dialog.querySelector('[name="endpoint"]').value = defaults.endpoint;
-      dialog.querySelector('[name="baseScore"]').value = defaults.baseScore;
-      dialog.querySelector('[name="winningLegs"]').value = defaults.winningLegs;
     },
     buttons: [
       {
@@ -255,9 +239,7 @@
         type: "submit",
         onClick: (dialog) => {
           const settings = {
-            endpoint: dialog.querySelector('[name="endpoint"]').value.trim(),
-            baseScore: Number(dialog.querySelector('[name="baseScore"]').value),
-            winningLegs: Number(dialog.querySelector('[name="winningLegs"]').value)
+            endpoint: dialog.querySelector('[name="endpoint"]').value.trim()
           };
           setCookie(SETTINGS_COOKIE_NAME, JSON.stringify(settings), SETTINGS_COOKIE_DAYS);
           return settings;
@@ -267,20 +249,28 @@
   });
 
   const showConfirmDialog = (message) => showDialog({
-    title: "Score Scrape",
+    title: "Submit result",
     contentHtml: `<p style="margin: 0; font-size: 13px; white-space: pre-line;"></p>`,
     onMount: (dialog) => {
       dialog.querySelector("p").textContent = message;
     },
     buttons: [
       { label: "Cancel", type: "button", onClick: () => false },
-      { label: "Submit", type: "submit", onClick: () => true }
+      { label: "Submit result", type: "submit", onClick: () => true }
     ]
   });
 
-  const savedSettings = loadSettingsFromCookie();
-  const settingsPromise = Promise.resolve(savedSettings?.baseScore === 501 && [2, 3].includes(savedSettings?.winningLegs)
-    ? savedSettings : showSettingsDialog({ ...DEFAULT_SETTINGS, endpoint: savedSettings?.endpoint ?? "" }));
+  const competitionLabels = { league: "League match", tournament: "Tournament match" };
+  const selectCompetition = () => showDialog({
+    title: "Was this a league match or a tournament match?",
+    contentHtml: "",
+    buttons: [
+      { label: "Cancel", onClick: () => null },
+      ...Object.entries(competitionLabels).map(([type, label]) => ({ label, onClick: () => type }))
+    ]
+  });
+
+  const settingsPromise = Promise.resolve(loadSettingsFromCookie() ?? showSettingsDialog({ endpoint: "" }));
 
   const renderInstallIndicator = () => {
     if (typeof document === "undefined") {
@@ -342,36 +332,38 @@
     onMount: dialog => { dialog.querySelector("p").textContent = message; },
     buttons: [{ label: "Close", onClick: () => false }, ...(retry ? [{ label: "Retry", onClick: () => true }] : [])]
   });
-  const submit = async (payload, synthetic) => {
+  const submit = async (payload, synthetic, captureKey) => {
     const settings = await settingsPromise;
-    if (payload.settings.legs_to_win !== settings.winningLegs) {
-      log(`Match ignored: first to ${payload.settings.legs_to_win}, league is first to ${settings.winningLegs}`);
-      return;
-    }
     let endpoint;
     try {
       endpoint = new URL(settings.endpoint);
       requireValue(endpoint.protocol === "https:" && !endpoint.username && !endpoint.password);
     } catch { await notice("Invalid endpoint: configure an HTTPS relay URL and reload."); return; }
+    const competitionType = await selectCompetition();
+    if (!competitionType) return;
+    const body = JSON.stringify({ ...payload, competition_type: competitionType });
+    if (new TextEncoder().encode(body).length > 128 * 1024) {
+      await notice("This match is too large to send to the results relay.");
+      return;
+    }
     const summary = payload.players.map(player => `${player.display_name}: ${player.legs_won} legs (avg ${player.stats?.match_average ?? "n/a"})`).join("\n");
-    if (!await showConfirmDialog(`${sandbox ? "SANDBOX: no data will be posted.\n" : ""}501, first to ${payload.settings.legs_to_win}, double out\n${summary}\nPlayed: ${payload.playedAt ?? "unknown"}\nMatch: ${payload.external_match_id}\nSend detailed result to ${endpoint.href}?`)) return;
+    if (!await showConfirmDialog(`${sandbox ? "SANDBOX: no data will be posted.\n" : ""}${competitionLabels[competitionType]}\n501, first to ${payload.settings.legs_to_win}, double out\n${summary}\nPlayed: ${payload.playedAt ?? "unknown"}\nMatch: ${payload.external_match_id}\nSend detailed result to ${endpoint.href}?`)) return;
     if (sandbox || synthetic) {
       await notice(synthetic ? "Synthetic source blocked: no data posted." : "Sandbox preview complete: no data posted.");
       return;
     }
-    const key = JSON.stringify(payload);
     do {
       try {
         const response = await fetch(endpoint.href, {
-          method: "POST", headers: { "Content-Type": "application/json" }, body: key,
+          method: "POST", headers: { "Content-Type": "application/json" }, body,
           credentials: "omit", referrerPolicy: "no-referrer", redirect: "error", signal: AbortSignal.timeout(30000)
         });
         if (!response.ok) throw new Error("Relay rejected submission");
-        submitted.add(key);
-        await notice("Accepted for delivery. Not yet approved or published by the league.");
+        submitted.add(captureKey);
+        await notice("Accepted for delivery. Not yet approved or published by the competition.");
         return;
       } catch {
-        if (!await notice("Submission failed or delivery is uncertain. Retry sends the identical result; league ingestion deduplicates it.", true)) return;
+        if (!await notice("Submission failed or delivery is uncertain. Retry sends the identical result; the import service deduplicates it.", true)) return;
       }
     } while (true);
   };
@@ -395,7 +387,7 @@
           if (pending.has(key) || submitted.has(key)) return;
           pending.add(key);
           const synthetic = state.synthetic === true || typeof state.provenance === "string" && /synthetic|fictitious|test-only/i.test(state.provenance);
-          queue = queue.then(() => submit(payload, synthetic)).catch(() => log("Capture submission unavailable")).finally(() => pending.delete(key));
+          queue = queue.then(() => submit(payload, synthetic, key)).catch(() => log("Capture submission unavailable")).finally(() => pending.delete(key));
         } catch { log("Match ignored: unsupported or invalid data"); }
       };
       this.addEventListener("load", request.listener, { once: true });

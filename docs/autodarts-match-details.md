@@ -1,5 +1,25 @@
 # Recorded match details (#44)
 
+## Import payload
+
+New scraper submissions use `autodarts.import.v1` and include
+`"competition_type": "league"` or `"competition_type": "tournament"` alongside
+`source`, `external_match_id`, `playedAt`, `settings`, `completed`, `players`
+and `detail`. The submitter selects the competition type. The backend resolves
+the fixture or bracket match, using the same `source` and `external_match_id`
+identity across competitions. The choice is part of the original payload and
+content digest. The relay forwards the JSON body without rewriting it.
+
+For either competition, supported settings are `base_score: 501`,
+`legs_to_win: 2` or `3`, and `out: "double"`. The destination uses the same
+format and the winning score equals its configured legs to win. The losing score
+must be lower.
+
+Existing v1 payloads and legacy `matchId` receipts are still readable. Without a
+competition type they stay pending for manual destination selection. Existing
+originals and digests keep their prior shape. See the [historical payload
+examples](autodarts/examples-v1.json) and the [Pending Results guide](../README.md#pending-results-and-tournament-imports).
+
 ## Implemented routes and authorization
 
 - `GET /api/fixtures/{fixtureID}/autodarts`

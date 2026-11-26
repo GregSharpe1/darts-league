@@ -18,8 +18,8 @@ export type TournamentSummary = Pick<Tournament, 'slug' | 'name' | 'starts_on' |
   started: boolean
 }
 
-export type BracketSlot = { player?: string; winner_of?: number; bye?: true }
-export type BracketMatch = { number: number; slots: [BracketSlot, BracketSlot] }
+export type BracketSlot = { player?: string; entry_id?: number; winner_of?: number; bye?: true }
+export type BracketMatch = { number: number; winner_id?: number; legs?: [number, number]; slots: [BracketSlot, BracketSlot] }
 
 export type TournamentEntry = {
   id: number
