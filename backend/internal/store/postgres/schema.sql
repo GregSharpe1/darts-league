@@ -137,3 +137,6 @@ CREATE TABLE IF NOT EXISTS tournament_entries (
 );
 
 ALTER TABLE tournaments ADD COLUMN IF NOT EXISTS bracket JSONB;
+ALTER TABLE tournaments
+    ADD COLUMN IF NOT EXISTS game_variant TEXT NOT NULL DEFAULT '501' CHECK (game_variant IN ('301', '501')),
+    ADD COLUMN IF NOT EXISTS legs_to_win INTEGER NOT NULL DEFAULT 3 CHECK (legs_to_win >= 1);

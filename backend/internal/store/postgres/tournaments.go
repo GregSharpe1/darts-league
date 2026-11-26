@@ -9,12 +9,12 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
-const tournamentColumns = `slug, name, to_char(starts_on, 'YYYY-MM-DD'), registration_open, bracket`
+const tournamentColumns = `slug, name, to_char(starts_on, 'YYYY-MM-DD'), registration_open, bracket, game_variant, legs_to_win`
 const tournamentEntryColumns = `id, display_name, nickname, registered_at`
 
 func scanTournament(row pgx.Row) (tournament.Event, error) {
 	var event tournament.Event
-	err := row.Scan(&event.Slug, &event.Name, &event.StartsOn, &event.RegistrationOpen, &event.Bracket)
+	err := row.Scan(&event.Slug, &event.Name, &event.StartsOn, &event.RegistrationOpen, &event.Bracket, &event.GameVariant, &event.LegsToWin)
 	if errors.Is(err, pgx.ErrNoRows) {
 		err = tournament.ErrNotFound
 	}
@@ -23,9 +23,9 @@ func scanTournament(row pgx.Row) (tournament.Event, error) {
 
 func (s *Store) CreateTournament(ctx context.Context, event tournament.Event) (tournament.Event, error) {
 	created, err := scanTournament(s.pool.QueryRow(ctx, `
-		INSERT INTO tournaments (slug, name, starts_on)
-		VALUES ($1, $2, $3::text::date) ON CONFLICT (slug) DO NOTHING
-		RETURNING `+tournamentColumns, event.Slug, event.Name, event.StartsOn))
+		INSERT INTO tournaments (slug, name, starts_on, game_variant, legs_to_win)
+		VALUES ($1, $2, $3::text::date, $4, $5) ON CONFLICT (slug) DO NOTHING
+		RETURNING `+tournamentColumns, event.Slug, event.Name, event.StartsOn, event.GameVariant, event.LegsToWin))
 	if errors.Is(err, tournament.ErrNotFound) {
 		err = tournament.ErrDuplicateSlug
 	}
@@ -113,6 +113,19 @@ func (s *Store) StartTournament(ctx context.Context, slug string) (tournament.Ev
 		return tournament.Event{}, err
 	}
 	return event, nil
+}
+
+func (s *Store) UpdateTournamentFormat(ctx context.Context, slug string, format tournament.MatchFormat) (tournament.Event, error) {
+	event, err := scanTournament(s.pool.QueryRow(ctx, `
+		UPDATE tournaments SET game_variant = $2, legs_to_win = $3 WHERE slug = $1 AND bracket IS NULL
+		RETURNING `+tournamentColumns, slug, format.GameVariant, format.LegsToWin))
+	if errors.Is(err, tournament.ErrNotFound) {
+		if _, err := s.GetTournament(ctx, slug); err != nil {
+			return tournament.Event{}, err
+		}
+		return tournament.Event{}, tournament.ErrFormatLocked
+	}
+	return event, err
 }
 
 func lockTournament(ctx context.Context, tx pgx.Tx, slug string) (tournament.Event, error) {

@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { NavLink, Route, Routes, matchPath, useLocation, useNavigate } from 'react-router-dom'
 import './App.css'
+import './publicPages.css'
 import { useSeasonSummary, useBackendVersion, useDivisions, useAdminLogout, useAdminPlayers } from './lib/api'
 import { frontendVersion } from './version'
 import { HomePage } from './pages/home/HomePage'
@@ -21,6 +22,7 @@ function App() {
   const location = useLocation()
   const navigate = useNavigate()
   const onHomePage = location.pathname === '/'
+  const onDivisionDirectory = Boolean(matchPath('/divisions', location.pathname))
   const onTournamentPage = Boolean(matchPath('/tournaments/*', location.pathname))
   const onAdminPage = Boolean(matchPath('/admin/*', location.pathname))
   const onAdminHome = Boolean(matchPath('/admin', location.pathname))
@@ -42,9 +44,9 @@ function App() {
 
   return (
     <div className="app-shell">
-      <header className="topbar">
+      <header className={onAdminPage ? 'topbar' : 'topbar public-topbar'}>
         <NavLink to="/" className="brand-mark" aria-label="Go to home page">
-          <div className="brand-badge" aria-hidden="true" />
+          <img className="brand-badge" src="/favicon.png" width={96} height={96} alt="" />
           <div className="brand-copy">
             <strong>{instanceName}</strong>
             <span>{currentDivision ? currentDivision.name : 'Monday unlocks. Saturday bragging rights.'}</span>
@@ -76,11 +78,11 @@ function App() {
               <>
                 {onDivisionPage ? (
                   <>
-                    <NavLink to={`/divisions/${divisionSlug}`}>Fixtures</NavLink>
+                    <NavLink to={`/divisions/${divisionSlug}`} end>Fixtures</NavLink>
                     <NavLink to={`/divisions/${divisionSlug}/standings`}>Standings</NavLink>
-                    <NavLink to="/divisions">All Divisions</NavLink>
+                    <NavLink to="/divisions" end>All Divisions</NavLink>
                   </>
-                ) : <NavLink to="/divisions">Divisions</NavLink>}
+                ) : onDivisionDirectory ? null : <NavLink to="/divisions">Divisions</NavLink>}
                 {seasonQuery.data?.registration_open ? <NavLink to="/register">Register</NavLink> : null}
                 <NavLink to="/tournaments">Tournaments</NavLink>
               </>

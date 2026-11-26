@@ -47,12 +47,16 @@ describe('Home page', () => {
   it('renders the public divisions page', async () => {
     renderApp('/divisions')
 
+    const navigation = within(screen.getByRole('navigation', { name: 'Primary' }))
+    expect(navigation.queryByRole('link', { name: /^Divisions$/ })).not.toBeInTheDocument()
+    expect(navigation.getByRole('link', { name: /^Tournaments$/ })).toHaveAttribute('href', '/tournaments')
     expect(screen.getByRole('heading', { name: 'League divisions', level: 1 })).toBeInTheDocument()
     expect(screen.getByText(/admins assign players to divisions after they register for the league/i)).toBeInTheDocument()
     expect(await screen.findByText(/premier division/i)).toBeInTheDocument()
     expect(screen.getByText(/challenger division/i)).toBeInTheDocument()
     expect(screen.getAllByRole('link', { name: /view fixtures/i }).length).toBe(2)
-    expect(screen.getByText(/registered players waiting for assignment/i)).toBeInTheDocument()
+    expect(screen.getByText('Registered players')).toBeInTheDocument()
+    expect(await screen.findByText('Dates will appear once the league schedule is set.')).toBeInTheDocument()
     expect(screen.getAllByRole('link', { name: 'Register' })).toHaveLength(2)
     expect(screen.queryByRole('link', { name: 'Join the waitlist' })).not.toBeInTheDocument()
     expect(await screen.findByText(/backend v0.0.6/i)).toBeInTheDocument()
@@ -68,6 +72,7 @@ describe('Home page', () => {
     const weekOneButton = await screen.findByRole('button', { name: /week 1/i })
     const weekTwoButton = await screen.findByRole('button', { name: /week 2/i })
     const navigation = within(screen.getByRole('navigation', { name: 'Primary' }))
+    expect(navigation.getByRole('link', { name: /^All Divisions$/ })).toHaveAttribute('href', '/divisions')
     expect(await navigation.findByRole('link', { name: /^Register$/ })).toHaveAttribute('href', '/register')
     expect(navigation.getByRole('link', { name: /^Tournaments$/ })).toHaveAttribute('href', '/tournaments')
 
@@ -93,13 +98,20 @@ describe('Home page', () => {
     expect(screen.getAllByRole('link', { name: 'View standings' })).toHaveLength(2)
   })
 
-  it('keeps the weekly unlock notice while matches remain', async () => {
+  it('shows the final league week, catch-up deadline and simulation rules while fixtures remain', async () => {
     vi.stubGlobal('fetch', createMockFetch({ authenticated: false, seasonStarted: true, remainingFixtures: 1, seasonName: 'Live League' }))
     renderApp('/divisions')
 
     expect(await screen.findByText('season live across 2 divisions.')).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: 'Public division boards' })).toBeInTheDocument()
     expect(screen.getByText('Monday 09:00 unlocks')).toBeInTheDocument()
+
+    const deadline = within(screen.getByRole('region', { name: 'Final week and catch-up deadline' }))
+    expect(deadline.getByText('Week 3 starts')).toBeInTheDocument()
+    expect(deadline.getByText(/6 apr.*09:00 uk time/i)).toHaveAttribute('datetime', '2026-04-06T08:00:00Z')
+    expect(deadline.getByText(/20 apr.*09:00 uk time/i)).toHaveAttribute('datetime', '2026-04-20T08:00:00Z')
+    expect(deadline.getByText(/one extra week/i)).toBeInTheDocument()
+    expect(deadline.getByText(/represent both players.*drops one level per missed fixture/i)).toBeInTheDocument()
   })
 
   it('lets a player search their remaining unplayed fixtures inside a division', async () => {

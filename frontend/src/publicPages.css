@@ -1,0 +1,314 @@
+.competition-hero--league,
+.competition-card--league,
+.public-player-page,
+.public-match-page {
+  --competition-art: url('./assets/league-darts-club.webp');
+}
+
+.competition-hero--tournament,
+.competition-card--tournament {
+  --competition-art: url('./assets/tournament-dartboard.webp');
+}
+
+.competition-hero {
+  min-height: 19rem;
+  grid-template-columns: minmax(0, 1.45fr) minmax(0, 1fr);
+  align-items: end;
+  padding: clamp(1.4rem, 4vw, 2.8rem);
+  background:
+    linear-gradient(90deg, #100e10 8%, rgba(16, 14, 16, 0.9) 30%, rgba(16, 14, 16, 0.25) 100%),
+    #100e10 var(--competition-art) center 52% / cover no-repeat;
+}
+
+.competition-hero--compact {
+  min-height: 15rem;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.competition-hero .hero-copy {
+  min-width: 0;
+  max-width: 36rem;
+}
+
+.competition-hero .hero-copy h1 {
+  margin: 0.35rem 0 0.7rem;
+  color: #fff;
+  font-size: clamp(2.6rem, 6vw, 4.75rem);
+  line-height: 0.95;
+  text-wrap: balance;
+  overflow-wrap: anywhere;
+}
+
+.competition-hero .hero-copy p {
+  color: #e0d5d1;
+}
+
+.competition-hero .hero-copy p + p {
+  margin-top: 0.6rem;
+}
+
+.competition-kicker,
+.competition-hero .section-eyebrow {
+  color: var(--color-accent-soft);
+  font: 600 0.78rem / 1.4 var(--font-body);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.competition-hero .hero-side {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.65rem;
+}
+
+.competition-hero .metric-card {
+  min-width: 0;
+  padding: 0.9rem;
+  border-radius: var(--radius-field);
+  border-color: rgba(255, 255, 255, 0.14);
+  background: rgba(15, 13, 14, 0.92);
+  box-shadow: none;
+  overflow-wrap: anywhere;
+}
+
+.competition-hero .section-eyebrow {
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+.competition-hero .metric-card strong {
+  margin: 0.25rem 0;
+  font-size: clamp(1.7rem, 3vw, 2.7rem);
+  line-height: 1;
+}
+
+.competition-hero .metric-card p {
+  font-size: 0.9rem;
+}
+
+.competition-hero .competition-event-fact time,
+.competition-hero .competition-event-fact h2 + p {
+  display: block;
+  margin-top: 0.45rem;
+  color: var(--color-text);
+  font-weight: 700;
+}
+
+.competition-card--league,
+.competition-card--tournament {
+  --cover-padding: clamp(1.25rem, 3vw, 2.1rem);
+  overflow: hidden;
+  padding: var(--cover-padding);
+}
+
+.competition-card-cover {
+  display: flex;
+  align-items: flex-end;
+  align-self: stretch;
+  min-height: clamp(8rem, 16vw, 12rem);
+  margin: calc(-1 * var(--cover-padding)) calc(-1 * var(--cover-padding)) 0;
+  padding: var(--cover-padding);
+  border-bottom: var(--border-panel);
+  background:
+    linear-gradient(0deg, rgba(16, 14, 16, 0.94) 3%, rgba(16, 14, 16, 0.07) 100%),
+    #100e10 var(--competition-art) center 46% / cover no-repeat;
+}
+
+.competition-card-cover h2 {
+  color: #fff;
+  text-shadow: 0 2px 16px #0a0a0a;
+}
+
+.league-deadline {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.league-deadline p {
+  margin: 0;
+  color: var(--color-muted);
+}
+
+.league-deadline-dates {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 15rem), 1fr));
+  gap: 0.65rem;
+  margin: 0;
+}
+
+.league-deadline-dates > div {
+  padding: 0.75rem 1rem;
+  border: var(--border-panel);
+  border-left: 3px solid #b73737;
+  border-radius: var(--radius-field);
+  background: #211c1e;
+}
+
+.league-deadline-dates dt {
+  color: var(--color-muted);
+  font-size: 0.9rem;
+}
+
+.league-deadline-dates dd {
+  margin: 0.2rem 0 0;
+  font-weight: 700;
+}
+
+.league-divisions .division-board-card {
+  border-left: 3px solid #b73737;
+  box-shadow: none;
+}
+
+.league-fixtures .week-switcher-item.open,
+.league-results .week-card {
+  border-color: rgba(255, 255, 255, 0.13);
+  box-shadow: none;
+}
+
+.league-results .week-card {
+  margin-top: 1rem;
+}
+
+.league-standings {
+  margin-top: 1.25rem;
+}
+
+.standings-scroll {
+  overflow-x: auto;
+  border-radius: var(--radius-field);
+}
+
+.league-standings .standings-table {
+  display: table;
+  min-width: 34rem;
+  margin: 0;
+}
+
+.league-standings .standings-table thead {
+  background: #211c1e;
+}
+
+.league-standings .standings-table tbody tr:first-child {
+  background: rgba(255, 91, 91, 0.07);
+}
+
+.league-standings .standings-table th:not(:first-child),
+.league-standings .standings-table td:not(:first-child) {
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.league-standings .table-emphasis {
+  color: var(--color-accent-soft);
+}
+
+.tournament-directory {
+  margin-top: 1.25rem;
+}
+
+.tournament-directory-cards {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.tournament-directory-cards li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1rem;
+  padding: 1.2rem;
+  border: var(--border-panel);
+  border-radius: var(--radius-panel-small);
+  background: #171617;
+}
+
+.tournament-directory-cards .tournament-accepting-entries {
+  border-left: 3px solid #ff5b5b;
+}
+
+.tournament-directory-status {
+  display: block;
+  margin-bottom: 0.25rem;
+  color: var(--color-muted);
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.tournament-accepting-entries .tournament-directory-status {
+  color: var(--color-accent-soft);
+}
+
+.tournament-directory-cards .tournament-link {
+  color: var(--color-text);
+  font-family: var(--font-display);
+  font-size: 1.55rem;
+  font-weight: 700;
+  line-height: 1.15;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.18em;
+}
+
+.tournament-directory-cards .tournament-bracket-action {
+  border: var(--border-panel);
+  color: var(--color-text);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.tournament-bracket-action:hover {
+  border-color: var(--color-accent-soft);
+}
+
+.public-match-page .match-page-heading,
+.public-player-page .player-hero {
+  padding: clamp(1.2rem, 4vw, 2rem);
+  border: var(--border-panel);
+  border-radius: var(--radius-panel);
+  background:
+    linear-gradient(90deg, #111011 25%, rgba(17, 16, 17, 0.88) 70%),
+    #111011 var(--competition-art) center 47% / cover no-repeat;
+}
+
+@media (max-width: 760px) {
+  .public-topbar {
+    gap: 0.65rem;
+    padding: 0.8rem 1rem;
+  }
+
+  .public-topbar .primary-nav {
+    gap: 0.4rem;
+  }
+
+  .public-topbar .primary-nav a {
+    padding: 0.45rem 0.7rem;
+    font-size: 0.9rem;
+  }
+
+  .competition-hero {
+    grid-template-columns: minmax(0, 1fr);
+    min-height: 0;
+    background:
+      linear-gradient(90deg, rgba(16, 14, 16, 0.94), rgba(16, 14, 16, 0.54)),
+      #100e10 var(--competition-art) center / cover no-repeat;
+  }
+
+  .competition-hero--compact {
+    min-height: 12rem;
+  }
+
+  .tournament-directory-cards {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .league-standings .standings-table th:last-child,
+  .league-standings .standings-table td:last-child {
+    position: sticky;
+    right: 0;
+    background: #20191b;
+    box-shadow: -1px 0 rgba(255, 255, 255, 0.12);
+  }
+}

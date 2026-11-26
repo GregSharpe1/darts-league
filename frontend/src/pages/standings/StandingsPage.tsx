@@ -15,58 +15,63 @@ export function StandingsPage() {
   const division = divisionsQuery.data?.find((item) => item.slug === slug)
 
   return (
-    <section className="standings-card">
-      <div className="page-intro">
-        <span className="eyebrow">Live table</span>
-        <h1>{division?.name ?? 'Division standings'}</h1>
-        <p className="fixture-meta">{seasonQuery.data?.name ?? 'Active season'}</p>
-        <p>Public labels prefer nicknames, while the table still rewards clean legs and relentless finishing.</p>
-      </div>
+    <>
+      <section className="hero-panel competition-hero competition-hero--league competition-hero--compact">
+        <div className="hero-copy">
+          <span className="competition-kicker">{seasonQuery.data?.status === 'completed' ? 'Final standings' : 'League standings'}</span>
+          <h1>{division?.name ?? 'Division standings'}</h1>
+          <p>{seasonQuery.data?.name ?? 'Active season'}</p>
+        </div>
+      </section>
 
-      {standingsQuery.isLoading ? <StateNotice message="Loading live standings..." /> : null}
-      {standingsQuery.error ? <StateNotice tone="error" message={readError(standingsQuery.error)} /> : null}
-      {!standingsQuery.isLoading && !standingsQuery.error && standingsQuery.data?.length === 0 ? (
-        <StateNotice message="Standings will populate once results are entered." />
-      ) : null}
+      <section className="standings-card league-standings" aria-label="Standings">
+        {standingsQuery.isLoading ? <StateNotice message="Loading live standings..." /> : null}
+        {standingsQuery.error ? <StateNotice tone="error" message={readError(standingsQuery.error)} /> : null}
+        {!standingsQuery.isLoading && !standingsQuery.error && standingsQuery.data?.length === 0 ? (
+          <StateNotice message="Standings will populate once results are entered." />
+        ) : null}
 
-      {standingsQuery.data && standingsQuery.data.length > 0 ? (
-        <table className="standings-table">
-          <thead>
-            <tr>
-              <th>Player</th>
-              <th>P</th>
-              <th>W</th>
-              <th>L</th>
-              <th>LW</th>
-              <th>LL</th>
-              <th>LD</th>
-              <th>Avg</th>
-              <th>Pts</th>
-            </tr>
-          </thead>
-          <tbody>
-            {standingsQuery.data.map((row, index) => (
-              <tr key={row.display_name}>
-                <td className="player-cell">
-                  <strong>
-                    <span className="position-badge" aria-label={`Position ${index + 1}`}>{index + 1}</span>
-                    {row.player_id && seasonQuery.data?.id ? <Link to={`/seasons/${seasonQuery.data.id}/players/${row.player_id}`}>{row.player}</Link> : row.player}
-                  </strong>
-                  <span>{row.display_name}</span>
-                </td>
-                <td>{row.played}</td>
-                <td>{row.won}</td>
-                <td>{row.lost}</td>
-                <td>{row.legs_for}</td>
-                <td>{row.legs_against}</td>
-                <td>{row.leg_difference}</td>
-                <td>{formatAverage(row.average)}</td>
-                <td className="table-emphasis">{row.points}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      ) : null}
-    </section>
+        {standingsQuery.data && standingsQuery.data.length > 0 ? (
+          <div className="standings-scroll" role="region" aria-label="Standings table" tabIndex={0}>
+            <table className="standings-table">
+              <thead>
+                <tr>
+                  <th>Player</th>
+                  <th>P</th>
+                  <th>W</th>
+                  <th>L</th>
+                  <th>LW</th>
+                  <th>LL</th>
+                  <th>LD</th>
+                  <th>Avg</th>
+                  <th>Pts</th>
+                </tr>
+              </thead>
+              <tbody>
+                {standingsQuery.data.map((row, index) => (
+                  <tr key={row.display_name}>
+                    <td className="player-cell">
+                      <strong>
+                        <span className="position-badge" aria-label={`Position ${index + 1}`}>{index + 1}</span>
+                        {row.player_id && seasonQuery.data?.id ? <Link to={`/seasons/${seasonQuery.data.id}/players/${row.player_id}`}>{row.player}</Link> : row.player}
+                      </strong>
+                      <span>{row.display_name}</span>
+                    </td>
+                    <td>{row.played}</td>
+                    <td>{row.won}</td>
+                    <td>{row.lost}</td>
+                    <td>{row.legs_for}</td>
+                    <td>{row.legs_against}</td>
+                    <td>{row.leg_difference}</td>
+                    <td>{formatAverage(row.average)}</td>
+                    <td className="table-emphasis">{row.points}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : null}
+      </section>
+    </>
   )
 }

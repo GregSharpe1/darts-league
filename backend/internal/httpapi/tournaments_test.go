@@ -41,6 +41,7 @@ func TestTournamentRegistrationLifecycle(t *testing.T) {
 		{http.MethodGet, adminPath},
 		{http.MethodDelete, adminEvent},
 		{http.MethodPut, adminEvent + "/registration"},
+		{http.MethodPut, adminEvent + "/format"},
 		{http.MethodPost, adminEvent + "/start"},
 		{http.MethodGet, adminEvent + "/entries"},
 		{http.MethodDelete, adminEvent + "/entries/1"},
@@ -56,12 +57,18 @@ func TestTournamentRegistrationLifecycle(t *testing.T) {
 	login := request("POST", "/api/admin/login", `{"username":"admin","password":"test-password"}`, nil, http.StatusOK)
 	cookie := login.Result().Cookies()[0]
 	request("POST", adminPath, strings.Replace(eventData, "2027-03-20", "2027-02-29", 1), cookie, http.StatusBadRequest)
-	request("POST", adminPath, eventData, cookie, http.StatusCreated)
+	created := request("POST", adminPath, eventData, cookie, http.StatusCreated)
+	if !strings.Contains(created.Body.String(), `"game_variant":"501"`) || !strings.Contains(created.Body.String(), `"legs_to_win":3`) {
+		t.Fatalf("missing default tournament format: %s", created.Body)
+	}
 	request("DELETE", adminEvent, "", cookie, http.StatusConflict)
 	request("POST", adminPath, eventData, cookie, http.StatusConflict)
 	request("POST", publicEvent+"/entries", entrant, nil, http.StatusConflict)
 	request("PUT", adminEvent+"/registration", `{}`, cookie, http.StatusBadRequest)
 	request("PUT", adminEvent+"/registration", `{"registration_open":true}`, cookie, http.StatusOK)
+	request("PUT", adminEvent+"/format", `{"game_variant":"701","legs_to_win":3}`, cookie, http.StatusBadRequest)
+	request("PUT", adminEvent+"/format", `{"game_variant":"301","legs_to_win":0}`, cookie, http.StatusBadRequest)
+	request("PUT", adminEvent+"/format", `{"game_variant":"301","legs_to_win":5}`, cookie, http.StatusOK)
 	request("POST", publicEvent+"/entries", `{"display_name":"   "}`, nil, http.StatusBadRequest)
 
 	signup := request("POST", publicEvent+"/entries", entrant, nil, http.StatusCreated)
@@ -70,6 +77,9 @@ func TestTournamentRegistrationLifecycle(t *testing.T) {
 	}
 	request("POST", publicEvent+"/entries", `{"display_name":"maya EVANS"}`, nil, http.StatusConflict)
 	event := request("GET", publicEvent, "", nil, http.StatusOK)
+	if !strings.Contains(event.Body.String(), `"game_variant":"301"`) || !strings.Contains(event.Body.String(), `"legs_to_win":5`) {
+		t.Fatalf("public event did not show the saved format: %s", event.Body)
+	}
 	if strings.Contains(event.Body.String(), "Maya") || strings.Contains(event.Body.String(), "Flight") {
 		t.Fatalf("public event leaked entrant details: %s", event.Body)
 	}
@@ -85,7 +95,7 @@ func TestTournamentRegistrationLifecycle(t *testing.T) {
 	}
 
 	const secondEvent = "/api/tournaments/another-cup"
-	request("POST", adminPath, strings.Replace(eventData, "city-cup", "another-cup", 1), cookie, http.StatusCreated)
+	request("POST", adminPath, `{"slug":"another-cup","name":"Another Cup","starts_on":"2027-03-20","game_variant":"501","legs_to_win":2}`, cookie, http.StatusCreated)
 	request("PUT", adminPath+"/another-cup/registration", `{"registration_open":true}`, cookie, http.StatusOK)
 	request("POST", secondEvent+"/entries", entrant, nil, http.StatusCreated)
 	request("DELETE", adminPath+"/another-cup/entries/1", "", cookie, http.StatusNotFound)
@@ -119,6 +129,7 @@ func TestTournamentRegistrationLifecycle(t *testing.T) {
 		t.Fatalf("public tournament list contains bracket or entrant details: %s", directory.Body)
 	}
 	request("PUT", adminEvent+"/registration", `{"registration_open":true}`, cookie, http.StatusConflict)
+	request("PUT", adminEvent+"/format", `{"game_variant":"501","legs_to_win":2}`, cookie, http.StatusConflict)
 	request("DELETE", adminEvent+"/entries/3", "", cookie, http.StatusConflict)
 	request("DELETE", adminEvent, "", cookie, http.StatusConflict)
 

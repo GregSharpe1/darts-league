@@ -4,6 +4,7 @@ import { StateNotice } from '../../components/StateNotice'
 import { ApiError } from '../../lib/api'
 import {
   type Tournament,
+  type TournamentMatchFormat,
   useAdminTournaments,
   useCreateTournament,
   useDeleteTournament,
@@ -11,10 +12,12 @@ import {
   useSetTournamentRegistration,
   useStartTournament,
   useTournamentEntries,
+  useUpdateTournamentFormat,
 } from '../../lib/tournamentsApi'
 import { readError } from '../../lib/utils'
 import { TournamentDate } from './TournamentDate'
 import { TournamentList } from './TournamentList'
+import { TournamentFormat } from './TournamentFormat'
 
 export function AdminTournamentsPage() {
   const { slug } = useParams()
@@ -58,6 +61,7 @@ function CreateTournament() {
       name: String(form.get('name')),
       slug: String(form.get('slug')),
       starts_on: String(form.get('starts-on')),
+      ...readMatchFormat(form),
     }, {
       onSuccess: (tournament) => navigate(`/admin/tournaments/${tournament.slug}`),
     })
@@ -80,10 +84,36 @@ function CreateTournament() {
           <input id="tournament-slug" name="slug" required pattern="[a-z0-9]+(-[a-z0-9]+)*" maxLength={60} placeholder="friday-knockout" aria-describedby="tournament-slug-help" disabled={create.isPending} />
           <span className="fixture-meta" id="tournament-slug-help">Use lowercase letters, digits, and hyphens. This becomes the end of the public link.</span>
         </div>
+        <MatchFormatFields disabled={create.isPending} />
         <button type="submit" disabled={create.isPending}>{create.isPending ? 'Creating...' : 'Create tournament'}</button>
       </form>
       {create.error ? <StateNotice tone="error" message={readError(create.error)} compact /> : null}
     </article>
+  )
+}
+
+function readMatchFormat(form: FormData): TournamentMatchFormat {
+  return {
+    game_variant: String(form.get('game_variant')),
+    legs_to_win: Number(form.get('legs_to_win')),
+  }
+}
+
+function MatchFormatFields({ format, disabled }: { format?: TournamentMatchFormat; disabled: boolean }) {
+  return (
+    <>
+      <div className="field">
+        <label htmlFor="tournament-game-variant">Game variant</label>
+        <select id="tournament-game-variant" name="game_variant" defaultValue={format?.game_variant ?? '501'} disabled={disabled}>
+          <option value="501">501</option>
+          <option value="301">301</option>
+        </select>
+      </div>
+      <div className="field">
+        <label htmlFor="tournament-legs-to-win">First to (legs)</label>
+        <input id="tournament-legs-to-win" name="legs_to_win" type="number" min={1} max={2_147_483_647} step={1} defaultValue={format?.legs_to_win ?? 3} required disabled={disabled} />
+      </div>
+    </>
   )
 }
 
@@ -94,9 +124,11 @@ function TournamentRoster({ event }: { event: Tournament }) {
   const remove = useRemoveTournamentEntry(event.slug)
   const start = useStartTournament(event.slug)
   const deleteTournament = useDeleteTournament(event.slug)
+  const updateFormat = useUpdateTournamentFormat(event.slug)
   const started = Boolean(event.bracket)
   const canStart = !event.registration_open && (entries.data?.length ?? 0) >= 2
   const canDelete = event.registration_open && !started
+  const tournamentBusy = updateFormat.isPending || start.isPending || deleteTournament.isPending
 
   async function confirmDelete() {
     if (!window.confirm(`Delete ${event.name} and all its entries? This cannot be undone.`)) return
@@ -117,13 +149,13 @@ function TournamentRoster({ event }: { event: Tournament }) {
         <div className="toolbar-actions tournament-registration-actions">
           <Link className="button-link secondary-button" to={`/tournaments/${event.slug}`}>{started ? 'View bracket' : 'Public sign-up page'}</Link>
           {!started ? (
-            <button className={canStart ? 'secondary-button' : undefined} type="button" disabled={registration.isPending || start.isPending || deleteTournament.isPending} onClick={() => registration.mutate(!event.registration_open)}>
+            <button className={canStart ? 'secondary-button' : undefined} type="button" disabled={registration.isPending || tournamentBusy} onClick={() => registration.mutate(!event.registration_open)}>
               {event.registration_open ? 'Close registration' : 'Open registration'}
             </button>
           ) : null}
           {!started && canStart ? (
-            <button type="button" disabled={start.isPending || registration.isPending || remove.isPending} onClick={() => {
-              if (window.confirm('Start this tournament? This locks the roster and publishes the knockout draw.')) start.mutate()
+            <button type="button" disabled={tournamentBusy || registration.isPending || remove.isPending} onClick={() => {
+              if (window.confirm('Start this tournament? This locks the roster and match format and publishes the knockout draw.')) start.mutate()
             }}>
               {start.isPending ? 'Drawing bracket...' : 'Start tournament'}
             </button>
@@ -133,12 +165,26 @@ function TournamentRoster({ event }: { event: Tournament }) {
         {start.error ? <StateNotice tone="error" message={readError(start.error)} compact /> : null}
         {canDelete ? (
           <div className="tournament-registration-actions">
-            <button className="ghost-button" type="button" disabled={deleteTournament.isPending || registration.isPending || remove.isPending} onClick={() => void confirmDelete()}>
+            <button className="ghost-button" type="button" disabled={tournamentBusy || registration.isPending || remove.isPending} onClick={() => void confirmDelete()}>
               {deleteTournament.isPending ? 'Deleting...' : 'Delete tournament'}
             </button>
           </div>
         ) : null}
         {deleteTournament.error ? <StateNotice tone="error" message={readError(deleteTournament.error)} compact /> : null}
+        <div className="tournament-registration-actions">
+          <h3>Match format</h3>
+          {started ? <TournamentFormat format={event} /> : (
+            <form className="form-preview" onSubmit={(submission) => {
+              submission.preventDefault()
+              updateFormat.mutate(readMatchFormat(new FormData(submission.currentTarget)))
+            }}>
+              <MatchFormatFields key={`${event.game_variant}-${event.legs_to_win}`} format={event} disabled={tournamentBusy} />
+              <button type="submit" disabled={tournamentBusy}>{updateFormat.isPending ? 'Saving...' : 'Save match format'}</button>
+            </form>
+          )}
+          {updateFormat.error ? <StateNotice tone="error" message={readError(updateFormat.error)} compact /> : null}
+          {updateFormat.isSuccess ? <StateNotice message="Match format saved." compact /> : null}
+        </div>
       </article>
       <article className="admin-card">
         <h2>Entrants{entries.data ? ` (${entries.data.length})` : ''}</h2>

@@ -14,7 +14,7 @@ export function MatchPage({ admin = false }: { readonly admin?: boolean }) {
   })
   const status = query.error instanceof ApiError ? query.error.status : null
 
-  return <section className="match-page" aria-label="Match details">
+  return <section className={admin ? 'match-page' : 'match-page public-match-page'} aria-label="Match details">
     <header className="match-page-heading">
       <div><span className="eyebrow">{admin ? 'Admin match view' : 'Recorded league match'}</span><h1>Match analysis</h1></div>
       {admin && <Link to="/admin">Admin home</Link>}

@@ -34,6 +34,8 @@ export type SeasonSummary = {
   can_assign_players: boolean
   player_count: number
   week_count: number
+  final_week_starts_at?: string
+  fixtures_due_at?: string
   game_variant: string
   legs_to_win: number
   games_per_week: number
@@ -577,7 +579,7 @@ export function formatAverage(value?: number | null) {
   return value?.toFixed(1) ?? ''
 }
 
-export function formatWhen(value?: string) {
+export function formatWhen(value?: string, options?: { year: 'numeric' }) {
   if (!value) {
     return ''
   }
@@ -585,6 +587,7 @@ export function formatWhen(value?: string) {
     weekday: 'short',
     day: 'numeric',
     month: 'short',
+    ...options,
     hour: '2-digit',
     minute: '2-digit',
     timeZone: 'Europe/London',

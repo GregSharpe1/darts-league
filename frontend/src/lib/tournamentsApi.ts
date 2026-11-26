@@ -1,7 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { ApiError, request } from './api'
 
-export type Tournament = {
+export type TournamentMatchFormat = {
+  game_variant: string
+  legs_to_win: number
+}
+
+export type Tournament = TournamentMatchFormat & {
   slug: string
   name: string
   starts_on: string
@@ -72,7 +77,7 @@ export function useAdminTournaments() {
 export function useCreateTournament() {
   const client = useQueryClient()
   return useMutation({
-    mutationFn: (event: Pick<Tournament, 'slug' | 'name' | 'starts_on'>) =>
+    mutationFn: (event: Pick<Tournament, 'slug' | 'name' | 'starts_on'> & TournamentMatchFormat) =>
       request<Tournament>(adminPath, { method: 'POST', body: JSON.stringify(event) }),
     onSuccess: async (event) => {
       client.setQueryData<Tournament[]>(adminKey, (events) => [...(events ?? []), event])
@@ -81,6 +86,22 @@ export function useCreateTournament() {
         client.invalidateQueries({ queryKey: publicListKey }),
       ])
     },
+  })
+}
+
+export function useUpdateTournamentFormat(slug: string) {
+  const client = useQueryClient()
+  return useMutation({
+    mutationFn: (format: TournamentMatchFormat) =>
+      request<Tournament>(`${adminPath}/${encodeURIComponent(slug)}/format`, {
+        method: 'PUT',
+        body: JSON.stringify(format),
+      }),
+    onSuccess: (event) => {
+      client.setQueryData(eventKey(slug), event)
+      client.setQueryData<Tournament[]>(adminKey, (events) => events?.map((item) => item.slug === slug ? event : item))
+    },
+    onSettled: () => client.invalidateQueries({ queryKey: adminKey, exact: true }),
   })
 }
 

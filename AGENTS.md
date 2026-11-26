@@ -86,6 +86,7 @@ Important: public fixture endpoints must not leak future-week details beyond the
 
 ## UX Guidance
 
+- Follow the site-wide [design guide](DESIGN.md) when creating or changing UI.
 - Visual direction should be heavily inspired by `autodarts.io`, but not copied directly
 - Use a dark premium sports aesthetic with red accents and bold typography
 - Avoid generic dashboard styling

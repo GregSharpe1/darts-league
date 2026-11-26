@@ -63,14 +63,13 @@ export function DivisionHomePage() {
 
   return (
     <>
-      <section className="hero-panel">
+      <section className="hero-panel competition-hero competition-hero--league">
         <div className="hero-copy">
-          <span className="eyebrow">Division board</span>
+          <span className="competition-kicker">League fixtures</span>
           <h1>{division?.name ?? 'Division'}</h1>
           <p className="fixture-meta">{seasonQuery.data?.name ?? 'Active season'}</p>
           <p>
-            The public board shows this division&apos;s current week in full, keeps future pairings on the radar,
-            and holds the reveal until Monday morning at 09:00 Europe/London.
+            Follow this division&apos;s fixtures and results. Match details unlock Mondays at 09:00 UK time.
           </p>
           <div className="hero-actions">
             <NavLink to="/divisions">All divisions</NavLink>
@@ -80,7 +79,7 @@ export function DivisionHomePage() {
 
         <div className="hero-side">
           <article className="metric-card">
-            <span className="section-eyebrow">Division pulse</span>
+            <span className="section-eyebrow">Division roster</span>
             <strong>{standingsQuery.data?.length ?? '-'}</strong>
             <p>{seasonQuery.data?.status === 'completed' ? 'League completed. Final results and standings remain available.' : seasonQuery.data?.registration_open ? 'assigned players will appear here once divisions are set.' : `season live across ${fixturesQuery.data?.weeks.length ?? 0} weeks.`}</p>
           </article>
@@ -94,10 +93,9 @@ export function DivisionHomePage() {
         </div>
       </section>
 
-      {seasonQuery.data?.status === 'completed' ? <CompletedResults weeks={fixturesQuery.data?.weeks ?? []} /> : <section className="content-panel">
+      {seasonQuery.data?.status === 'completed' ? <CompletedResults weeks={fixturesQuery.data?.weeks ?? []} /> : <section className="content-panel league-fixtures">
         <div className="card-header">
           <div className="card-copy">
-            <span className="section-eyebrow">This division</span>
             <h2>Games left to play</h2>
           </div>
           <span className="status-pill live">{gamesLeftToPlay > 0 ? `${gamesLeftToPlay} live` : currentWeek ? 'Unlocked' : 'Waiting'}</span>

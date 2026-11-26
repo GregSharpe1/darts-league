@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom'
-import { useDivisions, useSeasonSummary } from '../../lib/api'
+import { formatWhen, useDivisions, useSeasonSummary } from '../../lib/api'
 import { StateNotice } from '../../components/StateNotice'
 import { readError } from '../../lib/utils'
 
@@ -11,7 +11,7 @@ export function DivisionsPage() {
 
   return (
     <>
-      <section className="hero-panel">
+      <section className="hero-panel competition-hero competition-hero--league">
         <div className="hero-copy">
           <h1>League divisions</h1>
           <p className="fixture-meta">{seasonQuery.data?.name ?? 'Active season'}</p>
@@ -26,22 +26,45 @@ export function DivisionsPage() {
 
         <div className="hero-side">
           <article className="metric-card">
-            <span className="section-eyebrow">League pulse</span>
+            <span className="section-eyebrow">Registered players</span>
             <strong>{seasonQuery.data?.player_count ?? '-'}</strong>
-            <p>{seasonQuery.data?.status === 'completed' ? 'League completed. Final results remain available.' : seasonQuery.data?.registration_open ? 'registered players waiting for assignment.' : `season live across ${seasonQuery.data?.division_count ?? 0} divisions.`}</p>
+            <p>{season?.status === 'completed' ? 'League completed. Final results remain available.' : season?.registration_open ? 'Registration is open.' : season?.status === 'started' ? `season live across ${season.division_count} divisions.` : null}</p>
           </article>
           <article className="metric-card">
-            <span className="section-eyebrow">Assignments</span>
+            <span className="section-eyebrow">Players assigned</span>
             <strong>{seasonQuery.data?.assigned_count ?? '-'}</strong>
             <p>{seasonQuery.data?.waitlist_count ?? 0} player{seasonQuery.data?.waitlist_count === 1 ? '' : 's'} still waitlisted.</p>
           </article>
         </div>
       </section>
 
-      <section className="content-panel">
+      {season ? (
+        <section className="content-panel league-deadline" aria-labelledby="league-deadline-heading">
+          <h2 id="league-deadline-heading">Final week and catch-up deadline</h2>
+          {season.final_week_starts_at && season.fixtures_due_at ? (
+            <dl className="league-deadline-dates">
+              <div>
+                <dt>Week {season.week_count} starts</dt>
+                <dd><time dateTime={season.final_week_starts_at}>{formatWhen(season.final_week_starts_at, { year: 'numeric' })} UK time</time></dd>
+              </div>
+              <div>
+                <dt>Finish outstanding fixtures by</dt>
+                <dd><time dateTime={season.fixtures_due_at}>{formatWhen(season.fixtures_due_at, { year: 'numeric' })} UK time</time></dd>
+              </div>
+            </dl>
+          ) : <p>Dates will appear once the league schedule is set.</p>}
+          <p>Players have one extra week after the final scheduled week ends to finish any outstanding fixtures.</p>
+          <p>
+            League rules call for Autodarts bots to represent both players in each fixture still unplayed at the deadline.
+            A player&apos;s starting bot level equals the number of scheduled league weeks, capped at level 11.
+            Each player drops one level per missed fixture, down to level 1.
+          </p>
+        </section>
+      ) : null}
+
+      <section className="content-panel league-divisions">
         <div className="card-header">
           <div className="card-copy">
-            <span className="section-eyebrow">Division list</span>
             <h2>{leagueFinished ? "View the previous league's scores here" : 'Public division boards'}</h2>
           </div>
           {!leagueFinished ? <span className="status-pill live">Monday 09:00 unlocks</span> : null}
@@ -61,7 +84,6 @@ export function DivisionsPage() {
                       <h2>{division.name}</h2>
                     </div>
                   </header>
-                  <p>Fixtures, standings, and results stay isolated on this board.</p>
                 </div>
                 <div className="division-board-actions">
                   <div className="hero-actions">

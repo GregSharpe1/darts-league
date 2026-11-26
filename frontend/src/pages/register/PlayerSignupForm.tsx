@@ -49,13 +49,13 @@ export function PlayerSignupForm({ action, busy, disabled, error, onRegister }: 
       <form className="form-preview" onSubmit={handleSubmit}>
         <div className="field">
           <label htmlFor="display-name">Display name</label>
-          <input id="display-name" name="display-name" required aria-invalid={Boolean(displayNameError)} aria-describedby="display-name-help display-name-error" value={displayName} onChange={(event) => setDisplayName(event.target.value)} placeholder="Luke Humphries" disabled={disabled || busy} />
+          <input id="display-name" name="display-name" required aria-invalid={Boolean(displayNameError)} aria-describedby="display-name-help display-name-error" value={displayName} onChange={(event) => setDisplayName(event.target.value)} disabled={disabled || busy} />
           <span id="display-name-help" className="fixture-meta">Required. Up to 60 characters.</span>
           <span id="display-name-error" role="alert">{displayNameError}</span>
         </div>
         <div className="field">
           <label htmlFor="nickname">Nickname</label>
-          <input id="nickname" name="nickname" aria-invalid={Boolean(nicknameError)} aria-describedby="nickname-help nickname-error" value={nickname} onChange={(event) => setNickname(event.target.value)} placeholder="The Freeze" disabled={disabled || busy} />
+          <input id="nickname" name="nickname" aria-invalid={Boolean(nicknameError)} aria-describedby="nickname-help nickname-error" value={nickname} onChange={(event) => setNickname(event.target.value)} disabled={disabled || busy} />
           <span id="nickname-help" className="fixture-meta">Optional. Up to 30 characters.</span>
           <span id="nickname-error" role="alert">{nicknameError}</span>
         </div>

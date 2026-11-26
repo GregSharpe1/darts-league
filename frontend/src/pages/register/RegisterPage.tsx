@@ -1,65 +1,63 @@
+import { Link } from 'react-router-dom'
 import { useSeasonSummary, useRegisterPlayer } from '../../lib/api'
 import { StateNotice } from '../../components/StateNotice'
+import { readError } from '../../lib/utils'
 import { PlayerSignupForm } from './PlayerSignupForm'
+import './competitionSignup.css'
 
 export function RegisterPage() {
   const seasonQuery = useSeasonSummary()
   const registerMutation = useRegisterPlayer()
+  const season = seasonQuery.data
 
   return (
-    <>
-      <section className="page-intro">
-        <span className="eyebrow">Public registration</span>
-        <h1>Enter the league</h1>
-        <p className="fixture-meta">{seasonQuery.data?.name ?? 'Active season'}</p>
-        <p>Registration stays open until the admin starts the season. Display names must be unique within this season and nicknames remain optional.</p>
-      </section>
-
-      {seasonQuery.data && !seasonQuery.data.registration_open ? (
-        <section className="register-grid">
-          <article className="register-card">
-            <h2>Registration closed</h2>
-            <p>{seasonQuery.data.status === 'completed' ? 'This league is completed. Registration will reopen when the admin creates the next season.' : 'The active season has already started, so new entries are locked out until the next registration window opens.'}</p>
-            <StateNotice message={seasonQuery.data.status === 'completed' ? 'Final results and standings remain available on the division boards.' : 'Check fixtures and standings to follow the season in progress.'} compact />
-          </article>
-
-          <article className="register-card">
-            <h2>Where to go instead</h2>
-            <ul className="check-list">
-              <li><strong>Fixtures</strong><span className="fixture-meta">See who is due to play this week.</span></li>
-              <li><strong>Standings</strong><span className="fixture-meta">Track points, legs for, and league position.</span></li>
-              <li><strong>Next season</strong><span className="fixture-meta">Registration will reopen when a new season is created.</span></li>
-            </ul>
-          </article>
+    <div className="competition-signup competition-signup--league">
+      <Link className="competition-signup-back" to="/divisions">
+        <span aria-hidden="true">&larr;</span> League divisions
+      </Link>
+      <div className="competition-signup-card">
+        <section className="competition-signup-overview" aria-labelledby="league-signup-title">
+          <h1 id="league-signup-title">Enter the league</h1>
+          {season ? (
+            <div className="competition-signup-facts">
+              <div>
+                <p className="competition-signup-label">Season</p>
+                <p>{season.name}</p>
+              </div>
+              <div>
+                <p className="competition-signup-label">Match format</p>
+                <p>{season.game_variant}, first to {season.legs_to_win} {season.legs_to_win === 1 ? 'leg' : 'legs'}</p>
+              </div>
+            </div>
+          ) : null}
         </section>
-      ) : (
-        <section className="register-grid">
-          <article className="register-card">
-            <h2>Player sign-up</h2>
-            <p>Register once, then wait for admin placement into a division or onto the waitlist.</p>
-            <PlayerSignupForm
-              action="Register for the league"
-              busy={registerMutation.isPending}
-              disabled={!seasonQuery.data?.registration_open}
-              error={registerMutation.error}
-              onRegister={async (entry) => {
-                const player = await registerMutation.mutateAsync(entry)
-                return `${player.preferred_name} is registered and waiting for division assignment.`
-              }}
-            />
-          </article>
 
-          <article className="register-card">
-            <h2>What happens next</h2>
-            <ul className="check-list">
-              <li><strong>Before start</strong><span className="fixture-meta">Admin reviews the roster and assigns players to divisions manually.</span></li>
-              <li><strong>On start</strong><span className="fixture-meta">Each division generates its own fixtures once and registration closes.</span></li>
-              <li><strong>Each week</strong><span className="fixture-meta">Match cards unlock every Monday at 09:00.</span></li>
-              <li><strong>Current roster</strong><span className="fixture-meta">{seasonQuery.data?.player_count ?? 0} players registered, {seasonQuery.data?.waitlist_count ?? 0} still waitlisted.</span></li>
-            </ul>
-          </article>
+        <section className="competition-entry" aria-labelledby="league-entry-title">
+          {season?.registration_open ? <p className="competition-entry-status">Registration open</p> : null}
+          <h2 id="league-entry-title">{season && !season.registration_open ? 'Registration closed' : 'Player sign-up'}</h2>
+          {seasonQuery.error ? <StateNotice tone="error" message={readError(seasonQuery.error)} compact /> : null}
+          {seasonQuery.isPending ? <StateNotice message="Loading registration..." compact /> : null}
+          {season?.registration_open ? (
+            <>
+              <p className="competition-entry-description">An admin will assign you to a division after you register.</p>
+              <PlayerSignupForm
+                action="Register for the league"
+                busy={registerMutation.isPending}
+                error={registerMutation.error}
+                onRegister={async (entry) => {
+                  const player = await registerMutation.mutateAsync(entry)
+                  return `${player.preferred_name} is registered and waiting for division assignment.`
+                }}
+              />
+            </>
+          ) : season ? (
+            <>
+              <p className="competition-entry-description">{season.status === 'completed' ? 'This league is completed. Registration will reopen when the admin creates the next season.' : 'The active season has already started. Registration will reopen next season.'}</p>
+              <Link className="button-link" to="/divisions">Browse divisions</Link>
+            </>
+          ) : null}
         </section>
-      )}
-    </>
+      </div>
+    </div>
   )
 }

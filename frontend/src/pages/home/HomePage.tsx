@@ -22,8 +22,8 @@ export function HomePage() {
       </section>
 
       <div className="grid-panels">
-        <section className="content-panel competition-card" aria-labelledby="home-league">
-          <h2 id="home-league">League matches</h2>
+        <section className="content-panel competition-card competition-card--league" aria-labelledby="home-league">
+          <header className="competition-card-cover"><h2 id="home-league">League matches</h2></header>
           <p>Play everyone in your division once and follow the league table as results come in. New fixture details unlock on Mondays at 9am UK time.</p>
           <div className="competition-details">
             {season ? (
@@ -45,8 +45,8 @@ export function HomePage() {
           </div>
         </section>
 
-        <section className="content-panel competition-card" aria-labelledby="home-tournaments">
-          <h2 id="home-tournaments">Tournaments</h2>
+        <section className="content-panel competition-card competition-card--tournament" aria-labelledby="home-tournaments">
+          <header className="competition-card-cover"><h2 id="home-tournaments">Tournaments</h2></header>
           <p>Sign up for each event separately. One loss ends your run. Follow the bracket from the first draw to the final.</p>
           <div className="competition-details">
             {tournaments.isPending ? <p>Loading tournaments...</p> : null}

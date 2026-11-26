@@ -24,6 +24,7 @@ func (h TournamentHandler) RegisterRoutes(mux *http.ServeMux, requireAdmin func(
 	mux.HandleFunc("DELETE /api/admin/tournaments/{slug}", requireAdmin(h.deleteTournament))
 	mux.HandleFunc("POST /api/admin/tournaments/{slug}/start", requireAdmin(h.startTournament))
 	mux.HandleFunc("PUT /api/admin/tournaments/{slug}/registration", requireAdmin(h.setRegistration))
+	mux.HandleFunc("PUT /api/admin/tournaments/{slug}/format", requireAdmin(h.updateFormat))
 	mux.HandleFunc("GET /api/admin/tournaments/{slug}/entries", requireAdmin(h.listEntries))
 	mux.HandleFunc("DELETE /api/admin/tournaments/{slug}/entries/{id}", requireAdmin(h.deleteEntry))
 }
@@ -112,19 +113,41 @@ func (h TournamentHandler) listTournaments(w http.ResponseWriter, r *http.Reques
 
 func (h TournamentHandler) createTournament(w http.ResponseWriter, r *http.Request) {
 	var req struct {
-		Slug     string `json:"slug"`
-		Name     string `json:"name"`
-		StartsOn string `json:"starts_on"`
+		Slug        string  `json:"slug"`
+		Name        string  `json:"name"`
+		StartsOn    string  `json:"starts_on"`
+		GameVariant *string `json:"game_variant"`
+		LegsToWin   *int32  `json:"legs_to_win"`
 	}
 	if !readTournamentJSON(w, r, &req) {
 		return
 	}
-	event, err := h.Service.Create(r.Context(), req.Slug, req.Name, req.StartsOn)
+	format := tournament.DefaultMatchFormat()
+	if req.GameVariant != nil {
+		format.GameVariant = *req.GameVariant
+	}
+	if req.LegsToWin != nil {
+		format.LegsToWin = *req.LegsToWin
+	}
+	event, err := h.Service.Create(r.Context(), req.Slug, req.Name, req.StartsOn, format)
 	if err != nil {
 		writeTournamentError(w, err)
 		return
 	}
 	writeJSON(w, http.StatusCreated, event)
+}
+
+func (h TournamentHandler) updateFormat(w http.ResponseWriter, r *http.Request) {
+	var format tournament.MatchFormat
+	if !readTournamentJSON(w, r, &format) {
+		return
+	}
+	event, err := h.Service.UpdateFormat(r.Context(), r.PathValue("slug"), format)
+	if err != nil {
+		writeTournamentError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, event)
 }
 
 func (h TournamentHandler) setRegistration(w http.ResponseWriter, r *http.Request) {
@@ -206,6 +229,8 @@ func writeTournamentError(w http.ResponseWriter, err error) {
 		writeError(w, http.StatusConflict, "duplicate_tournament_slug", "This tournament link is already in use.")
 	case errors.Is(err, tournament.ErrDeleteLocked):
 		writeError(w, http.StatusConflict, "tournament_delete_locked", "Only tournaments with open registration can be deleted.")
+	case errors.Is(err, tournament.ErrFormatLocked):
+		writeError(w, http.StatusConflict, "tournament_format_locked", "Match format is locked once the bracket is published.")
 	case errors.Is(err, tournament.ErrTournamentStarted):
 		writeError(w, http.StatusConflict, "tournament_started", "The roster is locked because this tournament has started.")
 	case errors.Is(err, tournament.ErrCloseBeforeStart):

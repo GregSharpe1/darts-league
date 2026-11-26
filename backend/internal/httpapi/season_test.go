@@ -32,6 +32,9 @@ func TestSeasonSummaryShowsRegistrationOpenState(t *testing.T) {
 	if !response.RegistrationOpen {
 		t.Fatal("expected registration to be open")
 	}
+	if response.FinalWeekStartsAt != "" || response.FixturesDueAt != "" {
+		t.Fatal("a season without fixtures should not publish a final week or deadline")
+	}
 }
 
 func TestSeasonStartGeneratesFixturesAndClosesRegistration(t *testing.T) {
@@ -61,6 +64,26 @@ func TestSeasonStartGeneratesFixturesAndClosesRegistration(t *testing.T) {
 	}
 	if response.WeekCount != 3 {
 		t.Fatalf("expected 3 weeks for 4 players, got %d", response.WeekCount)
+	}
+	if response.FinalWeekStartsAt != "2026-04-06T08:00:00Z" || response.FixturesDueAt != "2026-04-20T08:00:00Z" {
+		t.Fatalf("unexpected final-week dates: %s through %s", response.FinalWeekStartsAt, response.FixturesDueAt)
+	}
+}
+
+func TestSeasonDeadlineUsesUKTimeAcrossDST(t *testing.T) {
+	t.Parallel()
+
+	handler := newSeasonHandlerWithNow(time.Date(2026, time.March, 18, 12, 0, 0, 0, time.UTC))
+	registerTestPlayers(t, handler.registration, []string{"Alice", "Bob"})
+	assignAllPlayersToSingleDivision(t, handler)
+	hitEndpoint(t, handler.season.handleSeasonStart, httptest.NewRequest(http.MethodPost, "/api/admin/season/start", nil), http.StatusCreated)
+	recorder := hitEndpoint(t, handler.season.handleSeasonSummary, httptest.NewRequest(http.MethodGet, "/api/season", nil), http.StatusOK)
+	var response seasonSummaryResponse
+	if err := json.Unmarshal(recorder.Body.Bytes(), &response); err != nil {
+		t.Fatal(err)
+	}
+	if response.FinalWeekStartsAt != "2026-03-23T09:00:00Z" || response.FixturesDueAt != "2026-04-06T08:00:00Z" {
+		t.Fatalf("expected 09:00 UK time across DST, got %s and %s", response.FinalWeekStartsAt, response.FixturesDueAt)
 	}
 }
 

@@ -106,6 +106,21 @@ func (s *MemoryStore) StartTournament(_ context.Context, slug string) (Event, er
 	return event, nil
 }
 
+func (s *MemoryStore) UpdateTournamentFormat(_ context.Context, slug string, format MatchFormat) (Event, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	event, exists := s.events[slug]
+	if !exists {
+		return Event{}, ErrNotFound
+	}
+	if len(event.Bracket) != 0 {
+		return Event{}, ErrFormatLocked
+	}
+	event.MatchFormat = format
+	s.events[slug] = event
+	return event, nil
+}
+
 func (s *MemoryStore) CreateTournamentEntry(_ context.Context, slug string, entry Entry) (Entry, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()

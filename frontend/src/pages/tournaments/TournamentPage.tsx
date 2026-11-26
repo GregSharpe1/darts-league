@@ -6,6 +6,8 @@ import { readError } from '../../lib/utils'
 import { PlayerSignupForm } from '../register/PlayerSignupForm'
 import { TournamentDate } from './TournamentDate'
 import { TournamentBracket } from './TournamentBracket'
+import { TournamentFormat } from './TournamentFormat'
+import '../register/competitionSignup.css'
 
 export function TournamentPage() {
   const { slug = '' } = useParams()
@@ -17,35 +19,83 @@ function TournamentRegistration({ slug }: { slug: string }) {
   const signup = useTournamentSignup(slug)
   const notFound = eventQuery.error instanceof ApiError && eventQuery.error.status === 404
   const event = notFound ? undefined : eventQuery.data
+  const error = eventQuery.error ? <StateNotice tone="error" message={readError(eventQuery.error)} /> : null
+
+  if (!event) {
+    return (
+      <>
+        <section className="page-intro">
+          <h1>Tournament registration</h1>
+          <Link className="tournament-link" to="/tournaments">All tournaments</Link>
+        </section>
+        {eventQuery.isPending ? <StateNotice message="Loading tournament..." /> : error}
+      </>
+    )
+  }
+
+  if (event.bracket) {
+    return (
+      <>
+        <Link className="competition-signup-back" to="/tournaments"><span aria-hidden="true">&larr;</span> All tournaments</Link>
+        <section className="hero-panel competition-hero competition-hero--tournament">
+          <div className="hero-copy">
+            <span className="competition-kicker">Knockout tournament</span>
+            <h1>{event.name}</h1>
+          </div>
+          <div className="hero-side">
+            <div className="metric-card competition-event-fact">
+              <p className="competition-kicker">Event date</p>
+              <TournamentDate startsOn={event.starts_on} />
+            </div>
+            <section className="metric-card competition-event-fact" aria-labelledby="tournament-match-format">
+              <h2 className="competition-kicker" id="tournament-match-format">Match format</h2>
+              <TournamentFormat format={event} />
+            </section>
+          </div>
+        </section>
+        {error}
+        <TournamentBracket rounds={event.bracket} />
+      </>
+    )
+  }
 
   return (
-    <>
-      <section className="page-intro">
-        <span className="eyebrow">Darts tournament</span>
-        <h1>{event?.name ?? 'Tournament registration'}</h1>
-        {event ? <p>{event.bracket ? 'Event date' : 'Starts'} <TournamentDate startsOn={event.starts_on} /></p> : null}
-        <Link className="tournament-link" to="/tournaments">All tournaments</Link>
-      </section>
-      {eventQuery.isPending ? <StateNotice message="Loading tournament..." /> : null}
-      {eventQuery.error ? <StateNotice tone="error" message={readError(eventQuery.error)} /> : null}
-      {event?.bracket ? <TournamentBracket rounds={event.bracket} /> : event ? (
-        <section className="register-grid">
-          <article className="register-card">
-            <h2>{event.registration_open ? 'Player sign-up' : 'Registration closed'}</h2>
-            {event.registration_open ? (
-              <PlayerSignupForm
-                action="Enter tournament"
-                busy={signup.isPending}
-                error={signup.error}
-                onRegister={async (entry) => {
-                  const { preferred_name } = await signup.mutateAsync(entry)
-                  return `${preferred_name} is registered for ${event.name}.`
-                }}
-              />
-            ) : <p>This tournament is currently closed to new entries.</p>}
-          </article>
+    <div className="competition-signup competition-signup--tournament">
+      <Link className="competition-signup-back" to="/tournaments">
+        <span aria-hidden="true">&larr;</span> All tournaments
+      </Link>
+      {error}
+      <div className="competition-signup-card">
+        <section className="competition-signup-overview" aria-labelledby="tournament-event-name">
+          <h1 id="tournament-event-name">{event.name}</h1>
+          <div className="competition-signup-facts">
+            <div>
+              <p className="competition-signup-label">Event date</p>
+              <TournamentDate startsOn={event.starts_on} />
+            </div>
+            <section aria-labelledby="tournament-match-format">
+              <h2 className="competition-signup-label" id="tournament-match-format">Match format</h2>
+              <TournamentFormat format={event} />
+            </section>
+          </div>
         </section>
-      ) : null}
-    </>
+
+        <section className="competition-entry" aria-labelledby="competition-entry-title">
+          {event.registration_open ? <p className="competition-entry-status">Registration open</p> : null}
+          <h2 id="competition-entry-title">{event.registration_open ? 'Player sign-up' : 'Registration closed'}</h2>
+          {event.registration_open ? (
+            <PlayerSignupForm
+              action="Enter tournament"
+              busy={signup.isPending}
+              error={signup.error}
+              onRegister={async (entry) => {
+                const { preferred_name } = await signup.mutateAsync(entry)
+                return `${preferred_name} is registered for ${event.name}.`
+              }}
+            />
+          ) : <Link className="button-link" to="/tournaments">Find another tournament</Link>}
+        </section>
+      </div>
+    </div>
   )
 }

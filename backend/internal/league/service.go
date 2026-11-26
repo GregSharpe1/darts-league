@@ -268,6 +268,8 @@ type SeasonSummary struct {
 	CanAssignPlayers       bool
 	PlayerCount            int
 	WeekCount              int
+	FinalWeekStartsAt      *time.Time
+	FixturesDueAt          *time.Time
 	GameVariant            string
 	LegsToWin              int
 	GamesPerWeek           int
@@ -314,11 +316,24 @@ func (s SeasonService) Summary(ctx context.Context) (SeasonSummary, error) {
 		return SeasonSummary{}, err
 	}
 
-	weekCount := 0
+	var finalFixture Fixture
 	for _, fixture := range fixtures {
-		if fixture.WeekNumber > weekCount {
-			weekCount = fixture.WeekNumber
+		if fixture.WeekNumber > finalFixture.WeekNumber ||
+			(fixture.WeekNumber == finalFixture.WeekNumber && !fixture.ScheduledAt.IsZero() &&
+				(finalFixture.ScheduledAt.IsZero() || fixture.ScheduledAt.Before(finalFixture.ScheduledAt))) {
+			finalFixture = fixture
 		}
+	}
+	var finalWeekStartsAt, fixturesDueAt *time.Time
+	if finalFixture.WeekNumber > 0 && !finalFixture.ScheduledAt.IsZero() {
+		loc, err := time.LoadLocation(season.Timezone)
+		if err != nil {
+			return SeasonSummary{}, err
+		}
+		starts := fixtureRevealAt(finalFixture.ScheduledAt, loc)
+		// The final scheduled week and the extra catch-up week both run Monday to Monday.
+		due := WeekRevealTime(starts, 2)
+		finalWeekStartsAt, fixturesDueAt = &starts, &due
 	}
 
 	assignedCount := 0
@@ -354,7 +369,9 @@ func (s SeasonService) Summary(ctx context.Context) (SeasonSummary, error) {
 		CanEditDivisions:       !adminLocked,
 		CanAssignPlayers:       !adminLocked,
 		PlayerCount:            len(players),
-		WeekCount:              weekCount,
+		WeekCount:              finalFixture.WeekNumber,
+		FinalWeekStartsAt:      finalWeekStartsAt,
+		FixturesDueAt:          fixturesDueAt,
 		GameVariant:            season.GameVariant,
 		LegsToWin:              season.LegsToWin,
 		GamesPerWeek:           season.GamesPerWeek,
@@ -389,7 +406,7 @@ func (s SeasonService) adminLockedForSeason(season Season, fixtures []Fixture) (
 func firstFixtureReveal(fixtures []Fixture, loc *time.Location) *time.Time {
 	var firstReveal *time.Time
 	for _, fixture := range fixtures {
-		revealAt := time.Date(fixture.ScheduledAt.In(loc).Year(), fixture.ScheduledAt.In(loc).Month(), fixture.ScheduledAt.In(loc).Day(), 9, 0, 0, 0, loc)
+		revealAt := fixtureRevealAt(fixture.ScheduledAt, loc)
 		if firstReveal == nil || revealAt.Before(*firstReveal) {
 			value := revealAt
 			firstReveal = &value

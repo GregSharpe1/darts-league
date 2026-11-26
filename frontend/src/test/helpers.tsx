@@ -64,6 +64,8 @@ export function createMockFetch(state: AppState) {
         can_assign_players: !state.firstWeekReleased && !state.seasonCompleted,
         player_count: state.playerCount ?? (state.seasonId === 2 ? 0 : 4),
         week_count: state.seasonStarted ? 3 : 0,
+        final_week_starts_at: state.seasonStarted ? '2026-04-06T08:00:00Z' : undefined,
+        fixtures_due_at: state.seasonStarted ? '2026-04-20T08:00:00Z' : undefined,
         game_variant: '501',
         legs_to_win: 3,
         games_per_week: 1,

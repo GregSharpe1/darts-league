@@ -17,6 +17,7 @@ var (
 	ErrEntryNotFound = errors.New("tournament entry not found")
 	ErrDuplicateSlug = errors.New("tournament link is already in use")
 	ErrDeleteLocked  = errors.New("only tournaments with open registration can be deleted")
+	ErrFormatLocked  = errors.New("tournament match format is locked once the bracket is published")
 	ErrInvalidName   = errors.New("tournament name must contain 2 to 60 characters without control characters")
 	ErrInvalidSlug   = errors.New("tournament link must contain up to 60 lowercase letters, digits, or single hyphens between words")
 	ErrInvalidDate   = errors.New("enter a valid tournament start date")
@@ -30,6 +31,23 @@ type Event struct {
 	StartsOn         string  `json:"starts_on"`
 	RegistrationOpen bool    `json:"registration_open"`
 	Bracket          Bracket `json:"bracket,omitempty"`
+	MatchFormat
+}
+
+type MatchFormat struct {
+	GameVariant string `json:"game_variant"`
+	LegsToWin   int32  `json:"legs_to_win"`
+}
+
+func DefaultMatchFormat() MatchFormat {
+	return MatchFormat{GameVariant: league.GameVariant501, LegsToWin: league.DefaultLegsToWin}
+}
+
+func (f MatchFormat) validate() error {
+	if err := league.ValidateGameVariant(f.GameVariant); err != nil {
+		return err
+	}
+	return league.ValidateLegsToWin(int(f.LegsToWin))
 }
 
 type Entry struct {
@@ -49,6 +67,7 @@ type Store interface {
 	ListTournaments(context.Context) ([]Event, error)
 	DeleteTournament(context.Context, string) error
 	SetTournamentRegistration(context.Context, string, bool) (Event, error)
+	UpdateTournamentFormat(context.Context, string, MatchFormat) (Event, error)
 	StartTournament(context.Context, string) (Event, error)
 	CreateTournamentEntry(context.Context, string, Entry) (Entry, error)
 	ListTournamentEntries(context.Context, string) ([]Entry, error)
@@ -60,7 +79,7 @@ type Service struct {
 	Now   func() time.Time
 }
 
-func (s Service) Create(ctx context.Context, slug, name, startsOn string) (Event, error) {
+func (s Service) Create(ctx context.Context, slug, name, startsOn string, format MatchFormat) (Event, error) {
 	normalizedName := league.NormalizeWhitespace(name)
 	if strings.ContainsFunc(name, unicode.IsControl) || utf8.RuneCountInString(normalizedName) < 2 || utf8.RuneCountInString(normalizedName) > 60 {
 		return Event{}, ErrInvalidName
@@ -72,7 +91,17 @@ func (s Service) Create(ctx context.Context, slug, name, startsOn string) (Event
 	if err != nil || date.Year() < 1 {
 		return Event{}, ErrInvalidDate
 	}
-	return s.Store.CreateTournament(ctx, Event{Slug: slug, Name: normalizedName, StartsOn: startsOn})
+	if err := format.validate(); err != nil {
+		return Event{}, err
+	}
+	return s.Store.CreateTournament(ctx, Event{Slug: slug, Name: normalizedName, StartsOn: startsOn, MatchFormat: format})
+}
+
+func (s Service) UpdateFormat(ctx context.Context, slug string, format MatchFormat) (Event, error) {
+	if err := format.validate(); err != nil {
+		return Event{}, err
+	}
+	return s.Store.UpdateTournamentFormat(ctx, slug, format)
 }
 
 func (s Service) Register(ctx context.Context, slug, displayName, nickname string) (Entry, error) {

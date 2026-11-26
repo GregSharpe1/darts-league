@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom'
 
 export function CompletedResults({ weeks, title = 'Final results' }: { readonly weeks: readonly PublicFixtureWeek[]; readonly title?: string }) {
   return (
-    <section className="content-panel" aria-label={title}>
+    <section className="content-panel league-results" aria-label={title}>
       <h2>{title}</h2>
       {weeks.filter((week) => week.status === 'unlocked' && week.fixtures.some(fixture => fixture.result)).map((week) => (
         <article className="week-card" key={week.week_number}>

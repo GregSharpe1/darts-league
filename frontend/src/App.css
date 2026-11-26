@@ -41,10 +41,10 @@
 }
 
 .brand-badge {
+  flex: 0 0 auto;
   width: 2.75rem;
   height: 2.75rem;
-  border-radius: 0.9rem;
-  background: linear-gradient(180deg, #ff5b5b 0%, #971b1b 100%);
+  border-radius: 0.65rem;
   box-shadow: 0 1rem 2rem rgba(151, 27, 27, 0.4);
   transition: transform 160ms ease, box-shadow 160ms ease;
 }

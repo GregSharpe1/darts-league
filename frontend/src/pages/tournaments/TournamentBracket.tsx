@@ -16,8 +16,9 @@ function roundLabel(matchCount: number) {
 
 export function TournamentBracket({ rounds }: { rounds: BracketMatch[][] }) {
   return (
-    <section className="content-panel" aria-labelledby="knockout-bracket">
+    <section className="content-panel tournament-bracket-panel" aria-labelledby="knockout-bracket">
       <h2 id="knockout-bracket">Knockout bracket</h2>
+      {rounds.length > 1 ? <p className="tournament-bracket-scroll-note">Scroll across to see later rounds.</p> : null}
       <div className="tournament-bracket" role="region" aria-label="Knockout rounds" tabIndex={0}>
         {rounds.map((round) => (
           <section className="tournament-bracket-round" key={round[0].number}>
@@ -25,7 +26,7 @@ export function TournamentBracket({ rounds }: { rounds: BracketMatch[][] }) {
             <ol>
               {round.map((match) => (
                 <li key={match.number}>
-                  <span className="fixture-meta">{match.slots.some((slot) => slot.bye) ? 'Walkover' : `Match ${match.number}`}</span>
+                  <span className="tournament-bracket-match-label">{match.slots.some((slot) => slot.bye) ? 'Automatic advance' : `Match ${match.number}`}</span>
                   {match.slots.map((slot, index) => (
                     <div className={slot.player ? 'tournament-bracket-player' : 'fixture-meta'} key={index}>{slotLabel(slot)}</div>
                   ))}
