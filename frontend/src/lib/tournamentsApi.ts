@@ -6,7 +6,15 @@ export type Tournament = {
   name: string
   starts_on: string
   registration_open: boolean
+  bracket?: BracketMatch[][]
 }
+
+export type TournamentSummary = Pick<Tournament, 'slug' | 'name' | 'starts_on' | 'registration_open'> & {
+  started: boolean
+}
+
+export type BracketSlot = { player?: string; winner_of?: number; bye?: true }
+export type BracketMatch = { number: number; slots: [BracketSlot, BracketSlot] }
 
 export type TournamentEntry = {
   id: number
@@ -15,11 +23,21 @@ export type TournamentEntry = {
   registered_at: string
 }
 
-const publicPath = (slug: string) => `/api/tournaments/${encodeURIComponent(slug)}`
+const publicListPath = '/api/tournaments'
+const publicPath = (slug: string) => `${publicListPath}/${encodeURIComponent(slug)}`
 const adminPath = '/api/admin/tournaments'
 const adminKey = ['admin', 'tournaments']
+const publicListKey = ['tournaments']
 const entryKey = (slug: string) => [...adminKey, 'entries', slug]
 const eventKey = (slug: string) => ['tournament', slug]
+
+export function useTournaments() {
+  return useQuery({
+    queryKey: publicListKey,
+    queryFn: () => request<TournamentSummary[]>(publicListPath),
+    retry: false,
+  })
+}
 
 export function useTournament(slug: string) {
   return useQuery({
@@ -35,7 +53,7 @@ export function useTournamentSignup(slug: string) {
     mutationFn: (entry: { display_name: string; nickname: string }) =>
       request<{ preferred_name: string }>(`${publicPath(slug)}/entries`, { method: 'POST', body: JSON.stringify(entry) }),
     onError: async (error) => {
-      if (error instanceof ApiError && error.code === 'registration_closed') {
+      if (error instanceof ApiError && (error.code === 'registration_closed' || error.code === 'tournament_not_found')) {
         await client.invalidateQueries({ queryKey: eventKey(slug) })
       }
     },
@@ -54,12 +72,45 @@ export function useAdminTournaments() {
 export function useCreateTournament() {
   const client = useQueryClient()
   return useMutation({
-    mutationFn: (event: Omit<Tournament, 'registration_open'>) =>
+    mutationFn: (event: Pick<Tournament, 'slug' | 'name' | 'starts_on'>) =>
       request<Tournament>(adminPath, { method: 'POST', body: JSON.stringify(event) }),
     onSuccess: async (event) => {
       client.setQueryData<Tournament[]>(adminKey, (events) => [...(events ?? []), event])
-      await client.invalidateQueries({ queryKey: adminKey, exact: true })
+      await Promise.all([
+        client.invalidateQueries({ queryKey: adminKey, exact: true }),
+        client.invalidateQueries({ queryKey: publicListKey }),
+      ])
     },
+  })
+}
+
+export function useStartTournament(slug: string) {
+  const client = useQueryClient()
+  return useMutation({
+    mutationFn: () => request<Tournament>(`${adminPath}/${encodeURIComponent(slug)}/start`, { method: 'POST' }),
+    onSuccess: async (event) => {
+      client.setQueryData(eventKey(slug), event)
+      client.setQueryData<Tournament[]>(adminKey, (events) => events?.map((item) => item.slug === slug ? event : item))
+      await client.invalidateQueries({ queryKey: publicListKey })
+    },
+    onSettled: () => client.invalidateQueries({ queryKey: adminKey, exact: true }),
+  })
+}
+
+export function useDeleteTournament(slug: string) {
+  const client = useQueryClient()
+  return useMutation({
+    mutationFn: () => request<void>(`${adminPath}/${encodeURIComponent(slug)}`, { method: 'DELETE' }),
+    onSuccess: async () => {
+      client.setQueryData<Tournament[]>(adminKey, (events) => events?.filter((event) => event.slug !== slug))
+      client.setQueryData<TournamentSummary[]>(publicListKey, (events) => events?.filter((event) => event.slug !== slug))
+      client.removeQueries({ queryKey: entryKey(slug) })
+      await Promise.all([
+        client.invalidateQueries({ queryKey: publicListKey }),
+        client.invalidateQueries({ queryKey: eventKey(slug) }),
+      ])
+    },
+    onSettled: () => client.invalidateQueries({ queryKey: adminKey, exact: true }),
   })
 }
 
@@ -71,9 +122,10 @@ export function useSetTournamentRegistration(slug: string) {
         method: 'PUT',
         body: JSON.stringify({ registration_open: open }),
       }),
-    onSuccess: (event) => {
+    onSuccess: async (event) => {
       client.setQueryData(eventKey(slug), event)
       client.setQueryData<Tournament[]>(adminKey, (events) => events?.map((item) => item.slug === slug ? event : item))
+      await client.invalidateQueries({ queryKey: publicListKey })
     },
     onSettled: () => client.invalidateQueries({ queryKey: adminKey, exact: true }),
   })

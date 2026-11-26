@@ -247,6 +247,54 @@
   margin-top: 1.5rem;
 }
 
+.competition-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: clamp(1.25rem, 4vw, 2.5rem);
+  margin-top: 0;
+}
+
+.competition-card h2 {
+  font-size: clamp(1.75rem, 3vw, 2.75rem);
+  line-height: 1.1;
+}
+
+.competition-card > p,
+.competition-details p {
+  color: var(--color-muted);
+}
+
+.competition-details {
+  flex: 1;
+  width: 100%;
+  margin-top: 0.5rem;
+  padding-top: 1rem;
+  border-top: var(--border-panel);
+}
+
+.competition-details h3 {
+  margin-bottom: 0.25rem;
+  overflow-wrap: anywhere;
+}
+
+.competition-details .check-list {
+  margin-top: 0;
+}
+
+.competition-details .tournament-link {
+  color: #fff;
+}
+
+.competition-details p + .check-list {
+  margin-top: 0.75rem;
+}
+
+.competition-actions {
+  margin-top: 1rem;
+}
+
 .week-switcher {
   display: grid;
   gap: 0.9rem;
@@ -845,6 +893,12 @@
 .tournament-list-label {
   min-width: 0;
   overflow-wrap: anywhere;
+}
+
+.tournament-signup-action {
+  align-self: center;
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
 .tournament-registration-actions {

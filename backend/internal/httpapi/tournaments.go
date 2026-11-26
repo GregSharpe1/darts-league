@@ -16,13 +16,61 @@ type TournamentHandler struct {
 }
 
 func (h TournamentHandler) RegisterRoutes(mux *http.ServeMux, requireAdmin func(http.HandlerFunc) http.HandlerFunc) {
+	mux.HandleFunc("GET /api/tournaments", h.listPublicTournaments)
 	mux.HandleFunc("GET /api/tournaments/{slug}", h.getTournament)
 	mux.HandleFunc("POST /api/tournaments/{slug}/entries", h.register)
 	mux.HandleFunc("GET /api/admin/tournaments", requireAdmin(h.listTournaments))
 	mux.HandleFunc("POST /api/admin/tournaments", requireAdmin(h.createTournament))
+	mux.HandleFunc("DELETE /api/admin/tournaments/{slug}", requireAdmin(h.deleteTournament))
+	mux.HandleFunc("POST /api/admin/tournaments/{slug}/start", requireAdmin(h.startTournament))
 	mux.HandleFunc("PUT /api/admin/tournaments/{slug}/registration", requireAdmin(h.setRegistration))
 	mux.HandleFunc("GET /api/admin/tournaments/{slug}/entries", requireAdmin(h.listEntries))
 	mux.HandleFunc("DELETE /api/admin/tournaments/{slug}/entries/{id}", requireAdmin(h.deleteEntry))
+}
+
+type tournamentSummary struct {
+	Slug             string `json:"slug"`
+	Name             string `json:"name"`
+	StartsOn         string `json:"starts_on"`
+	RegistrationOpen bool   `json:"registration_open"`
+	Started          bool   `json:"started"`
+}
+
+func (h TournamentHandler) listPublicTournaments(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Cache-Control", "no-store")
+	events, err := h.Service.Store.ListTournaments(r.Context())
+	if err != nil {
+		writeTournamentError(w, err)
+		return
+	}
+	summaries := make([]tournamentSummary, 0, len(events))
+	for _, event := range events {
+		summaries = append(summaries, tournamentSummary{
+			Slug:             event.Slug,
+			Name:             event.Name,
+			StartsOn:         event.StartsOn,
+			RegistrationOpen: event.RegistrationOpen,
+			Started:          len(event.Bracket) > 0,
+		})
+	}
+	writeJSON(w, http.StatusOK, summaries)
+}
+
+func (h TournamentHandler) startTournament(w http.ResponseWriter, r *http.Request) {
+	event, err := h.Service.Store.StartTournament(r.Context(), r.PathValue("slug"))
+	if err != nil {
+		writeTournamentError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, event)
+}
+
+func (h TournamentHandler) deleteTournament(w http.ResponseWriter, r *http.Request) {
+	if err := h.Service.Store.DeleteTournament(r.Context(), r.PathValue("slug")); err != nil {
+		writeTournamentError(w, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
 }
 
 func (h TournamentHandler) getTournament(w http.ResponseWriter, r *http.Request) {
@@ -156,6 +204,14 @@ func writeTournamentError(w http.ResponseWriter, err error) {
 		writeError(w, http.StatusNotFound, "tournament_entry_not_found", "Entry was not found in this tournament.")
 	case errors.Is(err, tournament.ErrDuplicateSlug):
 		writeError(w, http.StatusConflict, "duplicate_tournament_slug", "This tournament link is already in use.")
+	case errors.Is(err, tournament.ErrDeleteLocked):
+		writeError(w, http.StatusConflict, "tournament_delete_locked", "Only tournaments with open registration can be deleted.")
+	case errors.Is(err, tournament.ErrTournamentStarted):
+		writeError(w, http.StatusConflict, "tournament_started", "The roster is locked because this tournament has started.")
+	case errors.Is(err, tournament.ErrCloseBeforeStart):
+		writeError(w, http.StatusConflict, "tournament_registration_open", "Close registration before starting the tournament.")
+	case errors.Is(err, tournament.ErrTooFewEntrants):
+		writeError(w, http.StatusConflict, "not_enough_entrants", "At least two entrants are required to start the tournament.")
 	case errors.Is(err, league.ErrRegistrationClosed):
 		writeError(w, http.StatusConflict, "registration_closed", "Registration is closed for this tournament.")
 	case errors.Is(err, league.ErrDuplicatePlayerName):

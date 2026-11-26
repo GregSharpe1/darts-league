@@ -6,12 +6,15 @@ import {
   type Tournament,
   useAdminTournaments,
   useCreateTournament,
+  useDeleteTournament,
   useRemoveTournamentEntry,
   useSetTournamentRegistration,
+  useStartTournament,
   useTournamentEntries,
 } from '../../lib/tournamentsApi'
 import { readError } from '../../lib/utils'
 import { TournamentDate } from './TournamentDate'
+import { TournamentList } from './TournamentList'
 
 export function AdminTournamentsPage() {
   const { slug } = useParams()
@@ -36,20 +39,7 @@ export function AdminTournamentsPage() {
           <CreateTournament />
           <article className="admin-card">
             <h2>Manage tournaments</h2>
-            {tournaments.data.length === 0 ? <p>No tournaments yet.</p> : (
-              <ul className="check-list">
-                {tournaments.data.map((item) => (
-                  <li key={item.slug}>
-                    <div className="tournament-list-label">
-                      <Link className="tournament-link" to={`/admin/tournaments/${item.slug}`}>{item.name}</Link>
-                      <div className="fixture-meta">
-                        <TournamentDate startsOn={item.starts_on} /> | {item.registration_open ? 'Registration open' : 'Registration closed'}
-                      </div>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            )}
+            <TournamentList admin events={tournaments.data.map((item) => ({ ...item, started: Boolean(item.bracket?.length) }))} />
           </article>
         </section>
       ) : null}
@@ -98,22 +88,57 @@ function CreateTournament() {
 }
 
 function TournamentRoster({ event }: { event: Tournament }) {
+  const navigate = useNavigate()
   const entries = useTournamentEntries(event.slug)
   const registration = useSetTournamentRegistration(event.slug)
   const remove = useRemoveTournamentEntry(event.slug)
+  const start = useStartTournament(event.slug)
+  const deleteTournament = useDeleteTournament(event.slug)
+  const started = Boolean(event.bracket)
+  const canStart = !event.registration_open && (entries.data?.length ?? 0) >= 2
+  const canDelete = event.registration_open && !started
+
+  async function confirmDelete() {
+    if (!window.confirm(`Delete ${event.name} and all its entries? This cannot be undone.`)) return
+    try {
+      await deleteTournament.mutateAsync()
+      navigate('/admin/tournaments', { replace: true })
+    } catch {
+      // The mutation error is shown below the delete action.
+    }
+  }
 
   return (
     <section className="admin-grid">
       <article className="admin-card">
-        <h2>{event.registration_open ? 'Registration open' : 'Registration closed'}</h2>
-        <p>Starts <TournamentDate startsOn={event.starts_on} /></p>
+        <h2>{started ? 'Tournament started' : event.registration_open ? 'Registration open' : 'Registration closed'}</h2>
+        <p>{started ? 'Event date' : 'Starts'} <TournamentDate startsOn={event.starts_on} /></p>
+        {!started && !event.registration_open && entries.isSuccess && !canStart ? <p>At least two entrants are needed to draw the bracket.</p> : null}
         <div className="toolbar-actions tournament-registration-actions">
-          <Link className="button-link secondary-button" to={`/tournaments/${event.slug}`}>Public sign-up page</Link>
-          <button type="button" disabled={registration.isPending} onClick={() => registration.mutate(!event.registration_open)}>
-            {event.registration_open ? 'Close registration' : 'Open registration'}
-          </button>
+          <Link className="button-link secondary-button" to={`/tournaments/${event.slug}`}>{started ? 'View bracket' : 'Public sign-up page'}</Link>
+          {!started ? (
+            <button className={canStart ? 'secondary-button' : undefined} type="button" disabled={registration.isPending || start.isPending || deleteTournament.isPending} onClick={() => registration.mutate(!event.registration_open)}>
+              {event.registration_open ? 'Close registration' : 'Open registration'}
+            </button>
+          ) : null}
+          {!started && canStart ? (
+            <button type="button" disabled={start.isPending || registration.isPending || remove.isPending} onClick={() => {
+              if (window.confirm('Start this tournament? This locks the roster and publishes the knockout draw.')) start.mutate()
+            }}>
+              {start.isPending ? 'Drawing bracket...' : 'Start tournament'}
+            </button>
+          ) : null}
         </div>
         {registration.error ? <StateNotice tone="error" message={readError(registration.error)} compact /> : null}
+        {start.error ? <StateNotice tone="error" message={readError(start.error)} compact /> : null}
+        {canDelete ? (
+          <div className="tournament-registration-actions">
+            <button className="ghost-button" type="button" disabled={deleteTournament.isPending || registration.isPending || remove.isPending} onClick={() => void confirmDelete()}>
+              {deleteTournament.isPending ? 'Deleting...' : 'Delete tournament'}
+            </button>
+          </div>
+        ) : null}
+        {deleteTournament.error ? <StateNotice tone="error" message={readError(deleteTournament.error)} compact /> : null}
       </article>
       <article className="admin-card">
         <h2>Entrants{entries.data ? ` (${entries.data.length})` : ''}</h2>
@@ -129,17 +154,17 @@ function TournamentRoster({ event }: { event: Tournament }) {
                   <strong>{entry.display_name}</strong>
                   {entry.nickname ? <div className="fixture-meta">{entry.nickname}</div> : null}
                 </div>
-                <button
+                {!started ? <button
                   className="ghost-button tournament-remove-entry"
                   type="button"
                   aria-label={`Remove ${entry.display_name}`}
-                  disabled={remove.isPending}
+                  disabled={remove.isPending || start.isPending || deleteTournament.isPending}
                   onClick={() => {
                     if (window.confirm(`Remove ${entry.display_name} from ${event.name}?`)) remove.mutate(entry.id)
                   }}
                 >
                   Remove
-                </button>
+                </button> : null}
               </li>
             ))}
           </ul>

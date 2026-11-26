@@ -60,6 +60,21 @@ func (s *MemoryStore) ListTournaments(_ context.Context) ([]Event, error) {
 	return events, nil
 }
 
+func (s *MemoryStore) DeleteTournament(_ context.Context, slug string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	event, exists := s.events[slug]
+	if !exists {
+		return ErrNotFound
+	}
+	if !event.CanDelete() {
+		return ErrDeleteLocked
+	}
+	delete(s.entries, slug)
+	delete(s.events, slug)
+	return nil
+}
+
 func (s *MemoryStore) SetTournamentRegistration(_ context.Context, slug string, open bool) (Event, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -67,7 +82,26 @@ func (s *MemoryStore) SetTournamentRegistration(_ context.Context, slug string, 
 	if !exists {
 		return Event{}, ErrNotFound
 	}
+	if len(event.Bracket) != 0 {
+		return Event{}, ErrTournamentStarted
+	}
 	event.RegistrationOpen = open
+	s.events[slug] = event
+	return event, nil
+}
+
+func (s *MemoryStore) StartTournament(_ context.Context, slug string) (Event, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	event, exists := s.events[slug]
+	if !exists {
+		return Event{}, ErrNotFound
+	}
+	bracket, err := DrawBracket(event, s.entries[slug])
+	if err != nil {
+		return Event{}, err
+	}
+	event.Bracket = bracket
 	s.events[slug] = event
 	return event, nil
 }
@@ -106,6 +140,13 @@ func (s *MemoryStore) ListTournamentEntries(_ context.Context, slug string) ([]E
 func (s *MemoryStore) DeleteTournamentEntry(_ context.Context, slug string, id int64) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	event, exists := s.events[slug]
+	if !exists {
+		return ErrNotFound
+	}
+	if len(event.Bracket) != 0 {
+		return ErrTournamentStarted
+	}
 	entries := s.entries[slug]
 	index := slices.IndexFunc(entries, func(entry Entry) bool { return entry.ID == id })
 	if index < 0 {

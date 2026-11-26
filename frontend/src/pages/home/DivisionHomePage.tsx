@@ -73,7 +73,7 @@ export function DivisionHomePage() {
             and holds the reveal until Monday morning at 09:00 Europe/London.
           </p>
           <div className="hero-actions">
-            <NavLink to="/">All divisions</NavLink>
+            <NavLink to="/divisions">All divisions</NavLink>
             <NavLink to={`/divisions/${slug}/standings`}>View points table</NavLink>
           </div>
         </div>

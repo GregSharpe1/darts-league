@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, screen, waitFor } from '@testing-library/react'
+import { cleanup, fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createMockFetch, renderApp } from '../../test/helpers'
 
@@ -13,10 +13,42 @@ describe('Home page', () => {
     vi.unstubAllGlobals()
   })
 
-  it('renders the public division landing page', async () => {
+  it('gives the home page separate league and tournament destinations', () => {
     renderApp('/')
 
-    expect(screen.getByRole('heading', { name: /pick a division and follow the board/i })).toBeInTheDocument()
+    expect(screen.queryByRole('navigation', { name: 'Primary' })).not.toBeInTheDocument()
+    const league = screen.getByRole('region', { name: 'League matches' })
+    const tournaments = screen.getByRole('region', { name: 'Tournaments' })
+    expect(within(league).getByRole('link', { name: 'Browse divisions' })).toHaveAttribute('href', '/divisions')
+    expect(within(tournaments).getByRole('link', { name: 'Browse tournaments' })).toHaveAttribute('href', '/tournaments')
+  })
+
+  it('shows the current league, open tournament sign-ups, and a published bracket', async () => {
+    vi.stubGlobal('fetch', createMockFetch({
+      authenticated: false,
+      seasonStarted: false,
+      seasonName: 'Cardiff Spring League',
+      tournaments: [
+        { slug: 'night-cup', name: 'Night Cup', starts_on: '2027-02-06', registration_open: true, started: false },
+        { slug: 'city-cup', name: 'City Cup', starts_on: '2027-02-01', registration_open: false, started: true },
+      ],
+    }))
+    renderApp('/')
+
+    const league = within(screen.getByRole('region', { name: 'League matches' }))
+    const tournaments = within(screen.getByRole('region', { name: 'Tournaments' }))
+    expect(await league.findByRole('heading', { name: 'Cardiff Spring League' })).toBeInTheDocument()
+    expect(league.getByRole('link', { name: 'Register for the league' })).toHaveAttribute('href', '/register')
+    expect(await tournaments.findByRole('link', { name: 'Sign up for Night Cup' })).toHaveAttribute('href', '/tournaments/night-cup')
+    expect(tournaments.getByRole('link', { name: 'City Cup' })).toHaveAttribute('href', '/tournaments/city-cup')
+    expect(tournaments.getByText(/tournament started/i)).toBeInTheDocument()
+  })
+
+  it('renders the public divisions page', async () => {
+    renderApp('/divisions')
+
+    expect(screen.getByRole('heading', { name: 'League divisions', level: 1 })).toBeInTheDocument()
+    expect(screen.getByText(/admins assign players to divisions after they register for the league/i)).toBeInTheDocument()
     expect(await screen.findByText(/premier division/i)).toBeInTheDocument()
     expect(screen.getByText(/challenger division/i)).toBeInTheDocument()
     expect(screen.getAllByRole('link', { name: /view fixtures/i }).length).toBe(2)
@@ -35,6 +67,9 @@ describe('Home page', () => {
 
     const weekOneButton = await screen.findByRole('button', { name: /week 1/i })
     const weekTwoButton = await screen.findByRole('button', { name: /week 2/i })
+    const navigation = within(screen.getByRole('navigation', { name: 'Primary' }))
+    expect(await navigation.findByRole('link', { name: /^Register$/ })).toHaveAttribute('href', '/register')
+    expect(navigation.getByRole('link', { name: /^Tournaments$/ })).toHaveAttribute('href', '/tournaments')
 
     expect(weekOneButton).toHaveAttribute('aria-expanded', 'true')
     expect(screen.getByText(/the asp/i)).toBeInTheDocument()
@@ -49,7 +84,7 @@ describe('Home page', () => {
 
   it.each([false, true])('shows previous-league boards after every match is played (closed: %s)', async (seasonCompleted) => {
     vi.stubGlobal('fetch', createMockFetch({ authenticated: false, seasonStarted: true, seasonCompleted, remainingFixtures: 0, seasonName: 'Finished League' }))
-    renderApp('/')
+    renderApp('/divisions')
 
     expect(await screen.findByRole('heading', { name: "View the previous league's scores here" })).toBeInTheDocument()
     expect(screen.queryByText('Monday 09:00 unlocks')).not.toBeInTheDocument()
@@ -60,7 +95,7 @@ describe('Home page', () => {
 
   it('keeps the weekly unlock notice while matches remain', async () => {
     vi.stubGlobal('fetch', createMockFetch({ authenticated: false, seasonStarted: true, remainingFixtures: 1, seasonName: 'Live League' }))
-    renderApp('/')
+    renderApp('/divisions')
 
     expect(await screen.findByText('season live across 2 divisions.')).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: 'Public division boards' })).toBeInTheDocument()

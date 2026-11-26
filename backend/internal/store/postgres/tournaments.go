@@ -9,12 +9,12 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
-const tournamentColumns = `slug, name, to_char(starts_on, 'YYYY-MM-DD'), registration_open`
+const tournamentColumns = `slug, name, to_char(starts_on, 'YYYY-MM-DD'), registration_open, bracket`
 const tournamentEntryColumns = `id, display_name, nickname, registered_at`
 
 func scanTournament(row pgx.Row) (tournament.Event, error) {
 	var event tournament.Event
-	err := row.Scan(&event.Slug, &event.Name, &event.StartsOn, &event.RegistrationOpen)
+	err := row.Scan(&event.Slug, &event.Name, &event.StartsOn, &event.RegistrationOpen, &event.Bracket)
 	if errors.Is(err, pgx.ErrNoRows) {
 		err = tournament.ErrNotFound
 	}
@@ -49,10 +49,75 @@ func (s *Store) ListTournaments(ctx context.Context) ([]tournament.Event, error)
 	return events, err
 }
 
+func (s *Store) DeleteTournament(ctx context.Context, slug string) error {
+	tx, err := s.pool.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx)
+	event, err := lockTournament(ctx, tx, slug)
+	if err != nil {
+		return err
+	}
+	if !event.CanDelete() {
+		return tournament.ErrDeleteLocked
+	}
+	if _, err := tx.Exec(ctx, `DELETE FROM tournament_entries WHERE tournament_slug = $1`, slug); err != nil {
+		return err
+	}
+	if _, err := tx.Exec(ctx, `DELETE FROM tournaments WHERE slug = $1`, slug); err != nil {
+		return err
+	}
+	return tx.Commit(ctx)
+}
+
 func (s *Store) SetTournamentRegistration(ctx context.Context, slug string, open bool) (tournament.Event, error) {
-	return scanTournament(s.pool.QueryRow(ctx, `
-		UPDATE tournaments SET registration_open = $2 WHERE slug = $1
+	event, err := scanTournament(s.pool.QueryRow(ctx, `
+		UPDATE tournaments SET registration_open = $2 WHERE slug = $1 AND bracket IS NULL
 		RETURNING `+tournamentColumns, slug, open))
+	if errors.Is(err, tournament.ErrNotFound) {
+		if _, lookupErr := s.GetTournament(ctx, slug); lookupErr == nil {
+			return tournament.Event{}, tournament.ErrTournamentStarted
+		} else {
+			return tournament.Event{}, lookupErr
+		}
+	}
+	return event, err
+}
+
+func (s *Store) StartTournament(ctx context.Context, slug string) (tournament.Event, error) {
+	tx, err := s.pool.Begin(ctx)
+	if err != nil {
+		return tournament.Event{}, err
+	}
+	defer tx.Rollback(ctx)
+	event, err := lockTournament(ctx, tx, slug)
+	if err != nil || len(event.Bracket) != 0 {
+		return event, err
+	}
+	entries, err := listTournamentEntries(ctx, tx, slug)
+	if err != nil {
+		return tournament.Event{}, err
+	}
+	bracket, err := tournament.DrawBracket(event, entries)
+	if err != nil {
+		return tournament.Event{}, err
+	}
+	event, err = scanTournament(tx.QueryRow(ctx, `
+		UPDATE tournaments SET bracket = $2 WHERE slug = $1
+		RETURNING `+tournamentColumns, slug, bracket))
+	if err != nil {
+		return tournament.Event{}, err
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return tournament.Event{}, err
+	}
+	return event, nil
+}
+
+func lockTournament(ctx context.Context, tx pgx.Tx, slug string) (tournament.Event, error) {
+	return scanTournament(tx.QueryRow(ctx, `
+		SELECT `+tournamentColumns+` FROM tournaments WHERE slug = $1 FOR UPDATE`, slug))
 }
 
 func scanTournamentEntry(row pgx.Row) (tournament.Entry, error) {
@@ -103,7 +168,11 @@ func (s *Store) ListTournamentEntries(ctx context.Context, slug string) ([]tourn
 	if _, err := s.GetTournament(ctx, slug); err != nil {
 		return nil, err
 	}
-	rows, err := s.pool.Query(ctx, `
+	return listTournamentEntries(ctx, s.pool, slug)
+}
+
+func listTournamentEntries(ctx context.Context, db database, slug string) ([]tournament.Entry, error) {
+	rows, err := db.Query(ctx, `
 		SELECT `+tournamentEntryColumns+` FROM tournament_entries WHERE tournament_slug = $1 ORDER BY id`, slug)
 	if err != nil {
 		return nil, err
@@ -116,9 +185,24 @@ func (s *Store) ListTournamentEntries(ctx context.Context, slug string) ([]tourn
 }
 
 func (s *Store) DeleteTournamentEntry(ctx context.Context, slug string, id int64) error {
-	tag, err := s.pool.Exec(ctx, `DELETE FROM tournament_entries WHERE tournament_slug = $1 AND id = $2`, slug, id)
-	if err == nil && tag.RowsAffected() == 0 {
+	tx, err := s.pool.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx)
+	event, err := lockTournament(ctx, tx, slug)
+	if err != nil {
+		return err
+	}
+	if len(event.Bracket) != 0 {
+		return tournament.ErrTournamentStarted
+	}
+	tag, err := tx.Exec(ctx, `DELETE FROM tournament_entries WHERE tournament_slug = $1 AND id = $2`, slug, id)
+	if err != nil {
+		return err
+	}
+	if tag.RowsAffected() == 0 {
 		return tournament.ErrEntryNotFound
 	}
-	return err
+	return tx.Commit(ctx)
 }

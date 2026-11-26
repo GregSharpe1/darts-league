@@ -71,11 +71,57 @@ func TestTournamentRegistrationPostgres(t *testing.T) {
 	if err != nil || len(entries) != 1 || entries[0].ID != first.ID || entries[0].Nickname != "Flight" {
 		t.Fatalf("persisted roster returned %+v, %v", entries, err)
 	}
+	if err := store.DeleteTournament(ctx, "city-cup"); !errors.Is(err, tournament.ErrDeleteLocked) {
+		t.Fatalf("closed tournament deletion returned %v", err)
+	}
 	if err := store.DeleteTournamentEntry(ctx, "city-cup", first.ID); err != nil {
 		t.Fatal(err)
 	}
 	entries, err = store.ListTournamentEntries(ctx, "city-cup")
 	if err != nil || entries == nil || len(entries) != 0 {
 		t.Fatalf("expected empty roster after removal, got %+v, %v", entries, err)
+	}
+
+	if _, err := service.Register(ctx, "winter-cup", "Second Player", ""); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := store.StartTournament(ctx, "winter-cup"); !errors.Is(err, tournament.ErrCloseBeforeStart) {
+		t.Fatalf("start while registration is open returned %v", err)
+	}
+	if _, err := store.SetTournamentRegistration(ctx, "winter-cup", false); err != nil {
+		t.Fatal(err)
+	}
+	started, err := store.StartTournament(ctx, "winter-cup")
+	if err != nil || len(started.Bracket) != 1 || len(started.Bracket[0]) != 1 {
+		t.Fatalf("start returned %+v, %v", started, err)
+	}
+	reloaded, err := store.StartTournament(ctx, "winter-cup")
+	if err != nil || len(reloaded.Bracket) != 1 || reloaded.Bracket[0][0] != started.Bracket[0][0] {
+		t.Fatalf("repeat start returned %+v, %v", reloaded, err)
+	}
+	if _, err := store.SetTournamentRegistration(ctx, "winter-cup", true); !errors.Is(err, tournament.ErrTournamentStarted) {
+		t.Fatalf("reopen after start returned %v", err)
+	}
+	if err := store.DeleteTournament(ctx, "winter-cup"); !errors.Is(err, tournament.ErrDeleteLocked) {
+		t.Fatalf("started tournament deletion returned %v", err)
+	}
+	if _, err := store.SetTournamentRegistration(ctx, "city-cup", true); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := service.Register(ctx, "city-cup", "Maya Evans", ""); err != nil {
+		t.Fatal(err)
+	}
+	if err := store.DeleteTournament(ctx, "city-cup"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := store.GetTournament(ctx, "city-cup"); !errors.Is(err, tournament.ErrNotFound) {
+		t.Fatalf("deleted tournament lookup returned %v", err)
+	}
+	if _, err := service.Create(ctx, "city-cup", "New City Cup", "2027-02-06"); err != nil {
+		t.Fatal(err)
+	}
+	entries, err = store.ListTournamentEntries(ctx, "city-cup")
+	if err != nil || len(entries) != 0 {
+		t.Fatalf("recreated tournament inherited entries: %+v, %v", entries, err)
 	}
 }

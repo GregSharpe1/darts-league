@@ -135,3 +135,5 @@ CREATE TABLE IF NOT EXISTS tournament_entries (
     registered_at TIMESTAMPTZ NOT NULL,
     UNIQUE (tournament_slug, display_name_normalized)
 );
+
+ALTER TABLE tournaments ADD COLUMN IF NOT EXISTS bracket JSONB;

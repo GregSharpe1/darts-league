@@ -3,6 +3,7 @@ import { render } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { vi } from 'vitest'
 import App from '../App'
+import type { TournamentSummary } from '../lib/tournamentsApi'
 
 export function renderApp(route: string) {
   return render(
@@ -33,12 +34,15 @@ export type AppState = {
   seasonName: string
   playerCount?: number
   assignedCount?: number
+  tournaments?: TournamentSummary[]
 }
 
 export function createMockFetch(state: AppState) {
   return vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
     const path = typeof input === 'string' ? input : input.toString()
     const method = init?.method ?? 'GET'
+
+    if (path === '/api/tournaments') return response(state.tournaments ?? [])
 
     if (path === '/api/season') {
       return response({

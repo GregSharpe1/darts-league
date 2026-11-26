@@ -16,6 +16,7 @@ var (
 	ErrNotFound      = errors.New("tournament not found")
 	ErrEntryNotFound = errors.New("tournament entry not found")
 	ErrDuplicateSlug = errors.New("tournament link is already in use")
+	ErrDeleteLocked  = errors.New("only tournaments with open registration can be deleted")
 	ErrInvalidName   = errors.New("tournament name must contain 2 to 60 characters without control characters")
 	ErrInvalidSlug   = errors.New("tournament link must contain up to 60 lowercase letters, digits, or single hyphens between words")
 	ErrInvalidDate   = errors.New("enter a valid tournament start date")
@@ -24,10 +25,11 @@ var (
 var validSlug = regexp.MustCompile(`^[a-z0-9]+(-[a-z0-9]+)*$`)
 
 type Event struct {
-	Slug             string `json:"slug"`
-	Name             string `json:"name"`
-	StartsOn         string `json:"starts_on"`
-	RegistrationOpen bool   `json:"registration_open"`
+	Slug             string  `json:"slug"`
+	Name             string  `json:"name"`
+	StartsOn         string  `json:"starts_on"`
+	RegistrationOpen bool    `json:"registration_open"`
+	Bracket          Bracket `json:"bracket,omitempty"`
 }
 
 type Entry struct {
@@ -37,11 +39,17 @@ type Entry struct {
 	RegisteredAt time.Time `json:"registered_at"`
 }
 
+func (e Event) CanDelete() bool {
+	return e.RegistrationOpen && len(e.Bracket) == 0
+}
+
 type Store interface {
 	CreateTournament(context.Context, Event) (Event, error)
 	GetTournament(context.Context, string) (Event, error)
 	ListTournaments(context.Context) ([]Event, error)
+	DeleteTournament(context.Context, string) error
 	SetTournamentRegistration(context.Context, string, bool) (Event, error)
+	StartTournament(context.Context, string) (Event, error)
 	CreateTournamentEntry(context.Context, string, Entry) (Entry, error)
 	ListTournamentEntries(context.Context, string) ([]Entry, error)
 	DeleteTournamentEntry(context.Context, string, int64) error
