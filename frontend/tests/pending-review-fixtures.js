@@ -23,7 +23,7 @@ const detail = { coverage: 'complete', legs: [1, 2, 3].map(number => {
 
 export const players = ['Morgan Ember', 'Casey Vale', 'Rowan Ash'].map((name, index) => ({ id: index + 11, display_name: name, preferred_name: name, admin_label: name, status: 'assigned', division_id: 1 }))
 export const divisions = [{ id: 1, name: 'Premier Division', slug: 'premier', position: 1 }]
-export const pending = { id: 7, external_match_id: 'demo-match', player_one_name: 'Morgan Ember', player_two_name: 'Casey Vale', player_one_legs: 3, player_two_legs: 0, received_at: '2026-06-15T10:00:00Z', status: 'pending' }
+export const pending = { competition_type: 'league', id: 7, external_match_id: 'demo-match', player_one_name: 'Morgan Ember', player_two_name: 'Casey Vale', player_one_legs: 3, player_two_legs: 0, received_at: '2026-06-15T10:00:00Z', status: 'pending' }
 export const fixture = { id: 90, player_one_id: 12, player_two_id: 11, player_one: 'Casey Vale', player_two: 'Morgan Ember', scheduled_at: '2026-06-15T09:00:00Z', game_variant: '501', legs_to_win: 3, status: 'unplayed', expected_result: null }
 export const expectedResult = { id: 900, updated_at: '2026-06-15T11:00:00.123456Z', player_one_legs: 3, player_two_legs: 2, player_one_average: 54.125, player_two_average: null, winner_id: 12 }
 export const source = {

@@ -1,0 +1,162 @@
+.competition-signup--tournament {
+  --signup-art: url('../../assets/tournament-dartboard.webp');
+}
+
+.competition-signup--league {
+  --signup-art: url('../../assets/league-darts-club.webp');
+}
+
+.competition-signup {
+  width: min(100%, 62rem);
+  margin-inline: auto;
+}
+
+.competition-signup-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  margin-bottom: 1rem;
+  color: var(--color-text);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.competition-signup-back span {
+  color: var(--color-accent-soft);
+}
+
+.competition-signup-back:hover {
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+
+.competition-signup-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1.18fr) minmax(0, 1fr);
+  overflow: hidden;
+  border: var(--border-panel);
+  border-radius: var(--radius-panel);
+  background: #151516;
+  box-shadow: var(--shadow-panel);
+}
+
+.competition-signup-overview {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  min-height: 29rem;
+  padding: clamp(1.5rem, 4vw, 2.7rem);
+  background:
+    linear-gradient(180deg, rgba(12, 10, 10, 0.05) 22%, rgba(12, 10, 10, 0.78) 61%, #100d0d 100%),
+    #160f10 var(--signup-art) center right / cover no-repeat;
+}
+
+.competition-signup-overview h1 {
+  max-width: 13ch;
+  color: #fff;
+  font-size: clamp(2.6rem, 5.2vw, 4.6rem);
+  line-height: 0.93;
+  text-transform: uppercase;
+  text-wrap: balance;
+  overflow-wrap: anywhere;
+}
+
+.competition-signup-facts {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem 1.2rem;
+  margin-top: 1.4rem;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.22);
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.competition-signup-facts .competition-signup-label {
+  margin-bottom: 0.2rem;
+  color: #cdbab7;
+  font: 600 0.76rem / 1.35 var(--font-body);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.competition-entry {
+  align-self: center;
+  padding: clamp(1.5rem, 4vw, 2.7rem);
+}
+
+.competition-entry-status {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  margin-bottom: 0.7rem;
+  color: var(--color-accent-soft);
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.competition-entry-status::before {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background: var(--color-accent);
+  content: '';
+}
+
+.competition-entry h2 {
+  font-size: clamp(1.9rem, 3.2vw, 2.6rem);
+  line-height: 1.1;
+}
+
+.competition-entry .form-preview {
+  gap: 1.15rem;
+  margin-top: 1.65rem;
+}
+
+.competition-entry .field input {
+  width: 100%;
+  min-height: 3rem;
+  border-color: rgba(255, 255, 255, 0.16);
+}
+
+.competition-entry .field label {
+  color: var(--color-text);
+}
+
+.competition-entry .field [role='alert']:empty {
+  position: absolute;
+}
+
+.competition-entry .form-preview button {
+  margin-top: 0.25rem;
+}
+
+.competition-entry > .button-link {
+  margin-top: 1rem;
+  color: var(--color-text);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+}
+
+.competition-entry > .button-link:hover {
+  border-color: var(--color-accent-soft);
+}
+
+@media (max-width: 760px) {
+  .competition-signup-card {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .competition-signup-overview {
+    min-height: 17rem;
+    background-position: center, center 48%;
+  }
+
+  .competition-entry {
+    border-top: var(--border-panel);
+  }
+}
+
+.competition-entry-description {
+  margin-top: 0.75rem;
+  color: var(--color-muted);
+}

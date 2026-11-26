@@ -113,3 +113,32 @@ func TestPendingResultNotificationSkippedWhenStorageFails(t *testing.T) {
 		t.Fatalf("expected storage error without notification, err=%v messages=%v", err, poster.messages)
 	}
 }
+
+func TestPendingResultNotificationIncludesCompetitionAndReason(t *testing.T) {
+	store := league.NewMemoryStore()
+	poster := &stubPoster{}
+	service := league.NewPendingResultService(store, league.NewResultService(store)).WithNotifier(
+		NewPendingResultNotifier(poster, "CADMIN", "https://darts.example.com"),
+	)
+	const body = `{"schema_version":"autodarts.import.v1","competition_type":"league","source":"autodarts","external_match_id":"score","playedAt":null,"settings":{"base_score":501,"legs_to_win":2,"out":"double"},"completed":true,"players":[{"match_player_id":"a","account_id":null,"display_name":"Alice","legs_won":2,"stats":null},{"match_player_id":"b","account_id":null,"display_name":"Bob","legs_won":1,"stats":null}],"detail":null}`
+	legacy := strings.Replace(body, `"competition_type":"league",`, "", 1)
+	for _, payload := range []string{body, body, legacy} {
+		if _, err := service.IngestPayload(context.Background(), []byte(payload)); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if len(poster.messages) != 2 {
+		t.Fatal(poster.messages)
+	}
+	for index, reason := range []string{"Auto-submit is disabled.", "Competition type is missing."} {
+		post := poster.messages[index]
+		for _, text := range []string{"Alice 2-1 Bob", reason, "/admin/pending-results"} {
+			if !strings.Contains(post.text, text) {
+				t.Errorf("missing %q in %q", text, post.text)
+			}
+		}
+		if strings.Contains(post.text, "League match") != (index == 0) {
+			t.Errorf("incorrect competition in %q", post.text)
+		}
+	}
+}

@@ -97,8 +97,8 @@ season and are not carried into the next. Source names are assumed unique and
 matched case-sensitively after trimming surrounding whitespace, preserving
 internal whitespace and punctuation; no account lookup or nickname fallback occurs.
 
-Only new imports at first successful ingestion can be automatically approved,
-and both names must already map to distinct players in the same current-season
+Only new imports at first successful ingestion can be automatically approved.
+For a league submission, both names must already map to distinct players in the same current-season
 division. The season must be started and writable, with exactly one compatible,
 unscored fixture. Supported source-reported format (`501`, first to `2` or `3`,
 double out), a valid matching score, and a source `played_at` between season
@@ -107,6 +107,12 @@ conflict are required; manual format attestation or missing-date explanations
 cannot qualify. Approval records audit actor `autodarts:auto-submit` and never
 automatically replaces a result. Unmapped, ambiguous, or otherwise ineligible
 imports remain pending for manual admin review. Public release rules still apply.
+
+The same flag enables tournament approval against published brackets where
+both entrants and the unplayed match are uniquely identified. Tournament approval
+works independently of the league season. Both competitions import only
+501 double out, first to 2 or 3 legs. Older receipts without a competition type
+stay pending for manual review.
 
 Previously pending results stay manual after mapping edits, flag changes,
 duplicate deliveries, refetches, or restarts; mappings only improve their prefill.

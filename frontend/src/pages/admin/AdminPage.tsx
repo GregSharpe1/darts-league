@@ -66,19 +66,59 @@ export function AdminPage() {
   const unauthenticated = playersQuery.error instanceof ApiError && playersQuery.error.status === 401
   const needsPlayers = seasonQuery.data?.registration_open === true && seasonQuery.data.player_count === 0
 
+  const season = seasonQuery.data
+
+  const roster = playersQuery.data && playersQuery.data.length > 0 ? (
+    <PlayerRoster
+      players={playersQuery.data}
+      divisions={divisionsQuery.data ?? []}
+      canAssign={Boolean(season?.can_assign_players)}
+      canDelete={Boolean(season?.registration_open)}
+      onDelete={playerId => deletePlayerMutation.mutateAsync(playerId)}
+      onAssign={(playerId, divisionId) => assignPlayerMutation.mutateAsync({ playerId, divisionId })}
+      isDeleting={deletePlayerMutation.isPending}
+      isAssigning={assignPlayerMutation.isPending}
+    />
+  ) : null
+
   return (
-    <>
-      <section className="page-intro">
-        <span className="eyebrow">Restricted area</span>
-        <h1>Admin control</h1>
-        <p>Use one shared password to shape divisions, assign players, start the season, and jump into division-specific scoring pages.</p>
+    <div className="admin-workspace">
+      <section className={isAuthenticated ? 'hero-panel competition-hero competition-hero--league' : 'hero-panel competition-hero competition-hero--league competition-hero--compact'}>
+        <div className="hero-copy">
+          <span className="competition-kicker">Administration</span>
+          <h1>Admin control</h1>
+          {isAuthenticated ? (
+            <>
+              <p><strong>{season?.name ?? 'Active season'}</strong></p>
+              <p>{season?.status === 'completed' ? 'Season completed' : season?.registration_open ? 'Registration open' : season?.status === 'started' ? 'Season started' : null}</p>
+              {needsPlayers ? <p className="fixture-meta" id="season-start-help">No players registered yet. Register at least two players and assign them to the same division before starting the season.</p> : null}
+              <div className="toolbar-actions admin-hero-actions">
+                {season?.can_start_season ? (
+                  <button className="season-start-button" type="button" aria-describedby={needsPlayers ? 'season-start-help' : undefined} onClick={() => seasonStartMutation.mutate()} disabled={seasonStartMutation.isPending || season.assigned_count < 2}>{seasonStartMutation.isPending ? 'Starting season...' : 'Start season'}</button>
+                ) : null}
+                <Link className="button-link secondary-button" to="/divisions">View public league</Link>
+              </div>
+            </>
+          ) : <p>Sign in to manage league fixtures, tournament draws, and incoming results.</p>}
+        </div>
+        {isAuthenticated && season ? (
+          <div className="hero-side">
+            <div className="metric-card">
+              <span className="section-eyebrow">Assigned players</span>
+              <strong>{season.assigned_count}</strong>
+            </div>
+            <div className="metric-card">
+              <span className="section-eyebrow">{season.status === 'started' ? 'Fixtures remaining' : 'Divisions'}</span>
+              <strong>{season.status === 'started' ? season.remaining_fixtures : season.division_count}</strong>
+            </div>
+          </div>
+        ) : null}
       </section>
 
       {!isAuthenticated ? (
-        <section className="admin-grid">
+        <section className="admin-grid admin-sign-in">
           <article className="admin-card">
             <h2>Login</h2>
-            <p>The /admin page uses the backend session cookie and only unlocks admin tools after a successful login.</p>
             <form className="admin-login" onSubmit={handleLogin}>
               <div className="field">
                 <label htmlFor="admin-user">Username</label>
@@ -94,39 +134,14 @@ export function AdminPage() {
             {playersQuery.error && !unauthenticated ? <StateNotice tone="error" message={readError(playersQuery.error)} compact /> : null}
           </article>
 
-          <article className="admin-card">
-            <h2>What unlocks after login</h2>
-            <ul className="check-list">
-              <li><strong>Season config</strong><span className="fixture-meta">Shared format and naming across every division.</span></li>
-              <li><strong>Division setup</strong><span className="fixture-meta">Provision division count, name each board, and wire Slack channels.</span></li>
-              <li><strong>Roster assignment</strong><span className="fixture-meta">Place players into one division or leave them waitlisted.</span></li>
-              <li><strong>Division scoring</strong><span className="fixture-meta">Open a dedicated admin page for each division once fixtures exist.</span></li>
-            </ul>
-          </article>
         </section>
       ) : (
         <>
-          <section className="admin-toolbar">
-            <div className="toolbar-block">
-              <strong>{seasonQuery.data?.name ?? 'Active season'}</strong>
-              <span className="fixture-meta">{seasonQuery.data?.status === 'completed' ? 'Season completed' : seasonQuery.data?.registration_open ? 'Registration open' : 'Season started'}</span>
-              {needsPlayers ? <p id="season-start-help" className="fixture-meta">No players registered yet. Register at least two players and assign them to the same division before starting the season.</p> : null}
-            </div>
-            <div className="toolbar-actions">
-              <Link className="button-link secondary-button" to="/admin/pending-results">Pending results</Link>
-              {seasonQuery.data?.can_start_season ? (
-                <button className="season-start-button" type="button" aria-describedby={needsPlayers ? 'season-start-help' : undefined} onClick={() => seasonStartMutation.mutate()} disabled={seasonStartMutation.isPending || (seasonQuery.data?.assigned_count ?? 0) < 2}>{seasonStartMutation.isPending ? 'Starting season...' : 'Start season'}</button>
-              ) : null}
-            </div>
-          </section>
-
           {seasonStartMutation.error ? <StateNotice tone="error" message={readError(seasonStartMutation.error)} compact /> : null}
           {seasonQuery.data?.status === 'started' && !seasonQuery.data?.admin_locked ? <StateNotice message="Registration is locked. League settings and Slack channels stay editable until the first week is released." compact /> : null}
           {seasonQuery.data?.status === 'started' && seasonQuery.data?.admin_locked ? <StateNotice message="The first week is live. Central season setup is now locked. Division scoring and Autodarts mappings remain editable." compact /> : null}
-          {seasonQuery.data ? <SeasonLifecycle key={seasonQuery.data.id} season={seasonQuery.data} /> : null}
-          {seasonQuery.data && !seasonQuery.isError && <AutodartsMappings key={`mappings-${seasonQuery.data.id}`} season={seasonQuery.data} players={playersQuery.data ?? []} />}
 
-          <section className="admin-grid admin-grid-wide">
+          <section className="admin-grid admin-settings-grid">
             <article className="admin-card">
               <h2>League settings</h2>
               <p>Configure the league before kickoff. Match rules apply to every division and stay editable until the first week is released.</p>
@@ -223,28 +238,31 @@ export function AdminPage() {
               {updateDivisionMutation.error ? <StateNotice tone="error" message={readError(updateDivisionMutation.error)} compact /> : null}
             </article>
 
-            <article className="admin-card">
-              <h2>Registered players</h2>
-              <p>Assign each player to one division or leave them waitlisted and excluded from the season schedule.</p>
-              {playersQuery.isLoading ? <StateNotice message="Loading admin roster..." compact /> : null}
-              {playersQuery.data && playersQuery.data.length > 0 ? (
-                <PlayerRoster
-                  players={playersQuery.data}
-                  divisions={divisionsQuery.data ?? []}
-                  canAssign={Boolean(seasonQuery.data?.can_assign_players)}
-                  canDelete={Boolean(seasonQuery.data?.registration_open)}
-                  onDelete={(playerId) => deletePlayerMutation.mutateAsync(playerId)}
-                  onAssign={(playerId, divisionId) => assignPlayerMutation.mutateAsync({ playerId, divisionId })}
-                  isDeleting={deletePlayerMutation.isPending}
-                  isAssigning={assignPlayerMutation.isPending}
-                />
-              ) : null}
+            <article className="admin-card admin-roster-card">
+              {season?.admin_locked ? (
+                <details className="locked-roster" key={season.id}>
+                  <summary>
+                    <h2>Registered players</h2>
+                    <span className="fixture-meta">{playersQuery.data?.length ?? 0} players &middot; Roster locked</span>
+                    <span className="week-switcher-icon" aria-hidden="true">&#9662;</span>
+                  </summary>
+                  <div>{roster}</div>
+                </details>
+              ) : (
+                <>
+                  <h2>Registered players</h2>
+                  <p>Assign each player to one division or leave them waitlisted and excluded from the season schedule.</p>
+                  {roster}
+                </>
+              )}
               {deletePlayerMutation.error ? <StateNotice tone="error" message={readError(deletePlayerMutation.error)} compact /> : null}
               {assignPlayerMutation.error ? <StateNotice tone="error" message={readError(assignPlayerMutation.error)} compact /> : null}
             </article>
           </section>
+          {seasonQuery.data ? <SeasonLifecycle key={seasonQuery.data.id} season={seasonQuery.data} /> : null}
+          {seasonQuery.data && !seasonQuery.isError && <AutodartsMappings key={`mappings-${seasonQuery.data.id}`} season={seasonQuery.data} players={playersQuery.data ?? []} />}
         </>
       )}
-    </>
+    </div>
   )
 }

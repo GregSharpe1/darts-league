@@ -6,6 +6,7 @@ import (
 	"log"
 	"strings"
 
+	"github.com/greg/darts-league/backend/internal/autodarts"
 	"github.com/greg/darts-league/backend/internal/league"
 )
 
@@ -19,6 +20,15 @@ func NewPendingResultNotifier(poster MessagePoster, channelID, publicBaseURL str
 		text := fmt.Sprintf("New score awaiting confirmation\n%s %d-%d %s",
 			escapePlayerLabel(pending.PlayerOneName), pending.PlayerOneLegs,
 			pending.PlayerTwoLegs, escapePlayerLabel(pending.PlayerTwoName))
+		switch pending.CompetitionType {
+		case autodarts.LeagueMatch:
+			text += "\nLeague match"
+		case autodarts.TournamentMatch:
+			text += "\nTournament match"
+		}
+		if reason := pending.ReviewExplanation(); reason != "" {
+			text += "\n" + escapePlayerLabel(reason)
+		}
 		if publicBaseURL != "" {
 			text += fmt.Sprintf("\n<%s/admin/pending-results|Review pending results>", publicBaseURL)
 		}

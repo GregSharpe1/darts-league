@@ -66,11 +66,12 @@ it('shows admin home on pending results and keeps pending results navigation on 
   expect(await screen.findByRole('heading', { name: 'Pending results' })).toBeInTheDocument()
 })
 
-it('keeps public completed results visible without exposing locked scores', async () => {
+it('lets visitors expand public completed results', async () => {
   vi.stubGlobal('fetch', createMockFetch({ authenticated: false, seasonStarted: true, seasonCompleted: true, seasonName: 'Finals' }))
   renderApp('/divisions/premier')
   expect(await screen.findByRole('heading', { name: 'Final results' })).toBeInTheDocument()
-  expect(await screen.findByText('The Freeze (Luke Humphries) 3-1 Bully Boy (Michael Smith)')).toBeInTheDocument()
+  fireEvent.click(await screen.findByRole('button', { name: 'Week 1' }))
+  expect(screen.getByText('The Freeze (Luke Humphries) 3-1 Bully Boy (Michael Smith)')).toBeInTheDocument()
   expect(screen.getByText('Averages: 96.4 / 89.3')).toBeInTheDocument()
   expect(screen.queryByRole('heading', { name: 'Games left to play' })).not.toBeInTheDocument()
 })

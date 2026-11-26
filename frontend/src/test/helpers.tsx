@@ -3,6 +3,7 @@ import { render } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { vi } from 'vitest'
 import App from '../App'
+import type { TournamentSummary } from '../lib/tournamentsApi'
 
 export function renderApp(route: string) {
   return render(
@@ -33,12 +34,15 @@ export type AppState = {
   seasonName: string
   playerCount?: number
   assignedCount?: number
+  tournaments?: TournamentSummary[]
 }
 
 export function createMockFetch(state: AppState) {
   return vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
     const path = typeof input === 'string' ? input : input.toString()
     const method = init?.method ?? 'GET'
+
+    if (path === '/api/tournaments') return response(state.tournaments ?? [])
 
     if (path === '/api/season') {
       return response({
@@ -60,6 +64,8 @@ export function createMockFetch(state: AppState) {
         can_assign_players: !state.firstWeekReleased && !state.seasonCompleted,
         player_count: state.playerCount ?? (state.seasonId === 2 ? 0 : 4),
         week_count: state.seasonStarted ? 3 : 0,
+        final_week_starts_at: state.seasonStarted ? '2026-04-06T08:00:00Z' : undefined,
+        fixtures_due_at: state.seasonStarted ? '2026-04-20T08:00:00Z' : undefined,
         game_variant: '501',
         legs_to_win: 3,
         games_per_week: 1,
@@ -97,7 +103,11 @@ export function createMockFetch(state: AppState) {
             week_number: 2,
             status: 'unlocked',
             reveal_at: 'Mon, 30 Mar 2026 09:00:00 GMT',
-            fixtures: [{ id: 3, player_one: 'Voltage (Rob Cross)', player_two: 'Snakebite (Peter Wright)', scheduled_at: 'Mon, 30 Mar 2026 19:30:00 GMT', game_variant: '501', legs_to_win: 3 }],
+            fixtures: [
+              { id: 3, player_one: 'Voltage (Rob Cross)', player_two: 'Snakebite (Peter Wright)', scheduled_at: 'Mon, 30 Mar 2026 19:30:00 GMT', game_variant: '501', legs_to_win: 3 },
+              { id: 5, player_one: 'The Freeze (Luke Humphries)', player_two: 'The Ferret (Jonny Clayton)', scheduled_at: 'Mon, 30 Mar 2026 20:00:00 GMT', game_variant: '501', legs_to_win: 3, result: { player_one_legs: 3, player_two_legs: 2, winner_id: 1 } },
+              { id: 6, player_one: 'The Asp (Nathan Aspinall)', player_two: 'Bully Boy (Michael Smith)', scheduled_at: 'Mon, 30 Mar 2026 20:30:00 GMT', game_variant: '501', legs_to_win: 3, result: { player_one_legs: 3, player_two_legs: 2, winner_id: 4 } },
+            ],
           },
           {
             week_number: 3,

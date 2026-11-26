@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/greg/darts-league/backend/internal/league"
 )
@@ -257,6 +258,8 @@ type seasonSummaryResponse struct {
 	CanAssignPlayers       bool   `json:"can_assign_players"`
 	PlayerCount            int    `json:"player_count"`
 	WeekCount              int    `json:"week_count"`
+	FinalWeekStartsAt      string `json:"final_week_starts_at,omitempty"`
+	FixturesDueAt          string `json:"fixtures_due_at,omitempty"`
 	GameVariant            string `json:"game_variant"`
 	LegsToWin              int    `json:"legs_to_win"`
 	GamesPerWeek           int    `json:"games_per_week"`
@@ -321,6 +324,12 @@ func (h SeasonHandler) toSeasonSummaryResponse(summary league.SeasonSummary) sea
 	}
 	if summary.StartedAt != nil {
 		response.StartedAt = summary.StartedAt.UTC().Format(http.TimeFormat)
+	}
+	if summary.FinalWeekStartsAt != nil {
+		response.FinalWeekStartsAt = summary.FinalWeekStartsAt.UTC().Format(time.RFC3339)
+	}
+	if summary.FixturesDueAt != nil {
+		response.FixturesDueAt = summary.FixturesDueAt.UTC().Format(time.RFC3339)
 	}
 	return response
 }

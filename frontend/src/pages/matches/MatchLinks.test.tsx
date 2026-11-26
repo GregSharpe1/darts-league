@@ -1,5 +1,5 @@
 import { afterEach, expect, it } from 'vitest'
-import { cleanup, render, screen } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { CompletedResults } from '../home/CompletedResults'
 import { AdminFixtureCard } from '../admin/AdminFixtureCard'
@@ -13,6 +13,7 @@ it('links only recorded revealed public results, including completed seasons', (
     { week_number: 1, status: 'unlocked', reveal_at: fixture.scheduled_at, fixtures: [fixture, { ...fixture, id: 8, result: undefined }] },
     { week_number: 2, status: 'locked', reveal_at: fixture.scheduled_at, fixtures: [{ ...fixture, id: 9 }] },
   ]} /></MemoryRouter>)
+  fireEvent.click(screen.getByRole('button', { name: 'Week 1' }))
   expect(screen.getAllByRole('link')).toHaveLength(1)
   expect(screen.getByRole('link')).toHaveAttribute('href', '/matches/7')
 })

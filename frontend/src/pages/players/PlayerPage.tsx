@@ -13,10 +13,10 @@ export function PlayerPage({ admin = false }: { readonly admin?: boolean }) {
     staleTime: 0, gcTime: 0, retry: false, refetchOnMount: 'always', refetchOnWindowFocus: 'always',
   })
   const status = query.error instanceof ApiError ? query.error.status : null
-  return <section className="player-page" aria-label="Player season statistics">
+  return <section className={admin ? 'player-page' : 'player-page public-player-page'} aria-label="Player season statistics">
     <header className="player-page-heading">
       <span className="eyebrow">{admin ? 'Admin player view' : 'Player season statistics'} / Season {seasonId}</span>
-      <Link to={admin ? '/admin' : '/'}>{admin ? 'Admin home' : 'All divisions'}</Link>
+      <Link to={admin ? '/admin' : '/divisions'}>{admin ? 'Admin home' : 'All divisions'}</Link>
     </header>
     {query.isPending || query.isFetching ? <div className="content-panel" role="status">Loading player statistics...</div> :
       query.isError ? <div className="content-panel" role="status">

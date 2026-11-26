@@ -10,8 +10,8 @@ commands scheduled by the [Helm chart](../deploy/helm/darts-league/README.md).
 | Message | Trigger | Destination | Content |
 | --- | --- | --- | --- |
 | New player signup | Successful player registration | Admin channel | Player label, registration time, total registered players |
-| New pending score | New result saved by scheduled or manual relay polling that needs admin review (auto-submit disabled, or the import is ineligible: unmapped players, ambiguous fixture, etc.) | Admin channel | Reported player names, leg scores, pending-results page link |
-| Autodarts auto-submit | `AUTODARTS_AUTO_SUBMIT=true` and an eligible import was approved, after the transaction commits | Admin channel | Players, leg score, division, `/admin/matches/{fixtureId}` link |
+| New pending score | New result saved by scheduled or manual relay polling that needs admin review (auto-submit disabled, or the import is ineligible: unmapped players, ambiguous fixture, etc.) | Admin channel | Reported player names, leg scores, competition type when supplied, review reason, pending-results page link |
+| Autodarts league auto-submit | `AUTODARTS_AUTO_SUBMIT=true` and an eligible league import was approved, after the transaction commits | Admin channel | Players, leg score, division, `/admin/matches/{fixtureId}` link |
 | Autodarts import failure | A relay message fails ingestion or automatic approval during scheduled or manual polling | Admin channel | Safe failure reason, Autodarts match ID and relay message ID when available, pending-results link |
 | Weekly fixtures | Monday 09:00 by default | Each division's channel, or public fallback | Current public week's pairings and division standings link |
 | Weekly summary | Friday 09:00 by default | Each division's channel, or public fallback | Current week's results, leader, pending results, cumulative standings and link |
@@ -68,14 +68,16 @@ setup. The weekly commands use the stored season timezone for week selection and
 message dates; changing the scheduler timezone does not change the season.
 
 Pending-score messages link to `/admin/pending-results` (admin login required).
-Set `PUBLIC_BASE_URL` to include the clickable review link. Repeated external match
-IDs do not send another notification. Delivery is best-effort, like signup
+Set `PUBLIC_BASE_URL` to include the clickable review link. The message explains
+why manual review is required, for example multiple eligible tournament matches,
+no eligible match, a missing competition type or disabled auto-submit. Replays
+of the same payload do not send another notification. Delivery is best-effort, like signup
 notifications: Slack failures are logged without losing the saved pending score,
 and failed notifications are not retried.
 
 ### Autodarts auto-submit and failure alerts
 
-- **Success** is posted only after an automatic approval (`autodarts:auto-submit`
+- **League success** is posted only after an automatic approval (`autodarts:auto-submit`
   audit entry) has committed. Receiving or importing a match never produces a
   success message, and replayed imports do not post again. Imports that stay
   pending get the pending-score message instead; they are never reported as

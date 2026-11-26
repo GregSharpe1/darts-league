@@ -19,7 +19,16 @@ export type SourcePlayer = {
   readonly stats: MatchStats | null
 }
 
+export type TournamentCandidate = {
+  readonly tournament_slug: string
+  readonly tournament_name: string
+  readonly match_number: number
+  readonly players: readonly string[]
+  readonly mappings: readonly Readonly<Record<string, number>>[]
+}
+
 export type PendingDetail = {
+  readonly tournament_candidates?: readonly TournamentCandidate[]
   readonly pending_result: PendingResult
   readonly source: string
   readonly digest: string
@@ -44,9 +53,13 @@ export type PendingDetail = {
   }
 }
 
-export type ConfirmPendingRequest = {
+export type ConfirmPendingRequest = ({
   readonly season_id: number
   readonly fixture_id: number
+} | {
+  readonly tournament_slug: string
+  readonly match_number: number
+}) & {
   readonly mapping: Readonly<Record<string, number>>
   readonly expected_result: ExpectedResult | null
   readonly replace: boolean

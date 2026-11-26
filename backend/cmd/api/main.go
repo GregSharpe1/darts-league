@@ -14,6 +14,7 @@ import (
 	"github.com/greg/darts-league/backend/internal/resultsrelay"
 	"github.com/greg/darts-league/backend/internal/slack"
 	pgstore "github.com/greg/darts-league/backend/internal/store/postgres"
+	"github.com/greg/darts-league/backend/internal/tournament"
 )
 
 func main() {
@@ -25,7 +26,7 @@ func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	now := cfg.NowFunc()
-	store := buildStore(ctx, cfg)
+	store, tournamentStore := buildStores(ctx, cfg)
 	defer closeStore(store)
 
 	if len(os.Args) > 1 && os.Args[1] == "notify" {
@@ -47,6 +48,7 @@ func main() {
 	versionHandler := httpapi.NewVersionHandler(cfg.Version)
 	authHandler.RegisterRoutes(mux)
 	registrationHandler.RegisterRoutes(mux, authHandler.RequireAdmin)
+	httpapi.TournamentHandler{Service: tournament.Service{Store: tournamentStore, Now: now}}.RegisterRoutes(mux, authHandler.RequireAdmin)
 	seasonHandler.RegisterRoutes(mux, authHandler.RequireAdmin)
 	resultHandler.RegisterRoutes(mux, authHandler.RequireAdmin)
 	pendingResultHandler.RegisterRoutes(mux, authHandler.RequireAdmin)
@@ -164,18 +166,18 @@ func startResultPoller(cfg config.Config, store league.Store, resultService leag
 	return cancel, poller.PollNow
 }
 
-func buildStore(ctx context.Context, cfg config.Config) league.Store {
+func buildStores(ctx context.Context, cfg config.Config) (league.Store, tournament.Store) {
 	if cfg.DatabaseURL != "" {
 		store, err := pgstore.Open(ctx, cfg.DatabaseURL)
 		if err == nil {
 			log.Printf("using postgres store")
-			return store
+			return store, store
 		}
 		log.Printf("postgres unavailable, falling back to in-memory store: %v", err)
 	}
 
 	log.Printf("using in-memory store")
-	return league.NewMemoryStore()
+	return league.NewMemoryStore(), tournament.NewMemoryStore()
 }
 
 func closeStore(store league.Store) {

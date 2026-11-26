@@ -19,6 +19,50 @@ export async function expectMatchingControlHeights(page: Page) {
   }
 }
 
+export async function expectSingleRowNavigation(page: Page, count: number) {
+  const nav = page.getByRole('navigation', { name: 'Primary' })
+  await expect(nav.locator('a, button')).toHaveCount(count)
+  const bounds = await nav.evaluate(bar => {
+    const items = Array.from(bar.querySelectorAll<HTMLElement>('a, button'))
+    const barBounds = bar.getBoundingClientRect()
+    return {
+      overflow: bar.scrollWidth - bar.clientWidth,
+      left: barBounds.left,
+      right: barBounds.right,
+      items: items.map(item => {
+        const { left, right, width } = item.getBoundingClientRect()
+        const label = document.createRange()
+        label.selectNodeContents(item)
+        const text = label.getBoundingClientRect()
+        return { left, right, width, top: item.offsetTop, textLeft: text.left, textRight: text.right }
+      }),
+    }
+  })
+  expect(bounds.overflow).toBeLessThan(1)
+  const widths = bounds.items.map(item => item.width)
+  expect(Math.max(...widths) - Math.min(...widths)).toBeLessThan(1)
+  for (const item of bounds.items) {
+    expect(item.top).toBe(bounds.items[0].top)
+    expect(item.left).toBeGreaterThanOrEqual(bounds.left - 1)
+    expect(item.right).toBeLessThanOrEqual(bounds.right + 1)
+    expect(item.textLeft).toBeGreaterThanOrEqual(item.left - 1)
+    expect(item.textRight).toBeLessThanOrEqual(item.right + 1)
+  }
+}
+
+export async function expectMatchingAdminLayout(page: Page) {
+  for (const width of [375, 768, 1280]) {
+    await page.setViewportSize({ width, height: 900 })
+    await expectSingleRowNavigation(page, 3)
+    if (width === 1280) {
+      const [player, username] = await page.locator('#mapping-player, #mapping-username')
+        .evaluateAll(inputs => inputs.map(input => ({ top: input.getBoundingClientRect().top, height: input.getBoundingClientRect().height })))
+      expect(Math.abs(player.top - username.top), 'Autodarts input alignment').toBeLessThan(1)
+      expect(Math.abs(player.height - username.height), 'Autodarts input heights').toBeLessThan(1)
+    }
+  }
+}
+
 export async function expectAdminActionLayout(page: Page) {
   const saveRightGap = await page.getByRole('button', { name: 'Save config' }).evaluate((button) => {
     const form = button.closest('form')

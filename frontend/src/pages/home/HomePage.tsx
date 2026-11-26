@@ -1,80 +1,68 @@
-import { NavLink } from 'react-router-dom'
-import { useDivisions, useSeasonSummary } from '../../lib/api'
-import { StateNotice } from '../../components/StateNotice'
-import { readError } from '../../lib/utils'
+import { Link } from 'react-router-dom'
+import { useSeasonSummary } from '../../lib/api'
+import { useTournaments } from '../../lib/tournamentsApi'
+import { TournamentList } from '../tournaments/TournamentList'
 
 export function HomePage() {
-  const seasonQuery = useSeasonSummary()
-  const divisionsQuery = useDivisions()
-  const season = seasonQuery.data
-  const leagueFinished = season?.status === 'completed' || (season?.status === 'started' && season.total_fixtures > 0 && season.remaining_fixtures === 0)
+  const league = useSeasonSummary()
+  const tournaments = useTournaments()
+  const season = league.data
+  const openEvents = tournaments.data?.filter((event) => event.registration_open && !event.started) ?? []
+  const latestBracket = tournaments.data?.find((event) => event.started)
+  const featuredEvents = openEvents
+    .sort((a, b) => a.starts_on.localeCompare(b.starts_on))
+    .slice(0, 2)
+  if (latestBracket) featuredEvents.push(latestBracket)
 
   return (
     <>
-      <section className="hero-panel">
-        <div className="hero-copy">
-          <span className="eyebrow">One league, many divisions</span>
-          <h1>Pick a division and follow the board.</h1>
-          <p className="fixture-meta">{seasonQuery.data?.name ?? 'Active season'}</p>
-          <p>
-            Registration stays global, admins place players manually, and each division runs its own fixtures,
-            standings, and weekly reveal schedule.
-          </p>
-          <div className="hero-actions">
-            {seasonQuery.data?.registration_open ? <NavLink to="/register">Register</NavLink> : null}
-          </div>
-        </div>
-
-        <div className="hero-side">
-          <article className="metric-card">
-            <span className="section-eyebrow">League pulse</span>
-            <strong>{seasonQuery.data?.player_count ?? '-'}</strong>
-            <p>{seasonQuery.data?.status === 'completed' ? 'League completed. Final results remain available.' : seasonQuery.data?.registration_open ? 'registered players waiting for assignment.' : `season live across ${seasonQuery.data?.division_count ?? 0} divisions.`}</p>
-          </article>
-          <article className="metric-card">
-            <span className="section-eyebrow">Assignments</span>
-            <strong>{seasonQuery.data?.assigned_count ?? '-'}</strong>
-            <p>{seasonQuery.data?.waitlist_count ?? 0} player{seasonQuery.data?.waitlist_count === 1 ? '' : 's'} still waitlisted.</p>
-          </article>
-        </div>
+      <section className="page-intro">
+        <h1>Darts league &amp; tournaments</h1>
+        <p>Find your division&apos;s next match or join a standalone knockout event.</p>
       </section>
 
-      <section className="content-panel">
-        <div className="card-header">
-          <div className="card-copy">
-            <span className="section-eyebrow">Division list</span>
-            <h2>{leagueFinished ? "View the previous league's scores here" : 'Public division boards'}</h2>
+      <div className="grid-panels">
+        <section className="content-panel competition-card competition-card--league" aria-labelledby="home-league">
+          <header className="competition-card-cover"><h2 id="home-league">League matches</h2></header>
+          <p>Play everyone in your division once and follow the league table as results come in. New fixture details unlock on Mondays at 9am UK time.</p>
+          <div className="competition-details">
+            {season ? (
+              <>
+                <h3>{season.name}</h3>
+                <p>
+                  {season.registration_open
+                    ? 'League registration is open. An admin will assign you to a division.'
+                    : season.status === 'completed' || season.remaining_fixtures === 0
+                      ? 'All matches played. Final results and standings are available.'
+                      : `${season.remaining_fixtures} ${season.remaining_fixtures === 1 ? 'match' : 'matches'} left to play across all divisions.`}
+                </p>
+              </>
+            ) : <p>{league.isError ? 'League status is currently unavailable.' : 'Loading league status...'}</p>}
           </div>
-          {!leagueFinished ? <span className="status-pill live">Monday 09:00 unlocks</span> : null}
-        </div>
-        {divisionsQuery.isLoading ? <StateNotice message="Loading divisions..." /> : null}
-        {divisionsQuery.error ? <StateNotice tone="error" message={readError(divisionsQuery.error)} /> : null}
-        {!divisionsQuery.isLoading && !divisionsQuery.error && divisionsQuery.data?.length === 0 ? (
-          <StateNotice message="No divisions have been created yet. Admins can provision them before the season starts." />
-        ) : null}
-        {divisionsQuery.data && divisionsQuery.data.length > 0 ? (
-          <div className="division-board-grid" aria-label="Divisions">
-            {divisionsQuery.data.map((division) => (
-              <article className="week-card division-board-card" key={division.id}>
-                <div className="division-board-copy">
-                  <header>
-                    <div>
-                      <h2>{division.name}</h2>
-                    </div>
-                  </header>
-                  <p>Fixtures, standings, and results stay isolated on this board.</p>
-                </div>
-                <div className="division-board-actions">
-                  <div className="hero-actions">
-                    <NavLink to={`/divisions/${division.slug}`}>View fixtures</NavLink>
-                    <NavLink to={`/divisions/${division.slug}/standings`}>View standings</NavLink>
-                  </div>
-                </div>
-              </article>
-            ))}
+          <div className="hero-actions competition-actions">
+            <Link to="/divisions">Browse divisions</Link>
+            {season?.registration_open ? <Link to="/register">Register for the league</Link> : null}
           </div>
-        ) : null}
-      </section>
+        </section>
+
+        <section className="content-panel competition-card competition-card--tournament" aria-labelledby="home-tournaments">
+          <header className="competition-card-cover"><h2 id="home-tournaments">Tournaments</h2></header>
+          <p>Sign up for each event separately. One loss ends your run. Follow the bracket from the first draw to the final.</p>
+          <div className="competition-details">
+            {tournaments.isPending ? <p>Loading tournaments...</p> : null}
+            {tournaments.isError ? <p>Tournament listings are currently unavailable.</p> : null}
+            {tournaments.isSuccess ? (
+              <>
+                {openEvents.length === 0 ? <p>No tournaments are accepting entries right now.</p> : null}
+                {featuredEvents.length > 0 ? <TournamentList events={featuredEvents} /> : null}
+              </>
+            ) : null}
+          </div>
+          <div className="hero-actions competition-actions">
+            <Link to="/tournaments">Browse tournaments</Link>
+          </div>
+        </section>
+      </div>
     </>
   )
 }

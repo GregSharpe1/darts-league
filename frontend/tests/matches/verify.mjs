@@ -107,6 +107,7 @@ try {
     await capture('public-opponent-leg3')
     for (state of ['active-list', 'completed-list', 'admin-list']) {
       await page.goto(`${base}/${state === 'admin-list' ? 'admin/' : ''}divisions/test`)
+      if (state !== 'admin-list') await page.getByRole('button', { name: 'Week 1', exact: true }).click()
       const link = page.getByRole('link', { name: 'View match: Morgan Ember vs Casey Vale', exact: true })
       await link.waitFor()
       assert.equal(await page.locator('a[href$="/matches/8"], a[href$="/matches/9"]').count(), 0)

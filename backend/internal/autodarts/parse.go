@@ -48,7 +48,10 @@ func Parse(body []byte) (Import, error) {
 		if p.Source != "autodarts" || (p.Settings != Settings{501, 2, "double"} && p.Settings != Settings{501, 3, "double"}) || !p.Completed || len(p.Players) != 2 || max(p.Players[0].LegsWon, p.Players[1].LegsWon) != p.Settings.LegsToWin {
 			return result, ErrInvalidPayload
 		}
-		result = Import{Source: p.Source, ExternalMatchID: p.ExternalMatchID, PlayedAt: p.PlayedAt, Players: p.Players, Detail: p.Detail, SettingsEvidence: "source_reported"}
+		if _, present := envelope["competition_type"]; present && p.CompetitionType != LeagueMatch && p.CompetitionType != TournamentMatch {
+			return result, ErrInvalidPayload
+		}
+		result = Import{CompetitionType: p.CompetitionType, Source: p.Source, ExternalMatchID: p.ExternalMatchID, PlayedAt: p.PlayedAt, Players: p.Players, Detail: p.Detail, SettingsEvidence: "source_reported"}
 	} else {
 		filtered, err = project(body, reflect.TypeFor[legacyPayload]())
 		if err != nil {

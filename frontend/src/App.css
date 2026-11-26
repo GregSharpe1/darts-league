@@ -22,6 +22,8 @@
 
 .brand-mark {
   display: flex;
+  min-width: 0;
+  max-width: min(100%, 25rem);
   align-items: center;
   gap: 0.9rem;
   color: inherit;
@@ -41,12 +43,17 @@
 }
 
 .brand-badge {
+  flex: 0 0 auto;
   width: 2.75rem;
   height: 2.75rem;
-  border-radius: 0.9rem;
-  background: linear-gradient(180deg, #ff5b5b 0%, #971b1b 100%);
+  border-radius: 0.65rem;
   box-shadow: 0 1rem 2rem rgba(151, 27, 27, 0.4);
   transition: transform 160ms ease, box-shadow 160ms ease;
+}
+
+.brand-copy {
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .brand-copy strong,
@@ -70,15 +77,24 @@
 
 .primary-nav {
   display: flex;
-  flex-wrap: wrap;
+  min-width: 0;
   justify-content: flex-end;
   gap: 0.75rem;
+  padding-block: 0.15rem;
 }
 
 .primary-nav a,
 .primary-nav button {
+  display: inline-flex;
+  flex: 0 1 9rem;
+  min-width: 0;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--control-height);
   padding: 0.7rem 1rem;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
+  text-align: center;
+  white-space: nowrap;
   color: var(--color-text);
   text-decoration: none;
   border: 1px solid rgba(255, 255, 255, 0.08);
@@ -86,6 +102,11 @@
   transition: transform 160ms ease, border-color 160ms ease, background 160ms ease;
   font: inherit;
   cursor: pointer;
+}
+
+.primary-nav a:focus-visible,
+.primary-nav button:focus-visible {
+  outline-offset: -2px;
 }
 
 .primary-nav a:hover,
@@ -247,6 +268,54 @@
   margin-top: 1.5rem;
 }
 
+.competition-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: clamp(1.25rem, 4vw, 2.5rem);
+  margin-top: 0;
+}
+
+.competition-card h2 {
+  font-size: clamp(1.75rem, 3vw, 2.75rem);
+  line-height: 1.1;
+}
+
+.competition-card > p,
+.competition-details p {
+  color: var(--color-muted);
+}
+
+.competition-details {
+  flex: 1;
+  width: 100%;
+  margin-top: 0.5rem;
+  padding-top: 1rem;
+  border-top: var(--border-panel);
+}
+
+.competition-details h3 {
+  margin-bottom: 0.25rem;
+  overflow-wrap: anywhere;
+}
+
+.competition-details .check-list {
+  margin-top: 0;
+}
+
+.competition-details .tournament-link {
+  color: #fff;
+}
+
+.competition-details p + .check-list {
+  margin-top: 0.75rem;
+}
+
+.competition-actions {
+  margin-top: 1rem;
+}
+
 .week-switcher {
   display: grid;
   gap: 0.9rem;
@@ -295,15 +364,6 @@
   padding: 0.8rem 0.9rem;
 }
 
-.fixture-search-results {
-  margin-top: 1rem;
-}
-
-.compact-header h3 {
-  margin: 0.35rem 0 0;
-  font-size: 1.2rem;
-}
-
 .week-switcher-item {
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 1.2rem;
@@ -327,10 +387,6 @@
   background: transparent;
   color: inherit;
   text-align: left;
-}
-
-.static-trigger {
-  cursor: default;
 }
 
 .week-switcher-copy {
@@ -838,6 +894,34 @@
   border: 1px solid rgba(255, 255, 255, 0.12);
 }
 
+.tournament-link {
+  color: var(--color-accent-soft);
+}
+
+.tournament-list-label {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.tournament-signup-action {
+  align-self: center;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.tournament-registration-actions {
+  margin-top: 1rem;
+}
+
+.tournament-registration-actions button {
+  padding-inline: 1.1rem;
+}
+
+.tournament-remove-entry {
+  align-self: start;
+  flex-shrink: 0;
+}
+
 .roster-assignment-field {
   min-width: 13rem;
 }
@@ -1137,6 +1221,45 @@
   text-transform: uppercase;
 }
 
+@media (max-width: 1180px) {
+  .topbar {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .primary-nav {
+    width: 100%;
+    justify-content: flex-start;
+  }
+}
+
+.primary-nav .nav-compact-label {
+  display: none;
+}
+
+@media (max-width: 480px) {
+  .topbar {
+    padding-inline: 1rem;
+  }
+
+  .topbar .primary-nav {
+    gap: 0.25rem;
+  }
+
+  .topbar .primary-nav :is(a, button) {
+    padding-inline: 0.2rem;
+    font-size: 0.78rem;
+  }
+
+  .primary-nav .nav-full-label {
+    display: none;
+  }
+
+  .primary-nav .nav-compact-label {
+    display: inline;
+  }
+}
+
 @media (max-width: 960px) {
   .hero-panel,
   .grid-panels,
@@ -1147,16 +1270,6 @@
   .admin-login,
   .admin-fixtures {
     grid-template-columns: 1fr;
-  }
-
-  .topbar {
-    align-items: flex-start;
-    flex-direction: column;
-  }
-
-  .primary-nav {
-    width: 100%;
-    justify-content: flex-start;
   }
 
   .division-board-actions,
@@ -1182,6 +1295,13 @@
 }
 
 @media (max-width: 640px) {
+  .primary-nav a,
+  .primary-nav button {
+    flex-basis: 6.25rem;
+    padding: 0.45rem 0.5rem;
+    font-size: 0.85rem;
+  }
+
   .page-frame {
     width: min(100% - 1rem, 1180px);
   }

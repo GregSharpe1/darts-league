@@ -491,6 +491,7 @@ func (s *MemoryStore) UpdatePendingResult(_ context.Context, pending PendingResu
 	}
 	original := s.pendingByID[pending.ID]
 	original.Status, original.ConfirmedAt, original.ConfirmedBy = pending.Status, pending.ConfirmedAt, pending.ConfirmedBy
+	original.PendingReason = pending.PendingReason
 	pending = original
 	s.pendingByID[pending.ID] = clonePending(pending)
 	return clonePending(pending), nil

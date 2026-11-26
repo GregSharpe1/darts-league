@@ -118,3 +118,26 @@ CREATE TABLE IF NOT EXISTS pending_results (
 );
 
 CREATE INDEX IF NOT EXISTS pending_results_status_idx ON pending_results (status, received_at);
+
+CREATE TABLE IF NOT EXISTS tournaments (
+    slug TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    starts_on DATE NOT NULL,
+    registration_open BOOLEAN NOT NULL DEFAULT FALSE
+);
+
+CREATE TABLE IF NOT EXISTS tournament_entries (
+    id BIGSERIAL PRIMARY KEY,
+    tournament_slug TEXT NOT NULL REFERENCES tournaments (slug),
+    display_name TEXT NOT NULL,
+    display_name_normalized TEXT NOT NULL,
+    nickname TEXT NOT NULL,
+    registered_at TIMESTAMPTZ NOT NULL,
+    UNIQUE (tournament_slug, display_name_normalized)
+);
+
+ALTER TABLE tournaments ADD COLUMN IF NOT EXISTS bracket JSONB;
+ALTER TABLE tournaments
+    ADD COLUMN IF NOT EXISTS game_variant TEXT NOT NULL DEFAULT '501' CHECK (game_variant IN ('301', '501')),
+    ADD COLUMN IF NOT EXISTS legs_to_win INTEGER NOT NULL DEFAULT 3 CHECK (legs_to_win >= 1),
+    ADD COLUMN IF NOT EXISTS ends_on DATE CHECK (ends_on >= starts_on);

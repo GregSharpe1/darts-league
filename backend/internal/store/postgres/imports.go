@@ -49,10 +49,10 @@ func (s *Store) InsertImport(ctx context.Context, imported autodarts.Import, rec
 	var id int64
 	err = tx.QueryRow(ctx, `INSERT INTO pending_results
 		(source,external_match_id,digest,source_payload,played_at_original,settings_evidence,review_reason,changed_import,
-		 player_one_name,player_one_legs,player_one_average,player_two_name,player_two_legs,player_two_average,status,received_at)
-		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16) RETURNING id`,
+		 player_one_name,player_one_legs,player_one_average,player_two_name,player_two_legs,player_two_average,status,received_at,competition_type)
+		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17) RETURNING id`,
 		imported.Source, imported.ExternalMatchID, imported.Digest, []byte(imported.Payload), imported.PlayedAt, imported.SettingsEvidence, imported.ReviewReason, outcome.Changed,
-		a.DisplayName, a.LegsWon, a.Average(), b.DisplayName, b.LegsWon, b.Average(), status, received).Scan(&id)
+		a.DisplayName, a.LegsWon, a.Average(), b.DisplayName, b.LegsWon, b.Average(), status, received, imported.CompetitionType).Scan(&id)
 	if err != nil {
 		return outcome, err
 	}
@@ -68,13 +68,13 @@ func (s *Store) InsertImport(ctx context.Context, imported autodarts.Import, rec
 			return outcome, err
 		}
 	}
-	outcome.Pending = league.PendingResult{ID: id, ExternalMatchID: imported.ExternalMatchID, PlayerOneName: a.DisplayName, PlayerOneLegs: a.LegsWon, PlayerOneAverage: a.Average(), PlayerTwoName: b.DisplayName, PlayerTwoLegs: b.LegsWon, PlayerTwoAverage: b.Average(), Status: status, ReceivedAt: received}
+	outcome.Pending = league.PendingResult{CompetitionType: imported.CompetitionType, ID: id, ExternalMatchID: imported.ExternalMatchID, PlayerOneName: a.DisplayName, PlayerOneLegs: a.LegsWon, PlayerOneAverage: a.Average(), PlayerTwoName: b.DisplayName, PlayerTwoLegs: b.LegsWon, PlayerTwoAverage: b.Average(), Status: status, ReceivedAt: received}
 	return outcome, tx.Commit(ctx)
 }
 
 func getPendingInTx(ctx context.Context, tx pgx.Tx, id int64) (league.PendingResult, error) {
 	return scanPendingResult(tx.QueryRow(ctx, `SELECT id,external_match_id,player_one_name,player_one_legs,player_one_average,
-		player_two_name,player_two_legs,player_two_average,status,received_at,confirmed_at,confirmed_by FROM pending_results WHERE id=$1`, id))
+		player_two_name,player_two_legs,player_two_average,status,received_at,confirmed_at,confirmed_by,competition_type,pending_reason FROM pending_results WHERE id=$1`, id))
 }
 
 func (s *Store) GetImport(ctx context.Context, id int64) (league.ImportRecord, error) {
@@ -96,6 +96,7 @@ func (s *Store) GetImport(ctx context.Context, id int64) (league.ImportRecord, e
 		return record, err
 	}
 	record.Import.Payload = payload
+	record.Import.CompetitionType = record.Pending.CompetitionType
 	if len(approval) > 0 {
 		if err := json.Unmarshal(approval, &record.Approval); err != nil {
 			return record, err

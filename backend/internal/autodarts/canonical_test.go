@@ -48,3 +48,26 @@ func TestRejectsUnicodeAndResourceAbuse(t *testing.T) {
 		t.Fatal("accepted invalid UTF8")
 	}
 }
+
+func TestCompetitionTypePreservesOldDigestAndDistinguishesDestinations(t *testing.T) {
+	base := string(example(t, "producer"))
+	old, err := Parse([]byte(base))
+	if err != nil || old.CompetitionType != "" || strings.Contains(string(old.Payload), "competition_type") {
+		t.Fatalf("old receipt: %+v, %v", old, err)
+	}
+	seen := map[string]bool{old.Digest: true}
+	for _, kind := range []CompetitionType{LeagueMatch, TournamentMatch} {
+		body := strings.Replace(base, "{", `{"competition_type":"`+string(kind)+`",`, 1)
+		parsed, err := Parse([]byte(body))
+		if err != nil || parsed.CompetitionType != kind || parsed.ExternalMatchID != old.ExternalMatchID || seen[parsed.Digest] {
+			t.Fatalf("competition %s: %+v, %v", kind, parsed, err)
+		}
+		seen[parsed.Digest] = true
+	}
+	for _, value := range []string{`""`, `"cup"`, "null"} {
+		body := strings.Replace(base, "{", `{"competition_type":`+value+",", 1)
+		if _, err := Parse([]byte(body)); err == nil {
+			t.Errorf("accepted invalid competition %s", value)
+		}
+	}
+}

@@ -1,0 +1,387 @@
+.competition-hero--league,
+.competition-card--league,
+.public-player-page,
+.public-match-page {
+  --competition-art: url('./assets/league-darts-club.webp');
+}
+
+.competition-hero--tournament,
+.competition-card--tournament {
+  --competition-art: url('./assets/tournament-dartboard.webp');
+}
+
+.competition-hero {
+  min-height: 19rem;
+  grid-template-columns: minmax(0, 1.45fr) minmax(0, 1fr);
+  align-items: end;
+  padding: clamp(1.4rem, 4vw, 2.8rem);
+  background:
+    linear-gradient(90deg, #100e10 8%, rgba(16, 14, 16, 0.9) 30%, rgba(16, 14, 16, 0.25) 100%),
+    #100e10 var(--competition-art) center 52% / cover no-repeat;
+}
+
+.competition-hero--compact {
+  min-height: 15rem;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.competition-hero .hero-copy {
+  min-width: 0;
+  max-width: 36rem;
+}
+
+.competition-hero .hero-copy h1 {
+  margin: 0.35rem 0 0.7rem;
+  color: #fff;
+  font-size: clamp(2.6rem, 6vw, 4.75rem);
+  line-height: 0.95;
+  text-wrap: balance;
+  overflow-wrap: anywhere;
+}
+
+.competition-hero .hero-copy p {
+  color: #e0d5d1;
+}
+
+.competition-hero .hero-copy p + p {
+  margin-top: 0.6rem;
+}
+
+.competition-kicker,
+.competition-hero .section-eyebrow {
+  color: var(--color-accent-soft);
+  font: 600 0.78rem / 1.4 var(--font-body);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.competition-hero .hero-side {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.65rem;
+}
+
+.competition-hero .metric-card {
+  min-width: 0;
+  padding: 0.9rem;
+  border-radius: var(--radius-field);
+  border-color: rgba(255, 255, 255, 0.14);
+  background: rgba(15, 13, 14, 0.92);
+  box-shadow: none;
+  overflow-wrap: anywhere;
+}
+
+.competition-hero .section-eyebrow {
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+.competition-hero .metric-card strong {
+  margin: 0.25rem 0;
+  font-size: clamp(1.7rem, 3vw, 2.7rem);
+  line-height: 1;
+}
+
+.competition-hero .metric-card p {
+  font-size: 0.9rem;
+}
+
+.competition-hero .competition-event-fact time,
+.competition-hero .competition-event-fact h2 + p {
+  display: block;
+  margin-top: 0.45rem;
+  color: var(--color-text);
+  font-weight: 700;
+}
+
+.competition-card--league,
+.competition-card--tournament {
+  --cover-padding: clamp(1.25rem, 3vw, 2.1rem);
+  overflow: hidden;
+  padding: var(--cover-padding);
+}
+
+.competition-card-cover {
+  display: flex;
+  align-items: flex-end;
+  align-self: stretch;
+  min-height: clamp(8rem, 16vw, 12rem);
+  margin: calc(-1 * var(--cover-padding)) calc(-1 * var(--cover-padding)) 0;
+  padding: var(--cover-padding);
+  border-bottom: var(--border-panel);
+  background:
+    linear-gradient(0deg, rgba(16, 14, 16, 0.94) 3%, rgba(16, 14, 16, 0.07) 100%),
+    #100e10 var(--competition-art) center 46% / cover no-repeat;
+}
+
+.competition-card-cover h2 {
+  color: #fff;
+  text-shadow: 0 2px 16px #0a0a0a;
+}
+
+.league-deadline,
+.tournament-rules {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.league-deadline p {
+  margin: 0;
+  color: var(--color-muted);
+}
+
+.league-deadline-dates {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 15rem), 1fr));
+  gap: 0.65rem;
+  margin: 0;
+}
+
+.league-deadline-dates > div {
+  padding: 0.75rem 1rem;
+  border: var(--border-panel);
+  border-left: 3px solid #b73737;
+  border-radius: var(--radius-field);
+  background: #211c1e;
+}
+
+.league-deadline-dates dt {
+  color: var(--color-muted);
+  font-size: 0.9rem;
+}
+
+.league-deadline-dates dd {
+  margin: 0.2rem 0 0;
+  font-weight: 700;
+}
+
+.league-divisions .division-board-card {
+  border-left: 3px solid #b73737;
+  box-shadow: none;
+}
+
+.league-fixtures .week-switcher-item.open,
+.league-results .week-switcher-item.open {
+  border-color: rgba(255, 255, 255, 0.13);
+  box-shadow: none;
+}
+
+.league-standings {
+  margin-top: 1.25rem;
+}
+
+.standings-scroll {
+  overflow-x: auto;
+  border-radius: var(--radius-field);
+}
+
+.league-standings .standings-table {
+  display: table;
+  min-width: 34rem;
+  margin: 0;
+}
+
+.league-standings .standings-table thead {
+  background: #211c1e;
+}
+
+.league-standings .standings-table tbody tr:first-child {
+  background: rgba(255, 91, 91, 0.07);
+}
+
+.league-standings .standings-table th:not(:first-child),
+.league-standings .standings-table td:not(:first-child) {
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.league-standings .table-emphasis {
+  color: var(--color-accent-soft);
+}
+
+.tournament-directory-cards,
+.tournament-rules-list {
+  padding: 0;
+  list-style: none;
+}
+
+.tournament-directory-cards .division-board-card,
+.admin-workspace .admin-card {
+  border-left: 3px solid #b73737;
+  box-shadow: none;
+}
+
+.tournament-directory-cards .division-board-copy {
+  gap: 0.35rem;
+}
+
+.tournament-directory-cards .tournament-link {
+  color: var(--color-text);
+  text-decoration: none;
+}
+
+.tournament-directory-cards .tournament-link:hover {
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+
+.tournament-rules-list {
+  display: grid;
+  gap: 0.55rem;
+  margin: 0;
+  padding-left: 0.8rem;
+  border-left: 2px solid var(--color-accent);
+  color: var(--color-muted);
+}
+
+.competition-event-fact time + p,
+.competition-signup-facts time + p {
+  margin-top: 0.65rem;
+}
+
+.admin-workspace .admin-sign-in {
+  grid-template-columns: minmax(0, 44rem);
+}
+
+.admin-workspace .admin-settings-grid {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.admin-hero-actions {
+  margin-top: 1rem;
+}
+
+.admin-roster-card {
+  grid-column: 1 / -1;
+}
+
+.locked-roster summary {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  list-style: none;
+  cursor: pointer;
+}
+
+.locked-roster summary::-webkit-details-marker {
+  display: none;
+}
+
+.locked-roster summary:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 0.25rem;
+}
+
+.locked-roster .week-switcher-icon {
+  margin-left: auto;
+}
+
+.locked-roster[open] .week-switcher-icon {
+  transform: rotate(180deg);
+}
+
+.autodarts-mappings {
+  margin-top: 1.5rem;
+}
+
+.autodarts-mappings .admin-login {
+  align-items: start;
+}
+
+.autodarts-mappings .field {
+  min-width: 0;
+  align-content: start;
+}
+
+.autodarts-mappings .field input,
+.autodarts-mappings .field select {
+  width: 100%;
+  min-width: 0;
+}
+
+.autodarts-mapping-list li,
+.autodarts-mapping-list li:first-child {
+  align-items: center;
+  flex-wrap: wrap;
+  padding: 0.75rem 0.85rem;
+  border: var(--border-panel);
+  border-radius: var(--radius-field);
+  background: var(--color-surface-raised);
+}
+
+.autodarts-mapping-list li + li {
+  margin-top: 0.55rem;
+}
+
+.autodarts-mapping-list strong {
+  color: var(--color-text);
+  font-size: 1.05rem;
+}
+
+.autodarts-mappings .secondary-button {
+  padding: 0.55rem 0.9rem;
+}
+
+@media (min-width: 1100px) {
+  .admin-workspace .admin-settings-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.public-match-page .match-page-heading,
+.public-player-page .player-hero {
+  padding: clamp(1.2rem, 4vw, 2rem);
+  border: var(--border-panel);
+  border-radius: var(--radius-panel);
+  background:
+    linear-gradient(90deg, #111011 25%, rgba(17, 16, 17, 0.88) 70%),
+    #111011 var(--competition-art) center 47% / cover no-repeat;
+}
+
+@media (max-width: 760px) {
+  .public-topbar {
+    gap: 0.65rem;
+    padding: 0.8rem 1rem;
+  }
+
+  .public-topbar .primary-nav {
+    gap: 0.4rem;
+  }
+
+  .competition-hero {
+    grid-template-columns: minmax(0, 1fr);
+    min-height: 0;
+    background:
+      linear-gradient(90deg, rgba(16, 14, 16, 0.94), rgba(16, 14, 16, 0.54)),
+      #100e10 var(--competition-art) center / cover no-repeat;
+  }
+
+  .competition-hero--compact {
+    min-height: 12rem;
+  }
+
+  .league-standings .standings-table th:last-child,
+  .league-standings .standings-table td:last-child {
+    position: sticky;
+    right: 0;
+    background: #20191b;
+    box-shadow: -1px 0 rgba(255, 255, 255, 0.12);
+  }
+}
+
+.tournament-score-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.85rem;
+}
+
+.tournament-score-fields input {
+  min-width: 0;
+  width: 100%;
+}
+
+.tournament-score-form > button {
+  justify-self: start;
+  padding-inline: 1rem;
+}

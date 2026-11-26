@@ -185,6 +185,11 @@ func WeekRevealTime(firstReveal time.Time, weekOffset int) time.Time {
 	return firstReveal.In(firstReveal.Location()).AddDate(0, 0, 7*weekOffset)
 }
 
+func fixtureRevealAt(scheduledAt time.Time, loc *time.Location) time.Time {
+	local := scheduledAt.In(loc)
+	return time.Date(local.Year(), local.Month(), local.Day(), 9, 0, 0, 0, loc)
+}
+
 func CurrentPublicWeek(fixtures []Fixture, now time.Time, loc *time.Location) int {
 	if len(fixtures) == 0 || loc == nil {
 		return 0
@@ -193,7 +198,7 @@ func CurrentPublicWeek(fixtures []Fixture, now time.Time, loc *time.Location) in
 	currentWeek := 0
 	localNow := now.In(loc)
 	for _, fixture := range fixtures {
-		revealAt := time.Date(fixture.ScheduledAt.In(loc).Year(), fixture.ScheduledAt.In(loc).Month(), fixture.ScheduledAt.In(loc).Day(), 9, 0, 0, 0, loc)
+		revealAt := fixtureRevealAt(fixture.ScheduledAt, loc)
 		if !localNow.Before(revealAt) && fixture.WeekNumber > currentWeek {
 			currentWeek = fixture.WeekNumber
 		}
@@ -212,7 +217,7 @@ func GroupFixturesByWeek(fixtures []Fixture, loc *time.Location) []WeeklyFixture
 	for _, fixture := range fixtures {
 		entry, ok := weeks[fixture.WeekNumber]
 		if !ok {
-			reveal := time.Date(fixture.ScheduledAt.In(loc).Year(), fixture.ScheduledAt.In(loc).Month(), fixture.ScheduledAt.In(loc).Day(), 9, 0, 0, 0, loc)
+			reveal := fixtureRevealAt(fixture.ScheduledAt, loc)
 			entry = &WeeklyFixtures{WeekNumber: fixture.WeekNumber, RevealAt: reveal}
 			weeks[fixture.WeekNumber] = entry
 			order = append(order, fixture.WeekNumber)

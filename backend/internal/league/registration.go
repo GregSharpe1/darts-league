@@ -154,20 +154,8 @@ func (b RegistrationBook) ValidateNewPlayer(season Season, player Player) error 
 		return ErrRegistrationClosed
 	}
 
-	if strings.ContainsFunc(player.DisplayName, unicode.IsControl) {
-		return ErrDisplayNameControl
-	}
-	if strings.ContainsFunc(player.Nickname, unicode.IsControl) {
-		return ErrNicknameControl
-	}
-	if NormalizeDisplayName(player.DisplayName) == "" {
-		return ErrDisplayNameRequired
-	}
-	if utf8.RuneCountInString(normalizeSpacing(player.DisplayName)) > MaxDisplayNameLength {
-		return ErrDisplayNameLength
-	}
-	if utf8.RuneCountInString(normalizeSpacing(player.Nickname)) > MaxNicknameLength {
-		return ErrNicknameLength
+	if err := ValidatePlayerName(player.DisplayName, player.Nickname); err != nil {
+		return err
 	}
 
 	newName := NormalizeDisplayName(player.DisplayName)
@@ -175,6 +163,26 @@ func (b RegistrationBook) ValidateNewPlayer(season Season, player Player) error 
 		if NormalizeDisplayName(existingPlayer.DisplayName) == newName {
 			return ErrDuplicatePlayerName
 		}
+	}
+
+	return nil
+}
+
+func ValidatePlayerName(displayName, nickname string) error {
+	if strings.ContainsFunc(displayName, unicode.IsControl) {
+		return ErrDisplayNameControl
+	}
+	if strings.ContainsFunc(nickname, unicode.IsControl) {
+		return ErrNicknameControl
+	}
+	if NormalizeDisplayName(displayName) == "" {
+		return ErrDisplayNameRequired
+	}
+	if utf8.RuneCountInString(NormalizeWhitespace(displayName)) > MaxDisplayNameLength {
+		return ErrDisplayNameLength
+	}
+	if utf8.RuneCountInString(NormalizeWhitespace(nickname)) > MaxNicknameLength {
+		return ErrNicknameLength
 	}
 
 	return nil
@@ -222,11 +230,15 @@ func (b RegistrationBook) ValidatePlayerDelete(season Season) error {
 }
 
 func NormalizeDisplayName(name string) string {
-	return strings.ToLower(strings.Join(strings.Fields(name), " "))
+	return strings.ToLower(NormalizeWhitespace(name))
+}
+
+func NormalizeWhitespace(name string) string {
+	return strings.Join(strings.Fields(name), " ")
 }
 
 func NormalizeSeasonName(name string) string {
-	return strings.Join(strings.Fields(name), " ")
+	return NormalizeWhitespace(name)
 }
 
 func ValidateGameVariant(variant string) error {
