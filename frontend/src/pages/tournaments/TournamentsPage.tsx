@@ -14,13 +14,14 @@ export function TournamentsPage() {
           <p>Enter an open knockout or follow a published draw through to the final.</p>
         </div>
       </section>
-      {tournaments.isPending ? <StateNotice message="Loading tournaments..." /> : null}
-      {tournaments.error ? <StateNotice tone="error" message={readError(tournaments.error)} /> : null}
-      {tournaments.isSuccess ? (
-        <section className="tournament-directory" aria-label="Tournament directory">
-          <TournamentList events={tournaments.data} cards />
-        </section>
-      ) : null}
+      <section className="content-panel tournament-directory" aria-label="Tournament directory">
+        <div className="card-header">
+          <h2>Public tournament boards</h2>
+        </div>
+        {tournaments.isPending ? <StateNotice message="Loading tournaments..." /> : null}
+        {tournaments.error ? <StateNotice tone="error" message={readError(tournaments.error)} /> : null}
+        {tournaments.isSuccess ? <TournamentList events={tournaments.data} cards /> : null}
+      </section>
     </>
   )
 }

@@ -4,7 +4,7 @@ import { execSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 
 import { expect, test, type Page } from '@playwright/test'
-import { expectAdminActionLayout, expectMatchingControlHeights, expectMatchingDivisionWidths } from './form-control-checks'
+import { expectAdminActionLayout, expectMatchingAdminLayout, expectMatchingControlHeights, expectMatchingDivisionWidths, expectSingleRowNavigation } from './form-control-checks'
 
 const captureUiScreenshots = process.env.CAPTURE_UI_SCREENSHOTS === '1'
 const currentDirectory = path.dirname(fileURLToPath(import.meta.url))
@@ -50,7 +50,9 @@ test('register, assign divisions, start season, enter result, and view division 
   await expect(page.locator('link[rel="icon"]')).toHaveAttribute('href', '/favicon.png')
   const homeLeague = page.getByRole('region', { name: 'League matches' })
   const homeTournaments = page.getByRole('region', { name: 'Tournaments' })
-  await expect(page.getByRole('navigation', { name: 'Primary' })).toHaveCount(0)
+  const homeToolbar = page.getByRole('navigation', { name: 'Primary' })
+  await expect(homeToolbar.getByRole('link')).toHaveText(['Admin'])
+  await expect(homeToolbar.getByRole('link', { name: 'Admin' })).toHaveAttribute('href', '/admin')
   await expect(homeTournaments.getByRole('link', { name: 'Browse tournaments' })).toHaveAttribute('href', '/tournaments')
   await expect(homeLeague.getByRole('link', { name: 'Browse divisions' })).toHaveAttribute('href', '/divisions')
   await expect(homeLeague.getByRole('link', { name: 'Register for the league' })).toBeVisible()
@@ -118,6 +120,7 @@ test('register, assign divisions, start season, enter result, and view division 
 
   await expect(page.getByRole('heading', { name: /league settings/i })).toBeVisible()
   await expectMatchingControlHeights(page)
+  await expectMatchingAdminLayout(page)
   await page.getByLabel('League name').fill(leagueName)
   await page.getByRole('button', { name: /save config/i }).click()
   await expect(page.getByText(leagueName, { exact: true })).toBeVisible()
@@ -157,6 +160,28 @@ test('register, assign divisions, start season, enter result, and view division 
   await expect(unavailableClose).toHaveCSS('cursor', 'not-allowed')
   const closeWidth = await unavailableClose.evaluate((button) => button.getBoundingClientRect().width / parseFloat(getComputedStyle(document.documentElement).fontSize))
   expect(closeWidth).toBeGreaterThanOrEqual(12)
+  const adminCards = page.locator('.admin-settings-grid > article').evaluateAll((cards) => cards.slice(0, 2).map(card => card.getBoundingClientRect().height))
+  const [settingsHeight, divisionsHeight] = await adminCards
+  expect(settingsHeight).toBeCloseTo(divisionsHeight)
+  const mappings = page.getByRole('region', { name: 'Autodarts mappings' })
+  const mappingPlayer = mappings.getByRole('combobox', { name: 'League player' })
+  const mappingUsername = mappings.getByLabel('Autodarts username')
+  const mappingOption = mappingPlayer.getByRole('option', { name: /Luke Humphries/ })
+  const mappingLabel = (await mappingOption.textContent())!
+  await mappingPlayer.selectOption({ label: mappingLabel })
+  await mappingUsername.fill('smoke-luke')
+  await mappings.getByRole('button', { name: 'Save mapping' }).click()
+  const savedMappings = mappings.getByRole('list', { name: 'Mapped players' })
+  await expect(savedMappings.getByText('smoke-luke', { exact: true })).toBeVisible()
+  await expect(mappingOption).toHaveCount(0)
+  await savedMappings.getByRole('button', { name: /Edit mapping for .*Luke Humphries/ }).click()
+  await expect(mappingUsername).toBeFocused()
+  await expect(mappingUsername).toHaveValue('smoke-luke')
+  await mappingUsername.fill('smoke-luke-edited')
+  await mappings.getByRole('button', { name: 'Save mapping' }).click()
+  await expect(savedMappings.getByText('smoke-luke-edited', { exact: true })).toBeVisible()
+  await savedMappings.getByRole('button', { name: /Remove mapping for .*Luke Humphries/ }).click()
+  await expect(mappingOption).toHaveCount(1)
   await captureScreenshot(page, 'admin-post-start.png')
 
   await page.goto('/divisions')
@@ -164,6 +189,14 @@ test('register, assign divisions, start season, enter result, and view division 
   await expect(deadline.getByText('Finish outstanding fixtures by')).toBeVisible()
   await expect(deadline.locator('time')).toHaveText([/09:00 UK time/, /09:00 UK time/])
   await expect(deadline.getByText(/autodarts bots to represent both players/i)).toBeVisible()
+  await page.setViewportSize({ width: 375, height: 650 })
+  await page.evaluate(() => window.scrollTo({ top: document.body.scrollHeight, behavior: 'instant' }))
+  await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(0)
+  await page.getByRole('link', { name: 'View fixtures', exact: true }).last().click()
+  await expect(page).toHaveURL(/\/divisions\/division-2$/)
+  await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(0)
+  await page.setViewportSize({ width: 1280, height: 720 })
+
 
   await page.goto('/admin/divisions/division-1')
   await expect(page.getByRole('heading', { name: /premier division/i })).toBeVisible()
@@ -211,6 +244,16 @@ test('register, assign divisions, start season, enter result, and view division 
   await page.goto('/divisions/division-1')
   await expect(page.getByRole('heading', { name: 'Premier Division' })).toBeVisible()
   await expect(page.getByText(/every unlocked fixture in this division has been played so far/i)).toBeVisible()
+  const recordedResults = page.getByRole('region', { name: 'Recorded results' })
+  const recordedWeek = recordedResults.getByRole('button', { name: 'Week 1', exact: true })
+  await expect(recordedWeek).toHaveAttribute('aria-expanded', 'false')
+  const fixtureSearch = page.getByRole('combobox', { name: "Find a player's games" })
+  await fixtureSearch.fill('luke')
+  await expect(recordedWeek).toHaveAttribute('aria-expanded', 'true')
+  await expect(recordedResults.getByRole('link', { name: /view match: the freeze/i })).toBeVisible()
+  await fixtureSearch.clear()
+  await fixtureSearch.blur()
+  await expect(recordedWeek).toHaveAttribute('aria-expanded', 'false')
   await captureScreenshot(page, 'public-post-start.png')
 
   await page.goto('/divisions/division-1/standings')
@@ -273,6 +316,12 @@ test('register, assign divisions, start season, enter result, and view division 
   await expect(page.getByRole('heading', { name: 'League completed' })).toBeVisible()
   await page.reload()
   await expect(page.getByRole('heading', { name: 'League completed' })).toBeVisible()
+  const lockedRoster = page.locator('.locked-roster')
+  await expect(lockedRoster).not.toHaveAttribute('open', '')
+  await expect(lockedRoster.getByText('The Freeze (Luke Humphries)', { exact: true })).toBeHidden()
+  await lockedRoster.locator('summary').click()
+  await expect(lockedRoster.getByText('The Freeze (Luke Humphries)', { exact: true })).toBeVisible()
+  await lockedRoster.locator('summary').click()
   for (const width of [375, 768, 1280]) {
     await page.setViewportSize({ width, height: 900 })
     const nextName = await page.getByLabel('Next league name').boundingBox()
@@ -337,6 +386,15 @@ test('register, assign divisions, start season, enter result, and view division 
   await expect(page.locator('input[id^="p1-"]')).toHaveValue('')
 })
 
+test('all five division navigation actions fit on one line without scrolling', async ({ page }) => {
+  await page.route('**/api/season', route => route.fulfill({ json: { registration_open: true, status: 'registration_open' } }))
+  await page.goto('/divisions/premier')
+  for (const width of [320, 375, 480, 481, 640, 768, 1181, 1280]) {
+    await page.setViewportSize({ width, height: 850 })
+    await expectSingleRowNavigation(page, 5)
+  }
+})
+
 test('admins open a tournament and manage public entries independently of the league', async ({ page, browser }) => {
   const eventName = 'Cardiff Winter Knockout'
   const eventPath = '/tournaments/cardiff-winter-knockout'
@@ -353,10 +411,12 @@ test('admins open a tournament and manage public entries independently of the le
   await captureScreenshot(page, 'tournament-admin-create.png')
   await page.getByLabel('Tournament name').fill(eventName)
   await page.getByLabel('Start date').fill('2027-02-06')
-  await page.getByLabel('Event link slug').fill('cardiff-winter-knockout')
+  await page.getByLabel('End date (optional)').fill('2027-02-16')
+  await expect(page.getByLabel('Event link slug')).toHaveCount(0)
   await page.getByLabel('Game variant').selectOption('301')
   await page.getByLabel('First to (legs)').fill('5')
   await page.getByRole('button', { name: 'Create tournament' }).click()
+  await expect(page).toHaveURL(/\/admin\/tournaments\/cardiff-winter-knockout$/)
   await expect(page.getByRole('heading', { name: eventName })).toBeVisible()
   await expect(page.getByRole('link', { name: 'Public sign-up page' })).toHaveAttribute('href', eventPath)
   await expect(page.getByRole('heading', { name: 'Registration closed' })).toBeVisible()
@@ -372,13 +432,26 @@ test('admins open a tournament and manage public entries independently of the le
     await navigation.getByRole('link', { name: 'League', exact: true }).click()
     await expect(publicPage).toHaveURL(/\/divisions$/)
     await navigation.getByRole('link', { name: 'Tournaments', exact: true }).click()
+    await expect(directory.getByRole('heading', { name: 'Public tournament boards' })).toBeVisible()
     await expect(directory.getByText(/registration closed/i)).toBeVisible()
+    await expect(directory.getByText('16 February 2027')).toBeVisible()
     await expect(signupLink).toHaveCount(0)
     await directory.getByRole('link', { name: eventName, exact: true }).click()
     await expect(publicPage.getByRole('heading', { name: 'Registration closed' })).toBeVisible()
     await expect(navigation.getByRole('link')).toHaveText(['League'])
     const publicFormat = publicPage.getByRole('region', { name: 'Match format' })
     await expect(publicFormat.getByText('301, first to 5 legs', { exact: true })).toBeVisible()
+    const rules = publicPage.getByRole('region', { name: 'Tournament rules' })
+    await expect(rules.getByText('16 February 2027')).toBeVisible()
+    await expect(rules.getByText(/organiser arranges Autodarts simulations/)).toBeVisible()
+    await expect(rules.getByRole('list')).toHaveCSS('border-left-width', '2px')
+    await expect(rules.getByRole('listitem').last()).toHaveCSS('border-left-width', '0px')
+
+    await page.getByLabel('End date (optional)').fill('2027-02-18')
+    await page.getByRole('button', { name: 'Save end date' }).click()
+    await expect(page.getByText('End date saved.')).toBeVisible()
+    await publicPage.reload()
+    await expect(rules.getByText('18 February 2027')).toBeVisible()
     await page.getByLabel('Game variant').selectOption('501')
     await page.getByLabel('First to (legs)').fill('7')
     await page.getByRole('button', { name: 'Save match format' }).click()
@@ -477,7 +550,6 @@ test('an admin can confirm deletion of an open tournament and its entries', asyn
   await page.getByRole('link', { name: 'Tournaments', exact: true }).click()
   await page.getByLabel('Tournament name').fill(name)
   await page.getByLabel('Start date').fill('2027-02-06')
-  await page.getByLabel('Event link slug').fill(slug)
   await page.getByRole('button', { name: 'Create tournament' }).click()
   await expect(page.getByRole('heading', { name })).toBeVisible()
   const deleteButton = page.getByRole('button', { name: 'Delete tournament' })

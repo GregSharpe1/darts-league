@@ -10,11 +10,12 @@ export type Tournament = TournamentMatchFormat & {
   slug: string
   name: string
   starts_on: string
+  ends_on?: string
   registration_open: boolean
   bracket?: BracketMatch[][]
 }
 
-export type TournamentSummary = Pick<Tournament, 'slug' | 'name' | 'starts_on' | 'registration_open'> & {
+export type TournamentSummary = Pick<Tournament, 'slug' | 'name' | 'starts_on' | 'ends_on' | 'registration_open'> & {
   started: boolean
 }
 
@@ -77,7 +78,7 @@ export function useAdminTournaments() {
 export function useCreateTournament() {
   const client = useQueryClient()
   return useMutation({
-    mutationFn: (event: Pick<Tournament, 'slug' | 'name' | 'starts_on'> & TournamentMatchFormat) =>
+    mutationFn: (event: Pick<Tournament, 'name' | 'starts_on' | 'ends_on'> & TournamentMatchFormat) =>
       request<Tournament>(adminPath, { method: 'POST', body: JSON.stringify(event) }),
     onSuccess: async (event) => {
       client.setQueryData<Tournament[]>(adminKey, (events) => [...(events ?? []), event])
@@ -85,6 +86,46 @@ export function useCreateTournament() {
         client.invalidateQueries({ queryKey: adminKey, exact: true }),
         client.invalidateQueries({ queryKey: publicListKey }),
       ])
+    },
+  })
+}
+
+export type TournamentScoreCorrection = {
+  legs: [number, number]
+  previous_legs: [number, number]
+  entrants: [number, number]
+  clear_matches: number[]
+  reason: string
+}
+
+export function useCorrectTournamentScore(slug: string) {
+  const client = useQueryClient()
+  return useMutation({
+    mutationFn: ({ number, ...body }: TournamentScoreCorrection & { number: number }) =>
+      request<Tournament>(`${adminPath}/${encodeURIComponent(slug)}/matches/${number}/score`, {
+        method: 'PUT',
+        body: JSON.stringify(body),
+      }),
+    onSuccess: async (event) => {
+      client.setQueryData(eventKey(slug), event)
+      client.setQueryData<Tournament[]>(adminKey, events => events?.map(item => item.slug === slug ? event : item))
+      await client.invalidateQueries({ queryKey: publicListKey })
+    },
+  })
+}
+
+export function useUpdateTournamentEndDate(slug: string) {
+  const client = useQueryClient()
+  return useMutation({
+    mutationFn: (endsOn: string) =>
+      request<Tournament>(`${adminPath}/${encodeURIComponent(slug)}/end-date`, {
+        method: 'PUT',
+        body: JSON.stringify({ ends_on: endsOn }),
+      }),
+    onSuccess: async (event) => {
+      client.setQueryData(eventKey(slug), event)
+      client.setQueryData<Tournament[]>(adminKey, (events) => events?.map((item) => item.slug === slug ? event : item))
+      await client.invalidateQueries({ queryKey: publicListKey })
     },
   })
 }

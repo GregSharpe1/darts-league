@@ -18,27 +18,6 @@ export function DivisionHomePage() {
 
   const currentWeek = fixturesQuery.data?.weeks.find((week) => week.week_number === fixturesQuery.data.current_week)
   const futureWeeks = fixturesQuery.data?.weeks.filter((week) => week.status === 'locked') ?? []
-  const unplayedUnlockedWeeks = useMemo(
-    () =>
-      fixturesQuery.data?.weeks
-        .filter((week) => week.status === 'unlocked')
-        .map((week) => ({
-          ...week,
-          unplayedFixtures: week.fixtures.filter((fixture) => !fixture.result),
-        }))
-        .filter((week) => week.unplayedFixtures.length > 0) ?? [],
-    [fixturesQuery.data?.weeks],
-  )
-  const searchedUnplayedWeeks = useMemo(
-    () =>
-      fixturesQuery.data?.weeks
-        .map((week) => ({
-          ...week,
-          unplayedFixtures: week.fixtures.filter((fixture) => !fixture.result && `${fixture.player_one} ${fixture.player_two}`.toLowerCase().includes(fixtureSearchTerm)),
-        }))
-        .filter((week) => week.unplayedFixtures.length > 0) ?? [],
-    [fixtureSearchTerm, fixturesQuery.data?.weeks],
-  )
   const fixturePlayerOptions = useMemo(() => {
     const players = new Map<string, string>()
     for (const row of standingsQuery.data ?? []) {
@@ -49,13 +28,22 @@ export function DivisionHomePage() {
   }, [standingsQuery.data])
   const filteredFixturePlayerOptions = fixturePlayerOptions.filter((player) => player.toLowerCase().includes(fixtureSearchTerm))
   const showFixturePlayerOptions = fixtureSearchOpen && fixturePlayerOptions.length > 0
-  const gamesLeftToPlay = unplayedUnlockedWeeks.reduce((total, week) => total + week.unplayedFixtures.length, 0)
-  const searchedGamesLeft = searchedUnplayedWeeks.reduce((total, week) => total + week.unplayedFixtures.length, 0)
-  const defaultOpenWeek = unplayedUnlockedWeeks.find((week) => week.week_number === fixturesQuery.data?.current_week)?.week_number ?? unplayedUnlockedWeeks[0]?.week_number ?? null
-  const [selectedOpenWeekNumber, setSelectedOpenWeekNumber] = useState<number | null>(null)
-  const openWeekNumber = selectedOpenWeekNumber !== null && unplayedUnlockedWeeks.some((week) => week.week_number === selectedOpenWeekNumber)
-    ? selectedOpenWeekNumber
-    : defaultOpenWeek
+  const exactPlayer = fixturePlayerOptions.some((player) => player.toLowerCase() === fixtureSearchTerm)
+  const matchesSearch = (label: string) => {
+    const normalizedLabel = label.toLowerCase()
+    return exactPlayer ? normalizedLabel === fixtureSearchTerm : normalizedLabel.includes(fixtureSearchTerm)
+  }
+  const unlockedWeeks = fixturesQuery.data?.weeks.filter((week) => week.status === 'unlocked') ?? []
+  const matchingWeeks = unlockedWeeks.map((week) => ({
+    ...week,
+    fixtures: week.fixtures.filter((fixture) => matchesSearch(fixture.player_one) || matchesSearch(fixture.player_two)),
+  }))
+  const unplayedWeeks = matchingWeeks
+    .map((week) => ({ ...week, fixtures: week.fixtures.filter((fixture) => !fixture.result) }))
+    .filter((week) => week.fixtures.length > 0)
+  const gamesLeftToPlay = unplayedWeeks.reduce((total, week) => total + week.fixtures.length, 0)
+  const hasRecordedResults = matchingWeeks.some((week) => week.fixtures.some((fixture) => fixture.result))
+  const seasonCompleted = seasonQuery.data?.status === 'completed'
 
   if (!slug) {
     return <StateNotice tone="error" message="Division not found." />
@@ -93,21 +81,21 @@ export function DivisionHomePage() {
         </div>
       </section>
 
-      {seasonQuery.data?.status === 'completed' ? <CompletedResults weeks={fixturesQuery.data?.weeks ?? []} /> : <section className="content-panel league-fixtures">
-        <div className="card-header">
+      <section className="content-panel league-fixtures">
+        {!seasonCompleted ? <div className="card-header">
           <div className="card-copy">
             <h2>Games left to play</h2>
           </div>
           <span className="status-pill live">{gamesLeftToPlay > 0 ? `${gamesLeftToPlay} live` : currentWeek ? 'Unlocked' : 'Waiting'}</span>
-        </div>
+        </div> : null}
         <div className="fixture-search field" onBlur={(event) => { if (!event.currentTarget.contains(event.relatedTarget)) setFixtureSearchOpen(false) }}>
-          <label htmlFor="fixture-player-search">Find remaining games in this division</label>
+          <label htmlFor="fixture-player-search">Find a player&apos;s games</label>
           <input
             id="fixture-player-search"
             role="combobox"
             type="search"
             value={fixtureSearch}
-            onChange={(event) => setFixtureSearch(event.target.value)}
+            onChange={(event) => { setFixtureSearch(event.target.value); setFixtureSearchOpen(true) }}
             onFocus={() => setFixtureSearchOpen(true)}
             placeholder="Search by player"
             aria-autocomplete="list"
@@ -117,11 +105,11 @@ export function DivisionHomePage() {
           {showFixturePlayerOptions ? (
             <div className="fixture-search-options" id="fixture-player-options" role="listbox" aria-label="Players">
               {filteredFixturePlayerOptions.length > 0 ? filteredFixturePlayerOptions.map((player) => (
-                <button key={player} type="button" role="option" onClick={() => { setFixtureSearch(player.replace(/\s+\(.+\)$/, '')); setFixtureSearchOpen(false) }}>{player}</button>
+                <button key={player} type="button" role="option" onClick={() => { setFixtureSearch(player); setFixtureSearchOpen(false) }}>{player}</button>
               )) : <span className="fixture-meta">No players match that search.</span>}
             </div>
           ) : null}
-          <p className="fixture-meta">Search visible unplayed fixtures by either player name. Locked weeks still keep match details gated.</p>
+          <p className="fixture-meta">Search by name or nickname across unlocked weeks.</p>
         </div>
         {fixturesQuery.isLoading ? <StateNotice message="Loading the division board..." /> : null}
         {fixturesQuery.error ? <StateNotice tone="error" message={readError(fixturesQuery.error)} /> : null}
@@ -129,88 +117,52 @@ export function DivisionHomePage() {
         {!fixturesQuery.isLoading && !fixturesQuery.error && division && !currentWeek ? (
           <StateNotice message="No public week is unlocked yet. Start the season in admin to generate fixtures." />
         ) : null}
-        {!fixtureSearchTerm && !fixturesQuery.isLoading && !fixturesQuery.error && currentWeek && gamesLeftToPlay === 0 ? (
+        {!seasonCompleted && !fixtureSearchTerm && !fixturesQuery.isLoading && !fixturesQuery.error && currentWeek && gamesLeftToPlay === 0 ? (
           <StateNotice message="Every unlocked fixture in this division has been played so far. Check locked weeks for what is coming next." />
         ) : null}
-        {fixtureSearchTerm && !fixturesQuery.isLoading && !fixturesQuery.error ? (
-          <div className="fixture-search-results" aria-live="polite">
-            <div className="card-header compact-header">
-              <div className="card-copy">
-                <span className="section-eyebrow">Search results</span>
-                <h3>{searchedGamesLeft} remaining match{searchedGamesLeft !== 1 ? 'es' : ''}</h3>
-              </div>
-            </div>
-            {searchedUnplayedWeeks.length > 0 ? (
-              <div className="week-switcher search-results-list">
-                {searchedUnplayedWeeks.map((week) => (
-                  <section className="week-switcher-item open" key={week.week_number}>
-                    <div className="week-switcher-trigger static-trigger">
-                      <div className="week-switcher-copy">
-                        <span className="section-eyebrow">{week.status === 'locked' ? 'Locked pairing' : 'Unplayed fixture'}</span>
-                        <strong>Week {week.week_number}</strong>
-                        <span className="fixture-meta">{week.status === 'locked' ? `Reveals ${formatWhen(week.reveal_at)}` : week.week_number === fixturesQuery.data?.current_week ? 'Current week unlocked' : 'Previous week still outstanding'}</span>
-                      </div>
-                    </div>
-                    <div className="week-switcher-panel">
-                      <ul className="match-list">
-                        {week.unplayedFixtures.map((fixture) => (
-                          <li key={fixture.id}>
-                            <div>
-                              <strong>{fixture.player_one} vs {fixture.player_two}</strong>
-                              <div className="fixture-meta">{week.status === 'locked' ? 'Pairing visible. Match details locked.' : `Week ${week.week_number} - ${fixture.game_variant} - First to ${fixture.legs_to_win} legs`}</div>
-                            </div>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  </section>
-                ))}
-              </div>
-            ) : <StateNotice message="No remaining visible fixtures match that player name." />}
-          </div>
+        {fixtureSearchTerm && !fixturesQuery.isLoading && !fixturesQuery.error && gamesLeftToPlay === 0 && !hasRecordedResults ? (
+          <StateNotice message="No visible fixtures match that player name." />
         ) : null}
-        {!fixtureSearchTerm && unplayedUnlockedWeeks.length > 0 ? (
+        {!seasonCompleted && unplayedWeeks.length > 0 ? (
           <div className="week-switcher" aria-label="Weeks with matches left to play">
-            {unplayedUnlockedWeeks.map((week) => {
-              const isOpen = week.week_number === openWeekNumber
-              const fixtureCountLabel = `${week.unplayedFixtures.length} match${week.unplayedFixtures.length !== 1 ? 'es' : ''} left`
-              return (
-                <section className={`week-switcher-item${isOpen ? ' open' : ''}`} key={week.week_number}>
-                  <button type="button" className="week-switcher-trigger" aria-expanded={isOpen} onClick={() => setSelectedOpenWeekNumber(week.week_number)}>
-                    <div className="week-switcher-copy">
-                      <span className="section-eyebrow">Unplayed fixtures</span>
-                      <strong>Week {week.week_number}</strong>
-                      <span className="fixture-meta">{week.week_number === fixturesQuery.data?.current_week ? 'Current week unlocked' : 'Previous week still outstanding'}</span>
-                    </div>
-                    <div className="week-switcher-meta">
-                      <span className={`status-pill ${week.week_number === fixturesQuery.data?.current_week ? 'live' : 'locked'}`}>{fixtureCountLabel}</span>
-                      <span className="week-switcher-icon" aria-hidden="true">{isOpen ? '−' : '+'}</span>
-                    </div>
-                  </button>
-                  {isOpen ? (
-                    <div className="week-switcher-panel">
-                      <ul className="match-list">
-                        {week.unplayedFixtures.map((fixture) => (
-                          <li key={fixture.id}>
-                            <div>
-                              <strong>{fixture.player_one} vs {fixture.player_two}</strong>
-                              <div className="fixture-meta">Week {week.week_number} - {fixture.game_variant} - First to {fixture.legs_to_win} legs</div>
-                            </div>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  ) : null}
-                </section>
-              )
-            })}
+            {unplayedWeeks.map((week) => (
+              <section className="week-switcher-item open" key={week.week_number}>
+                <div className="week-switcher-trigger">
+                  <div className="week-switcher-copy">
+                    <span className="section-eyebrow">Unplayed fixtures</span>
+                    <strong>Week {week.week_number}</strong>
+                    <span className="fixture-meta">{week.week_number === fixturesQuery.data?.current_week ? 'Current week unlocked' : 'Previous week still outstanding'}</span>
+                  </div>
+                  <span className={`status-pill ${week.week_number === fixturesQuery.data?.current_week ? 'live' : 'locked'}`}>{week.fixtures.length} match{week.fixtures.length !== 1 ? 'es' : ''} left</span>
+                </div>
+                <div className="week-switcher-panel">
+                  <ul className="match-list">
+                    {week.fixtures.map((fixture) => (
+                      <li key={fixture.id}>
+                        <div>
+                          <strong>{fixture.player_one} vs {fixture.player_two}</strong>
+                          <div className="fixture-meta">Week {week.week_number} - {fixture.game_variant} - First to {fixture.legs_to_win} legs</div>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </section>
+            ))}
           </div>
         ) : null}
-      </section>}
+      </section>
 
-      {seasonQuery.data?.status !== 'completed' && fixturesQuery.data?.weeks.some(week => week.status === 'unlocked' && week.fixtures.some(fixture => fixture.result)) ? <CompletedResults weeks={fixturesQuery.data.weeks} title="Recorded results" /> : null}
+      {hasRecordedResults || (seasonCompleted && !fixtureSearchTerm) ? (
+        <CompletedResults
+          key={fixtureSearchTerm}
+          weeks={matchingWeeks}
+          title={seasonCompleted ? 'Final results' : 'Recorded results'}
+          initiallyOpen={Boolean(fixtureSearchTerm)}
+        />
+      ) : null}
 
-      <section className="week-grid" aria-label="Visible season weeks">
+      {!fixtureSearchTerm && <section className="week-grid" aria-label="Visible season weeks">
         {futureWeeks.length === 0 && !fixturesQuery.isLoading && seasonQuery.data?.status !== 'completed' ? (
           <article className="week-card empty-card">
             <header>
@@ -242,7 +194,7 @@ export function DivisionHomePage() {
             </ul>
           </article>
         ))}
-      </section>
+      </section>}
     </>
   )
 }

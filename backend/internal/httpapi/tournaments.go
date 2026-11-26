@@ -25,6 +25,8 @@ func (h TournamentHandler) RegisterRoutes(mux *http.ServeMux, requireAdmin func(
 	mux.HandleFunc("POST /api/admin/tournaments/{slug}/start", requireAdmin(h.startTournament))
 	mux.HandleFunc("PUT /api/admin/tournaments/{slug}/registration", requireAdmin(h.setRegistration))
 	mux.HandleFunc("PUT /api/admin/tournaments/{slug}/format", requireAdmin(h.updateFormat))
+	mux.HandleFunc("PUT /api/admin/tournaments/{slug}/end-date", requireAdmin(h.updateEndDate))
+	mux.HandleFunc("PUT /api/admin/tournaments/{slug}/matches/{number}/score", requireAdmin(h.correctScore))
 	mux.HandleFunc("GET /api/admin/tournaments/{slug}/entries", requireAdmin(h.listEntries))
 	mux.HandleFunc("DELETE /api/admin/tournaments/{slug}/entries/{id}", requireAdmin(h.deleteEntry))
 }
@@ -33,6 +35,7 @@ type tournamentSummary struct {
 	Slug             string `json:"slug"`
 	Name             string `json:"name"`
 	StartsOn         string `json:"starts_on"`
+	EndsOn           string `json:"ends_on,omitempty"`
 	RegistrationOpen bool   `json:"registration_open"`
 	Started          bool   `json:"started"`
 }
@@ -50,6 +53,7 @@ func (h TournamentHandler) listPublicTournaments(w http.ResponseWriter, r *http.
 			Slug:             event.Slug,
 			Name:             event.Name,
 			StartsOn:         event.StartsOn,
+			EndsOn:           event.EndsOn,
 			RegistrationOpen: event.RegistrationOpen,
 			Started:          len(event.Bracket) > 0,
 		})
@@ -113,9 +117,10 @@ func (h TournamentHandler) listTournaments(w http.ResponseWriter, r *http.Reques
 
 func (h TournamentHandler) createTournament(w http.ResponseWriter, r *http.Request) {
 	var req struct {
-		Slug        string  `json:"slug"`
+		LegacySlug  string  `json:"slug"` // Accepted for older clients. The name determines the slug.
 		Name        string  `json:"name"`
 		StartsOn    string  `json:"starts_on"`
+		EndsOn      string  `json:"ends_on"`
 		GameVariant *string `json:"game_variant"`
 		LegsToWin   *int32  `json:"legs_to_win"`
 	}
@@ -129,12 +134,62 @@ func (h TournamentHandler) createTournament(w http.ResponseWriter, r *http.Reque
 	if req.LegsToWin != nil {
 		format.LegsToWin = *req.LegsToWin
 	}
-	event, err := h.Service.Create(r.Context(), req.Slug, req.Name, req.StartsOn, format)
+	event, err := h.Service.Create(r.Context(), req.Name, req.StartsOn, req.EndsOn, format)
 	if err != nil {
 		writeTournamentError(w, err)
 		return
 	}
 	writeJSON(w, http.StatusCreated, event)
+}
+
+func (h TournamentHandler) correctScore(w http.ResponseWriter, r *http.Request) {
+	number, err := strconv.Atoi(r.PathValue("number"))
+	if err != nil || number <= 0 {
+		writeError(w, http.StatusBadRequest, "invalid_match_number", "Match number must be a positive integer.")
+		return
+	}
+	var req struct {
+		Legs         []int   `json:"legs"`
+		PreviousLegs []int   `json:"previous_legs"`
+		Entrants     []int64 `json:"entrants"`
+		ClearMatches []int   `json:"clear_matches"`
+		Reason       string  `json:"reason"`
+	}
+	if !readTournamentJSON(w, r, &req) {
+		return
+	}
+	if len(req.Legs) != 2 || len(req.PreviousLegs) != 2 || len(req.Entrants) != 2 {
+		writeError(w, http.StatusBadRequest, "invalid_score_correction", "Provide the corrected score, current score, and both entrants.")
+		return
+	}
+	event, err := h.Service.CorrectScore(r.Context(), r.PathValue("slug"), number, tournament.ScoreCorrection{
+		Legs: [2]int(req.Legs), PreviousLegs: [2]int(req.PreviousLegs), Entrants: [2]int64(req.Entrants),
+		ClearMatches: req.ClearMatches, Reason: req.Reason, Actor: adminActorFromContext(r.Context()),
+	})
+	if err != nil {
+		writeTournamentError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, event)
+}
+
+func (h TournamentHandler) updateEndDate(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		EndsOn *string `json:"ends_on"`
+	}
+	if !readTournamentJSON(w, r, &req) {
+		return
+	}
+	if req.EndsOn == nil {
+		writeError(w, http.StatusBadRequest, "end_date_required", "Supply an end date or an empty string to clear it.")
+		return
+	}
+	event, err := h.Service.UpdateEndDate(r.Context(), r.PathValue("slug"), *req.EndsOn)
+	if err != nil {
+		writeTournamentError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, event)
 }
 
 func (h TournamentHandler) updateFormat(w http.ResponseWriter, r *http.Request) {
@@ -217,16 +272,22 @@ func writeTournamentError(w http.ResponseWriter, err error) {
 	switch {
 	case errors.Is(err, tournament.ErrInvalidName):
 		writeError(w, http.StatusBadRequest, "invalid_tournament_name", "Tournament name must contain 2 to 60 characters without control characters.")
-	case errors.Is(err, tournament.ErrInvalidSlug):
-		writeError(w, http.StatusBadRequest, "invalid_tournament_slug", "Use up to 60 lowercase letters or digits, with single hyphens between words.")
+	case errors.Is(err, tournament.ErrInvalidEndDate):
+		writeError(w, http.StatusBadRequest, "invalid_tournament_end_date", err.Error())
 	case errors.Is(err, tournament.ErrInvalidDate):
 		writeError(w, http.StatusBadRequest, "invalid_tournament_date", "Enter a valid tournament start date.")
+	case errors.Is(err, tournament.ErrScoreNotRecorded):
+		writeError(w, http.StatusConflict, "score_not_recorded", err.Error())
+	case errors.Is(err, tournament.ErrScoreChanged):
+		writeError(w, http.StatusConflict, "tournament_score_changed", err.Error())
+	case errors.Is(err, tournament.ErrCorrectionReason):
+		writeError(w, http.StatusBadRequest, "score_correction_reason", err.Error())
+	case errors.Is(err, tournament.ErrScoreUnavailable):
+		writeError(w, http.StatusServiceUnavailable, "tournament_score_unavailable", err.Error())
 	case errors.Is(err, tournament.ErrNotFound):
 		writeError(w, http.StatusNotFound, "tournament_not_found", "Tournament was not found.")
 	case errors.Is(err, tournament.ErrEntryNotFound):
 		writeError(w, http.StatusNotFound, "tournament_entry_not_found", "Entry was not found in this tournament.")
-	case errors.Is(err, tournament.ErrDuplicateSlug):
-		writeError(w, http.StatusConflict, "duplicate_tournament_slug", "This tournament link is already in use.")
 	case errors.Is(err, tournament.ErrDeleteLocked):
 		writeError(w, http.StatusConflict, "tournament_delete_locked", "Only tournaments with open registration can be deleted.")
 	case errors.Is(err, tournament.ErrFormatLocked):

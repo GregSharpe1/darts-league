@@ -19,7 +19,7 @@ Use one clear page heading followed by sections in reading order. Use `hero-pane
 
 | Where | Header and page destinations |
 | --- | --- |
-| Home `/` | Brand link only in the header. The two main cards explain league matches and standalone tournaments and link to their respective directories. Event names on the home card stay white through link states. |
+| Home `/` | Show **Admin** as the sole header navigation action. The two main cards explain league matches and standalone tournaments and link to their respective directories. Event names on the home card stay white through link states. |
 | Public tournaments `/tournaments/*` | Show only **League** in the header navigation. Keep sign-up, event details, and bracket actions on the tournament pages. |
 | Public league pages | Offer **Tournaments** and show **Register** while league registration is open. Omit **Divisions** on the division directory itself. Use **Fixtures**, **Standings**, and **All Divisions** for division detail navigation. |
 | Admin `/admin/*` | Keep admin destinations and session actions in the admin toolbar. Label actions by what they do and make the item affected clear in confirmations. |
@@ -39,5 +39,6 @@ Reference implementations for each pattern are the [division directory](frontend
 - Give each section a clear primary action where needed. Use `--action-background` for the coral gradient on primary actions. Use quiet outlined pills for secondary actions and a neutral raised surface with muted text for disabled controls. Use links for navigation and buttons for actions.
 - Show loading, empty, error, and success states in context. Reuse `StateNotice` for panel messages and use explicit status text alongside colour. Keep labels visible, associate field errors with inputs, and announce changes that need immediate attention. [StateNotice](frontend/src/components/StateNotice.tsx)
 - Preserve visible keyboard focus and the global reduced-motion behaviour. Make controls and scrollable content operable by keyboard. Check text contrast over hero images and across link, hover, and focus states.
-- Follow existing breakpoints. The shared shell and grids stack at 960px, public competition and sign-up layouts stack at 760px, and general spacing tightens at 640px. Let long player and event names wrap. Keep horizontal scrolling inside content that needs it, such as standings and brackets.
+- Keep header actions on one visible row without horizontal scrolling. Use compact text on narrow screens with the full accessible labels. The header places branding above the action row when space is tight.
+- Follow existing breakpoints. Shared grids stack at 960px, public competition and sign-up layouts stack at 760px, and general spacing tightens at 640px. Let long player and event names wrap. Keep horizontal scrolling inside content that needs it, such as standings and brackets.
 - Check affected pages at narrow mobile, tablet, and desktop widths. The existing browser checks use 375px, 768px, and 1280px. Review the page with realistic data, keyboard navigation, and the relevant registration or fixture states. [Responsive browser checks](frontend/tests/ui-consistency.spec.js)

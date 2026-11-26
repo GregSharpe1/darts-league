@@ -55,6 +55,7 @@ for (const width of [375, 768, 1280]) {
     await page.getByRole('link', { name: 'View fixtures', exact: true }).click()
     await expect(page).toHaveURL(/\/divisions\/premier$/)
     await expect(page.getByRole('heading', { name: 'Premier Division', level: 1 })).toBeVisible()
+    await page.getByRole('button', { name: 'Week 1', exact: true }).click()
     await expect(page.getByText('Averages: - / 0.0', { exact: true })).toBeVisible()
     if (width === 1280) await capture('division')
 

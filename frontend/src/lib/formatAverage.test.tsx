@@ -36,6 +36,7 @@ it('renders audit history with null, omitted and zero averages', () => {
 
 it('renders unknown public averages as placeholders rather than zero', () => {
   render(<MemoryRouter><CompletedResults weeks={[{ week_number: 1, status: 'unlocked', reveal_at: fixture.scheduled_at, fixtures: [fixture, { ...fixture, id: 2, result: { player_one_legs: 3, player_two_legs: 0, winner_id: 1 } }] }]} /></MemoryRouter>)
+  fireEvent.click(screen.getByRole('button', { name: 'Week 1' }))
   expect(screen.getByText('Averages: - / 0.0')).toBeVisible()
   expect(screen.getByText('Averages: - / -')).toBeVisible()
 })

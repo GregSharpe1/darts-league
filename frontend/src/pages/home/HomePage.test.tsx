@@ -16,7 +16,9 @@ describe('Home page', () => {
   it('gives the home page separate league and tournament destinations', () => {
     renderApp('/')
 
-    expect(screen.queryByRole('navigation', { name: 'Primary' })).not.toBeInTheDocument()
+    const toolbar = within(screen.getByRole('navigation', { name: 'Primary' }))
+    expect(toolbar.getAllByRole('link')).toHaveLength(1)
+    expect(toolbar.getByRole('link', { name: 'Admin' })).toHaveAttribute('href', '/admin')
     const league = screen.getByRole('region', { name: 'League matches' })
     const tournaments = screen.getByRole('region', { name: 'Tournaments' })
     expect(within(league).getByRole('link', { name: 'Browse divisions' })).toHaveAttribute('href', '/divisions')
@@ -66,25 +68,30 @@ describe('Home page', () => {
     })
   })
 
-  it('shows a division fixture board and lets the user switch weeks', async () => {
+  it('collapses only recorded weeks by default and lets the user toggle them', async () => {
     renderApp('/divisions/premier')
 
-    const weekOneButton = await screen.findByRole('button', { name: /week 1/i })
-    const weekTwoButton = await screen.findByRole('button', { name: /week 2/i })
+    const results = within(await screen.findByRole('region', { name: 'Recorded results' }))
+    const weekOneButton = results.getByRole('button', { name: 'Week 1' })
+    const weekTwoButton = results.getByRole('button', { name: 'Week 2' })
     const navigation = within(screen.getByRole('navigation', { name: 'Primary' }))
     expect(navigation.getByRole('link', { name: /^All Divisions$/ })).toHaveAttribute('href', '/divisions')
     expect(await navigation.findByRole('link', { name: /^Register$/ })).toHaveAttribute('href', '/register')
     expect(navigation.getByRole('link', { name: /^Tournaments$/ })).toHaveAttribute('href', '/tournaments')
 
-    expect(weekOneButton).toHaveAttribute('aria-expanded', 'true')
-    expect(screen.getByText(/the asp/i)).toBeInTheDocument()
-    expect(screen.queryByText(/voltage/i)).not.toBeInTheDocument()
-
-    fireEvent.click(weekTwoButton)
-
     expect(weekOneButton).toHaveAttribute('aria-expanded', 'false')
-    expect(weekTwoButton).toHaveAttribute('aria-expanded', 'true')
-    expect(screen.getByText(/voltage/i)).toBeInTheDocument()
+    expect(weekTwoButton).toHaveAttribute('aria-expanded', 'false')
+    expect(results.queryByRole('link')).not.toBeInTheDocument()
+    expect(screen.getByText(/the asp.*the ferret/i)).toBeVisible()
+    expect(screen.getByText(/voltage.*snakebite/i)).toBeVisible()
+    expect(screen.getByText(/nothing to see here/i)).toBeInTheDocument()
+
+    fireEvent.click(weekOneButton)
+    expect(weekOneButton).toHaveAttribute('aria-expanded', 'true')
+    expect(results.getByText(/the freeze.*bully boy/i)).toBeVisible()
+    fireEvent.click(weekOneButton)
+    expect(weekOneButton).toHaveAttribute('aria-expanded', 'false')
+    expect(results.queryByRole('link')).not.toBeInTheDocument()
   })
 
   it.each([false, true])('shows previous-league boards after every match is played (closed: %s)', async (seasonCompleted) => {
@@ -114,20 +121,31 @@ describe('Home page', () => {
     expect(deadline.getByText(/represent both players.*drops one level per missed fixture/i)).toBeInTheDocument()
   })
 
-  it('lets a player search their remaining unplayed fixtures inside a division', async () => {
+  it('filters the fixtures and opens every matching recorded week while searching', async () => {
     renderApp('/divisions/premier')
 
-    const search = await screen.findByLabelText(/find remaining games in this division/i)
+    const search = await screen.findByRole('combobox', { name: /find a player's games/i })
+    await screen.findByRole('region', { name: 'Recorded results' })
     fireEvent.focus(search)
-    await waitFor(() => {
-      expect(screen.getByRole('option', { name: /snakebite/i })).toBeInTheDocument()
-    })
+    fireEvent.change(search, { target: { value: 'luke' } })
+    fireEvent.click(await screen.findByRole('option', { name: 'The Freeze (Luke Humphries)' }))
 
-    fireEvent.change(search, { target: { value: 'sna' } })
-    fireEvent.click(screen.getByRole('option', { name: /snakebite/i }))
+    expect(search).toHaveValue('The Freeze (Luke Humphries)')
+    const results = within(screen.getByRole('region', { name: 'Recorded results' }))
+    expect(results.getByRole('button', { name: 'Week 1' })).toHaveAttribute('aria-expanded', 'true')
+    expect(results.getByRole('button', { name: 'Week 2' })).toHaveAttribute('aria-expanded', 'true')
+    expect(results.getAllByRole('link')).toHaveLength(2)
+    expect(screen.queryByText(/the asp|voltage|nothing to see here/i)).not.toBeInTheDocument()
 
-    expect(search).toHaveValue('Snakebite')
-    expect(screen.getByRole('heading', { name: /1 remaining match/i })).toBeInTheDocument()
-    expect(screen.getByText(/voltage/i)).toBeInTheDocument()
+    fireEvent.change(search, { target: { value: 'snakebite' } })
+    expect(screen.getByText(/voltage.*snakebite/i)).toBeVisible()
+    expect(screen.queryByRole('region', { name: 'Recorded results' })).not.toBeInTheDocument()
+    expect(screen.queryByText(/the asp/i)).not.toBeInTheDocument()
+
+    fireEvent.change(search, { target: { value: '' } })
+    const resetResults = within(screen.getByRole('region', { name: 'Recorded results' }))
+    expect(resetResults.getByRole('button', { name: 'Week 1' })).toHaveAttribute('aria-expanded', 'false')
+    expect(resetResults.getByRole('button', { name: 'Week 2' })).toHaveAttribute('aria-expanded', 'false')
+    expect(screen.getByText(/the asp.*the ferret/i)).toBeVisible()
   })
 })

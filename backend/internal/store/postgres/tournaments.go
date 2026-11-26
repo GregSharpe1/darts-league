@@ -9,12 +9,12 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
-const tournamentColumns = `slug, name, to_char(starts_on, 'YYYY-MM-DD'), registration_open, bracket, game_variant, legs_to_win`
+const tournamentColumns = `slug, name, to_char(starts_on, 'YYYY-MM-DD'), COALESCE(to_char(ends_on, 'YYYY-MM-DD'), ''), registration_open, bracket, game_variant, legs_to_win`
 const tournamentEntryColumns = `id, display_name, nickname, registered_at`
 
 func scanTournament(row pgx.Row) (tournament.Event, error) {
 	var event tournament.Event
-	err := row.Scan(&event.Slug, &event.Name, &event.StartsOn, &event.RegistrationOpen, &event.Bracket, &event.GameVariant, &event.LegsToWin)
+	err := row.Scan(&event.Slug, &event.Name, &event.StartsOn, &event.EndsOn, &event.RegistrationOpen, &event.Bracket, &event.GameVariant, &event.LegsToWin)
 	if errors.Is(err, pgx.ErrNoRows) {
 		err = tournament.ErrNotFound
 	}
@@ -23,9 +23,9 @@ func scanTournament(row pgx.Row) (tournament.Event, error) {
 
 func (s *Store) CreateTournament(ctx context.Context, event tournament.Event) (tournament.Event, error) {
 	created, err := scanTournament(s.pool.QueryRow(ctx, `
-		INSERT INTO tournaments (slug, name, starts_on, game_variant, legs_to_win)
-		VALUES ($1, $2, $3::text::date, $4, $5) ON CONFLICT (slug) DO NOTHING
-		RETURNING `+tournamentColumns, event.Slug, event.Name, event.StartsOn, event.GameVariant, event.LegsToWin))
+		INSERT INTO tournaments (slug, name, starts_on, ends_on, game_variant, legs_to_win)
+		VALUES ($1, $2, $3::text::date, NULLIF($4, '')::date, $5, $6) ON CONFLICT (slug) DO NOTHING
+		RETURNING `+tournamentColumns, event.Slug, event.Name, event.StartsOn, event.EndsOn, event.GameVariant, event.LegsToWin))
 	if errors.Is(err, tournament.ErrNotFound) {
 		err = tournament.ErrDuplicateSlug
 	}
@@ -126,6 +126,12 @@ func (s *Store) UpdateTournamentFormat(ctx context.Context, slug string, format 
 		return tournament.Event{}, tournament.ErrFormatLocked
 	}
 	return event, err
+}
+
+func (s *Store) UpdateTournamentEndDate(ctx context.Context, slug, endsOn string) (tournament.Event, error) {
+	return scanTournament(s.pool.QueryRow(ctx, `
+		UPDATE tournaments SET ends_on = NULLIF($2, '')::date WHERE slug = $1
+		RETURNING `+tournamentColumns, slug, endsOn))
 }
 
 func lockTournament(ctx context.Context, tx pgx.Tx, slug string) (tournament.Event, error) {

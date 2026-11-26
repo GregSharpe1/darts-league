@@ -103,7 +103,11 @@ export function createMockFetch(state: AppState) {
             week_number: 2,
             status: 'unlocked',
             reveal_at: 'Mon, 30 Mar 2026 09:00:00 GMT',
-            fixtures: [{ id: 3, player_one: 'Voltage (Rob Cross)', player_two: 'Snakebite (Peter Wright)', scheduled_at: 'Mon, 30 Mar 2026 19:30:00 GMT', game_variant: '501', legs_to_win: 3 }],
+            fixtures: [
+              { id: 3, player_one: 'Voltage (Rob Cross)', player_two: 'Snakebite (Peter Wright)', scheduled_at: 'Mon, 30 Mar 2026 19:30:00 GMT', game_variant: '501', legs_to_win: 3 },
+              { id: 5, player_one: 'The Freeze (Luke Humphries)', player_two: 'The Ferret (Jonny Clayton)', scheduled_at: 'Mon, 30 Mar 2026 20:00:00 GMT', game_variant: '501', legs_to_win: 3, result: { player_one_legs: 3, player_two_legs: 2, winner_id: 1 } },
+              { id: 6, player_one: 'The Asp (Nathan Aspinall)', player_two: 'Bully Boy (Michael Smith)', scheduled_at: 'Mon, 30 Mar 2026 20:30:00 GMT', game_variant: '501', legs_to_win: 3, result: { player_one_legs: 3, player_two_legs: 2, winner_id: 4 } },
+            ],
           },
           {
             week_number: 3,

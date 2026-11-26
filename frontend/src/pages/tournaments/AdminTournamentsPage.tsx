@@ -12,12 +12,14 @@ import {
   useSetTournamentRegistration,
   useStartTournament,
   useTournamentEntries,
+  useUpdateTournamentEndDate,
   useUpdateTournamentFormat,
 } from '../../lib/tournamentsApi'
 import { readError } from '../../lib/utils'
 import { TournamentDate } from './TournamentDate'
 import { TournamentList } from './TournamentList'
 import { TournamentFormat } from './TournamentFormat'
+import { TournamentScoreEditor } from './TournamentScoreEditor'
 
 export function AdminTournamentsPage() {
   const { slug } = useParams()
@@ -27,16 +29,21 @@ export function AdminTournamentsPage() {
 
   return (
     <>
-      <section className="page-intro">
-        <span className="eyebrow">Tournament admin</span>
-        <h1>{event?.name ?? 'Tournaments'}</h1>
-        {slug ? <Link className="tournament-link" to="/admin/tournaments">All tournaments</Link> : null}
+      <section className="hero-panel competition-hero competition-hero--tournament competition-hero--compact">
+        <div className="hero-copy">
+          <span className="competition-kicker">Tournament admin</span>
+          <h1>{event?.name ?? 'Tournaments'}</h1>
+          {slug ? <Link className="competition-signup-back" to="/admin/tournaments">All tournaments</Link> : (
+            <p>Set the match format, manage entrants, and publish knockout draws.</p>
+          )}
+        </div>
       </section>
       {tournaments.isPending ? <StateNotice message="Loading tournaments..." /> : null}
       {unauthorized ? <Link to="/admin" className="button-link cta-link">Log in to manage tournaments</Link> : null}
       {tournaments.error && !unauthorized ? <StateNotice tone="error" message={readError(tournaments.error)} /> : null}
       {tournaments.isSuccess && slug && !event ? <StateNotice tone="error" message="Tournament was not found." /> : null}
-      {event && tournaments.isSuccess ? <TournamentRoster key={event.slug} event={event} /> : null}
+      {event?.bracket && tournaments.isSuccess ? <TournamentScoreEditor key={`scores-${event.slug}`} event={event} /> : null}
+      {event && tournaments.isSuccess ? <TournamentRoster key={`roster-${event.slug}`} event={event} /> : null}
       {!slug && tournaments.isSuccess ? (
         <section className="admin-grid">
           <CreateTournament />
@@ -59,8 +66,8 @@ function CreateTournament() {
     const form = new FormData(event.currentTarget)
     create.mutate({
       name: String(form.get('name')),
-      slug: String(form.get('slug')),
       starts_on: String(form.get('starts-on')),
+      ends_on: String(form.get('ends-on')) || undefined,
       ...readMatchFormat(form),
     }, {
       onSuccess: (tournament) => navigate(`/admin/tournaments/${tournament.slug}`),
@@ -80,9 +87,8 @@ function CreateTournament() {
           <input id="tournament-date" name="starts-on" type="date" required disabled={create.isPending} />
         </div>
         <div className="field">
-          <label htmlFor="tournament-slug">Event link slug</label>
-          <input id="tournament-slug" name="slug" required pattern="[a-z0-9]+(-[a-z0-9]+)*" maxLength={60} placeholder="friday-knockout" aria-describedby="tournament-slug-help" disabled={create.isPending} />
-          <span className="fixture-meta" id="tournament-slug-help">Use lowercase letters, digits, and hyphens. This becomes the end of the public link.</span>
+          <label htmlFor="tournament-end-date">End date (optional)</label>
+          <input id="tournament-end-date" name="ends-on" type="date" disabled={create.isPending} />
         </div>
         <MatchFormatFields disabled={create.isPending} />
         <button type="submit" disabled={create.isPending}>{create.isPending ? 'Creating...' : 'Create tournament'}</button>
@@ -125,10 +131,11 @@ function TournamentRoster({ event }: { event: Tournament }) {
   const start = useStartTournament(event.slug)
   const deleteTournament = useDeleteTournament(event.slug)
   const updateFormat = useUpdateTournamentFormat(event.slug)
+  const updateEndDate = useUpdateTournamentEndDate(event.slug)
   const started = Boolean(event.bracket)
   const canStart = !event.registration_open && (entries.data?.length ?? 0) >= 2
   const canDelete = event.registration_open && !started
-  const tournamentBusy = updateFormat.isPending || start.isPending || deleteTournament.isPending
+  const tournamentBusy = updateFormat.isPending || updateEndDate.isPending || start.isPending || deleteTournament.isPending
 
   async function confirmDelete() {
     if (!window.confirm(`Delete ${event.name} and all its entries? This cannot be undone.`)) return
@@ -144,7 +151,7 @@ function TournamentRoster({ event }: { event: Tournament }) {
     <section className="admin-grid">
       <article className="admin-card">
         <h2>{started ? 'Tournament started' : event.registration_open ? 'Registration open' : 'Registration closed'}</h2>
-        <p>{started ? 'Event date' : 'Starts'} <TournamentDate startsOn={event.starts_on} /></p>
+        <p>{started ? 'Event date' : 'Starts'} <TournamentDate date={event.starts_on} /></p>
         {!started && !event.registration_open && entries.isSuccess && !canStart ? <p>At least two entrants are needed to draw the bracket.</p> : null}
         <div className="toolbar-actions tournament-registration-actions">
           <Link className="button-link secondary-button" to={`/tournaments/${event.slug}`}>{started ? 'View bracket' : 'Public sign-up page'}</Link>
@@ -171,6 +178,22 @@ function TournamentRoster({ event }: { event: Tournament }) {
           </div>
         ) : null}
         {deleteTournament.error ? <StateNotice tone="error" message={readError(deleteTournament.error)} compact /> : null}
+        <div className="tournament-registration-actions">
+          <h3>Match deadline</h3>
+          <form className="form-preview" onSubmit={(submission) => {
+            submission.preventDefault()
+            updateEndDate.mutate(String(new FormData(submission.currentTarget).get('ends-on')))
+          }}>
+            <div className="field">
+              <label htmlFor="tournament-end-date">End date (optional)</label>
+              <input key={event.ends_on} id="tournament-end-date" name="ends-on" type="date" min={event.starts_on} defaultValue={event.ends_on} disabled={tournamentBusy} aria-describedby="end-date-help" />
+              <small className="fixture-meta" id="end-date-help">Leave blank to remove the public deadline.</small>
+            </div>
+            <button type="submit" disabled={tournamentBusy}>{updateEndDate.isPending ? 'Saving...' : 'Save end date'}</button>
+          </form>
+          {updateEndDate.error ? <StateNotice tone="error" message={readError(updateEndDate.error)} compact /> : null}
+          {updateEndDate.isSuccess ? <StateNotice message="End date saved." compact /> : null}
+        </div>
         <div className="tournament-registration-actions">
           <h3>Match format</h3>
           {started ? <TournamentFormat format={event} /> : (

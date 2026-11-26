@@ -1,5 +1,5 @@
-import { useEffect } from 'react'
-import { NavLink, Route, Routes, matchPath, useLocation, useNavigate } from 'react-router-dom'
+import { useEffect, useLayoutEffect } from 'react'
+import { NavLink, Route, Routes, matchPath, useLocation, useNavigate, useNavigationType } from 'react-router-dom'
 import './App.css'
 import './publicPages.css'
 import { useSeasonSummary, useBackendVersion, useDivisions, useAdminLogout, useAdminPlayers } from './lib/api'
@@ -21,6 +21,7 @@ import { PlayerPage } from './pages/players/PlayerPage'
 function App() {
   const location = useLocation()
   const navigate = useNavigate()
+  const navigationType = useNavigationType()
   const onHomePage = location.pathname === '/'
   const onDivisionDirectory = Boolean(matchPath('/divisions', location.pathname))
   const onTournamentPage = Boolean(matchPath('/tournaments/*', location.pathname))
@@ -42,6 +43,12 @@ function App() {
     document.title = currentDivision ? `${instanceName} | ${currentDivision.name}` : instanceName
   }, [currentDivision, instanceName])
 
+  useLayoutEffect(() => {
+    if (navigationType !== 'POP' && !location.hash) {
+      window.scrollTo({ top: 0, left: 0, behavior: 'instant' })
+    }
+  }, [location.pathname, location.hash, navigationType])
+
   return (
     <div className="app-shell">
       <header className={onAdminPage ? 'topbar' : 'topbar public-topbar'}>
@@ -52,43 +59,41 @@ function App() {
             <span>{currentDivision ? currentDivision.name : 'Monday unlocks. Saturday bragging rights.'}</span>
           </div>
         </NavLink>
-        {!onHomePage ? (
-          <nav className="primary-nav" aria-label="Primary">
-            {onAdminPage ? (
-              <>
-                {!onAdminHome ? <NavLink to="/admin">Admin home</NavLink> : null}
-                {onAdminHome && adminAuthenticated ? <NavLink to="/admin/pending-results">Pending results</NavLink> : null}
-                {onAdminHome && adminAuthenticated ? <NavLink to="/admin/tournaments">Tournaments</NavLink> : null}
-                {adminAuthenticated ? (
-                  <button
-                    type="button"
-                    onClick={async () => {
-                      await adminLogoutMutation.mutateAsync()
-                      navigate('/')
-                    }}
-                    disabled={adminLogoutMutation.isPending}
-                  >
-                    {adminLogoutMutation.isPending ? 'Logging out...' : 'Log out'}
-                  </button>
-                ) : null}
-              </>
-            ) : onTournamentPage ? (
-              <NavLink to="/divisions">League</NavLink>
-            ) : (
-              <>
-                {onDivisionPage ? (
-                  <>
-                    <NavLink to={`/divisions/${divisionSlug}`} end>Fixtures</NavLink>
-                    <NavLink to={`/divisions/${divisionSlug}/standings`}>Standings</NavLink>
-                    <NavLink to="/divisions" end>All Divisions</NavLink>
-                  </>
-                ) : onDivisionDirectory ? null : <NavLink to="/divisions">Divisions</NavLink>}
-                {seasonQuery.data?.registration_open ? <NavLink to="/register">Register</NavLink> : null}
-                <NavLink to="/tournaments">Tournaments</NavLink>
-              </>
-            )}
-          </nav>
-        ) : null}
+        <nav className="primary-nav" aria-label="Primary">
+          {onHomePage ? <NavLink to="/admin">Admin</NavLink> : onAdminPage ? (
+            <>
+              {!onAdminHome ? <NavLink to="/admin">Admin home</NavLink> : null}
+              {onAdminHome && adminAuthenticated ? <NavLink to="/admin/pending-results" aria-label="Pending results"><span className="nav-full-label">Pending results</span><span className="nav-compact-label" aria-hidden="true">Results</span></NavLink> : null}
+              {onAdminHome && adminAuthenticated ? <NavLink to="/admin/tournaments" aria-label="Tournaments"><span className="nav-full-label">Tournaments</span><span className="nav-compact-label" aria-hidden="true">Events</span></NavLink> : null}
+              {adminAuthenticated ? (
+                <button
+                  type="button"
+                  onClick={async () => {
+                    await adminLogoutMutation.mutateAsync()
+                    navigate('/')
+                  }}
+                  disabled={adminLogoutMutation.isPending}
+                >
+                  {adminLogoutMutation.isPending ? 'Logging out...' : 'Log out'}
+                </button>
+              ) : null}
+            </>
+          ) : onTournamentPage ? (
+            <NavLink to="/divisions">League</NavLink>
+          ) : (
+            <>
+              {onDivisionPage ? (
+                <>
+                  <NavLink to={`/divisions/${divisionSlug}`} end>Fixtures</NavLink>
+                  <NavLink to={`/divisions/${divisionSlug}/standings`} aria-label="Standings"><span className="nav-full-label">Standings</span><span className="nav-compact-label" aria-hidden="true">Table</span></NavLink>
+                  <NavLink to="/divisions" end aria-label="All Divisions"><span className="nav-full-label">All Divisions</span><span className="nav-compact-label" aria-hidden="true">Divisions</span></NavLink>
+                </>
+              ) : onDivisionDirectory ? null : <NavLink to="/divisions">Divisions</NavLink>}
+              {seasonQuery.data?.registration_open ? <NavLink to="/register">Register</NavLink> : null}
+              <NavLink to="/tournaments" aria-label="Tournaments"><span className="nav-full-label">Tournaments</span><span className="nav-compact-label" aria-hidden="true">Events</span></NavLink>
+            </>
+          )}
+        </nav>
       </header>
 
       <main className="page-frame">

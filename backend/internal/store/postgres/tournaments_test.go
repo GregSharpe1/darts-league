@@ -15,12 +15,12 @@ func TestTournamentRegistrationPostgres(t *testing.T) {
 	ctx := context.Background()
 	service := tournament.Service{Store: store, Now: time.Now}
 
-	for _, slug := range []string{"city-cup", "winter-cup"} {
-		event, err := service.Create(ctx, slug, "Tournament", "2027-02-06", tournament.DefaultMatchFormat())
+	for _, name := range []string{"City Cup", "Winter Cup"} {
+		event, err := service.Create(ctx, name, "2027-02-06", "", tournament.DefaultMatchFormat())
 		if err != nil || event.StartsOn != "2027-02-06" || event.RegistrationOpen || event.MatchFormat != tournament.DefaultMatchFormat() {
 			t.Fatalf("create tournament returned %+v, %v", event, err)
 		}
-		if _, err := store.SetTournamentRegistration(ctx, slug, true); err != nil {
+		if _, err := store.SetTournamentRegistration(ctx, event.Slug, true); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -124,7 +124,7 @@ func TestTournamentRegistrationPostgres(t *testing.T) {
 	if _, err := store.GetTournament(ctx, "city-cup"); !errors.Is(err, tournament.ErrNotFound) {
 		t.Fatalf("deleted tournament lookup returned %v", err)
 	}
-	if _, err := service.Create(ctx, "city-cup", "New City Cup", "2027-02-06", tournament.DefaultMatchFormat()); err != nil {
+	if _, err := service.Create(ctx, "City Cup", "2027-02-06", "", tournament.DefaultMatchFormat()); err != nil {
 		t.Fatal(err)
 	}
 	entries, err = store.ListTournamentEntries(ctx, "city-cup")
@@ -137,7 +137,7 @@ func TestTournamentFormatMigrationKeepsExistingBracket(t *testing.T) {
 	store := approvalPG(t)
 	ctx := context.Background()
 	if _, err := store.pool.Exec(ctx, `
-		ALTER TABLE tournaments DROP COLUMN game_variant, DROP COLUMN legs_to_win;
+		ALTER TABLE tournaments DROP COLUMN game_variant, DROP COLUMN legs_to_win, DROP COLUMN ends_on;
 		INSERT INTO tournaments (slug, name, starts_on, bracket) VALUES (
 			'old-cup', 'Old Cup', '2027-02-06',
 			'[[{"number":1,"slots":[{"player":"Alice"},{"player":"Bob"}]}]]'
@@ -155,6 +155,18 @@ func TestTournamentFormatMigrationKeepsExistingBracket(t *testing.T) {
 	if err != nil || event.MatchFormat != tournament.DefaultMatchFormat() || len(event.Bracket) != 1 ||
 		len(event.Bracket[0]) != 1 || event.Bracket[0][0].Slots[0].Player != "Alice" {
 		t.Fatalf("upgraded tournament returned %+v, %v", event, err)
+	}
+	service := tournament.Service{Store: store}
+	event, err = service.UpdateEndDate(ctx, "old-cup", "2027-02-20")
+	if err != nil || event.EndsOn != "2027-02-20" || len(event.Bracket) != 1 {
+		t.Fatalf("setting the end date must preserve the published bracket: %+v, %v", event, err)
+	}
+	saved, err := store.GetTournament(ctx, "old-cup")
+	if err != nil || saved.EndsOn != event.EndsOn {
+		t.Fatalf("end date was not persisted: %+v, %v", saved, err)
+	}
+	if cleared, err := service.UpdateEndDate(ctx, "old-cup", ""); err != nil || cleared.EndsOn != "" {
+		t.Fatalf("clearing the end date returned %+v, %v", cleared, err)
 	}
 	entries, err := store.ListTournamentEntries(ctx, "old-cup")
 	if err != nil || len(entries) != 1 || entries[0].DisplayName != "Alice" {

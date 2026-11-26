@@ -23,7 +23,7 @@ func publishedCup(t *testing.T, store *Store, slug string, legs int32, names ...
 	t.Helper()
 	ctx := context.Background()
 	service := tournament.Service{Store: store, Now: time.Now}
-	if _, err := service.Create(ctx, slug, "Test "+slug, "2026-06-16", tournament.MatchFormat{GameVariant: "501", LegsToWin: legs}); err != nil {
+	if _, err := service.Create(ctx, strings.ReplaceAll(slug, "-", " "), "2026-06-16", "", tournament.MatchFormat{GameVariant: "501", LegsToWin: legs}); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := store.SetTournamentRegistration(ctx, slug, true); err != nil {

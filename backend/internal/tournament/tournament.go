@@ -3,32 +3,32 @@ package tournament
 import (
 	"context"
 	"errors"
-	"regexp"
+	"strconv"
 	"strings"
 	"time"
 	"unicode"
 	"unicode/utf8"
 
 	"github.com/greg/darts-league/backend/internal/league"
+	"golang.org/x/text/unicode/norm"
 )
 
 var (
-	ErrNotFound      = errors.New("tournament not found")
-	ErrEntryNotFound = errors.New("tournament entry not found")
-	ErrDuplicateSlug = errors.New("tournament link is already in use")
-	ErrDeleteLocked  = errors.New("only tournaments with open registration can be deleted")
-	ErrFormatLocked  = errors.New("tournament match format is locked once the bracket is published")
-	ErrInvalidName   = errors.New("tournament name must contain 2 to 60 characters without control characters")
-	ErrInvalidSlug   = errors.New("tournament link must contain up to 60 lowercase letters, digits, or single hyphens between words")
-	ErrInvalidDate   = errors.New("enter a valid tournament start date")
+	ErrNotFound       = errors.New("tournament not found")
+	ErrEntryNotFound  = errors.New("tournament entry not found")
+	ErrDuplicateSlug  = errors.New("tournament link is already in use")
+	ErrDeleteLocked   = errors.New("only tournaments with open registration can be deleted")
+	ErrFormatLocked   = errors.New("tournament match format is locked once the bracket is published")
+	ErrInvalidName    = errors.New("tournament name must contain 2 to 60 characters without control characters")
+	ErrInvalidDate    = errors.New("enter a valid tournament start date")
+	ErrInvalidEndDate = errors.New("enter a tournament end date on or after the start date")
 )
-
-var validSlug = regexp.MustCompile(`^[a-z0-9]+(-[a-z0-9]+)*$`)
 
 type Event struct {
 	Slug             string  `json:"slug"`
 	Name             string  `json:"name"`
 	StartsOn         string  `json:"starts_on"`
+	EndsOn           string  `json:"ends_on,omitempty"`
 	RegistrationOpen bool    `json:"registration_open"`
 	Bracket          Bracket `json:"bracket,omitempty"`
 	MatchFormat
@@ -68,6 +68,7 @@ type Store interface {
 	DeleteTournament(context.Context, string) error
 	SetTournamentRegistration(context.Context, string, bool) (Event, error)
 	UpdateTournamentFormat(context.Context, string, MatchFormat) (Event, error)
+	UpdateTournamentEndDate(context.Context, string, string) (Event, error)
 	StartTournament(context.Context, string) (Event, error)
 	CreateTournamentEntry(context.Context, string, Entry) (Entry, error)
 	ListTournamentEntries(context.Context, string) ([]Entry, error)
@@ -79,22 +80,76 @@ type Service struct {
 	Now   func() time.Time
 }
 
-func (s Service) Create(ctx context.Context, slug, name, startsOn string, format MatchFormat) (Event, error) {
+func (s Service) Create(ctx context.Context, name, startsOn, endsOn string, format MatchFormat) (Event, error) {
 	normalizedName := league.NormalizeWhitespace(name)
 	if strings.ContainsFunc(name, unicode.IsControl) || utf8.RuneCountInString(normalizedName) < 2 || utf8.RuneCountInString(normalizedName) > 60 {
 		return Event{}, ErrInvalidName
-	}
-	if len(slug) > 60 || !validSlug.MatchString(slug) {
-		return Event{}, ErrInvalidSlug
 	}
 	date, err := time.Parse(time.DateOnly, startsOn)
 	if err != nil || date.Year() < 1 {
 		return Event{}, ErrInvalidDate
 	}
+	if err := validateEndDate(startsOn, endsOn); err != nil {
+		return Event{}, err
+	}
 	if err := format.validate(); err != nil {
 		return Event{}, err
 	}
-	return s.Store.CreateTournament(ctx, Event{Slug: slug, Name: normalizedName, StartsOn: startsOn, MatchFormat: format})
+	base := tournamentSlug(normalizedName)
+	event := Event{Slug: base, Name: normalizedName, StartsOn: startsOn, EndsOn: endsOn, MatchFormat: format}
+	for suffix := 2; ; suffix++ {
+		created, err := s.Store.CreateTournament(ctx, event)
+		if !errors.Is(err, ErrDuplicateSlug) {
+			return created, err
+		}
+		event.Slug = base + "-" + strconv.Itoa(suffix)
+	}
+}
+
+func tournamentSlug(name string) string {
+	keepMarks := false
+	slug := strings.Map(func(r rune) rune {
+		switch {
+		case unicode.IsLetter(r) || unicode.IsDigit(r):
+			keepMarks = unicode.IsLetter(r) && !unicode.Is(unicode.Latin, r)
+			return unicode.ToLower(r)
+		case unicode.IsMark(r):
+			if keepMarks {
+				return r
+			}
+			return -1
+		default:
+			keepMarks = false
+			return ' '
+		}
+	}, norm.NFD.String(name))
+	slug = norm.NFC.String(strings.Join(strings.Fields(slug), "-"))
+	if slug == "" {
+		return "tournament"
+	}
+	return slug
+}
+
+func validateEndDate(startsOn, endsOn string) error {
+	if endsOn == "" {
+		return nil
+	}
+	end, err := time.Parse(time.DateOnly, endsOn)
+	if err != nil || end.Year() < 1 || endsOn < startsOn {
+		return ErrInvalidEndDate
+	}
+	return nil
+}
+
+func (s Service) UpdateEndDate(ctx context.Context, slug, endsOn string) (Event, error) {
+	event, err := s.Store.GetTournament(ctx, slug)
+	if err != nil {
+		return Event{}, err
+	}
+	if err := validateEndDate(event.StartsOn, endsOn); err != nil {
+		return Event{}, err
+	}
+	return s.Store.UpdateTournamentEndDate(ctx, slug, endsOn)
 }
 
 func (s Service) UpdateFormat(ctx context.Context, slug string, format MatchFormat) (Event, error) {

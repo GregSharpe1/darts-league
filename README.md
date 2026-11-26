@@ -200,6 +200,12 @@ format and a date through server time, and the import has no changed content
 or source conflict. The approval receipt records the actor, tournament, bracket
 match and entrant mapping. The public bracket shows the stored score and winner.
 
+Admins can correct a recorded result from the tournament's admin page. Enter the
+updated legs and a reason. If the winner changes, the bracket advances the
+corrected winner. Confirm any later scores that must be cleared so those rounds
+can be replayed. Corrections and cleared results are recorded in the audit
+history. Original Autodarts receipts remain recorded and cannot be reused.
+
 Open **Pending Results** in the admin toolbar. **Fetch new results** reads the
 relay on demand. A unique tournament match is preselected for manual approval.
 When several matches qualify, choose the event and bracket match and verify the
