@@ -164,9 +164,9 @@ per season. Mappings prefill pending reviews without publishing them.
 `AUTODARTS_AUTO_SUBMIT` defaults to `false` (including Docker Compose). To opt in,
 set it to `true` in the backend deployment environment, or set Helm
 `backend.env.autodartsAutoSubmit=true`, and redeploy the backend. This is not an
-admin UI toggle. Automatic approval requires all of the following:
+admin UI toggle. Automatic league approval requires all of the following:
 
-- A new, unchanged import without a source review conflict, at its first successful ingestion into darts-league
+- A new, unchanged import marked **League match** without a source review conflict, at its first successful ingestion
 - Both names already mapped at ingestion to distinct current-season players in the same division
 - A started, writable season and exactly one compatible, unscored fixture for that pair
 - Source-reported supported settings (`501`, first to `2` or `3`, double out), a valid score matching the fixture, and a source `played_at` from season start through server time inclusive; manual format attestation or a missing-date explanation cannot qualify
@@ -181,6 +181,46 @@ To disable, set `AUTODARTS_AUTO_SUBMIT=false` (Helm:
 `backend.env.autodartsAutoSubmit=false`) and redeploy the backend. This affects
 future ingestions only; it does not undo scored results or change audit history.
 Manual result entry, editing, replacement, and undo remain admin-only.
+
+### Pending Results and tournament imports
+
+Choose **League match** or **Tournament match** in the scraper before submitting.
+Both competitions accept imported scores for **501 double out, first to 2 or 3
+legs**, matching the destination's format. The relay carries this choice to the
+inbox. Each Autodarts match ID can score one competition match. Use a separate
+source match ID for each game, even when the players and week are the same.
+
+A tournament import searches published brackets for unscored matches with both
+entrants ready to play. The service compares each trimmed Autodarts name
+case-sensitively with tournament entrant display names and nicknames, then uses
+entrant IDs to map the score and advance the winner. No league season or league
+mapping is needed. A unique match and entrant mapping can be approved at first
+ingestion when `AUTODARTS_AUTO_SUBMIT=true`, the source reports a supported
+format and a date through server time, and the import has no changed content
+or source conflict. The approval receipt records the actor, tournament, bracket
+match and entrant mapping. The public bracket shows the stored score and winner.
+
+Open **Pending Results** in the admin toolbar. **Fetch new results** reads the
+relay on demand. A unique tournament match is preselected for manual approval.
+When several matches qualify, choose the event and bracket match and verify the
+entrants. With no match, the result stays pending and the inbox shows the reason.
+In older published brackets, the service can recover entrant IDs from unique
+stored labels. Brackets with unrecoverable shared labels keep their original draw
+and affected matches stay pending.
+
+Older submissions with no competition type stay pending until an admin chooses
+the destination. Older summaries may require format attestation and an explanation
+for a missing source date. A queued score that stays pending sends the admin
+Slack channel the players, known competition type, reason and inbox link when
+configured. Duplicate delivery does not post another alert for the same receipt.
+See the [submission payload](docs/autodarts-match-details.md#import-payload)
+and [Slack guide](docs/notifications.md).
+
+The bookmarklet loads the scraper from `main` as soon as a change merges.
+Pause tournament submissions before merging this change, then resume them
+once the competition-aware backend and frontend are deployed. Older backends
+ignore the competition field and can still try to auto-submit an incoming
+tournament score against a league fixture.
 
 ### Closing a league and opening the next season
 

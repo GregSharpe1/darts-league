@@ -7,11 +7,11 @@ BEGIN
     IF OLD.digest IS NOT NULL AND
        ROW(OLD.source,OLD.external_match_id,OLD.digest,OLD.source_payload,OLD.played_at_original,
            OLD.settings_evidence,OLD.received_at,OLD.player_one_name,OLD.player_one_legs,OLD.player_one_average,
-           OLD.player_two_name,OLD.player_two_legs,OLD.player_two_average,OLD.review_reason)
+           OLD.player_two_name,OLD.player_two_legs,OLD.player_two_average,OLD.review_reason,OLD.competition_type)
        IS DISTINCT FROM
        ROW(NEW.source,NEW.external_match_id,NEW.digest,NEW.source_payload,NEW.played_at_original,
            NEW.settings_evidence,NEW.received_at,NEW.player_one_name,NEW.player_one_legs,NEW.player_one_average,
-           NEW.player_two_name,NEW.player_two_legs,NEW.player_two_average,NEW.review_reason) THEN
+           NEW.player_two_name,NEW.player_two_legs,NEW.player_two_average,NEW.review_reason,NEW.competition_type) THEN
         RAISE EXCEPTION 'import originals are immutable';
     END IF;
     RETURN NEW;

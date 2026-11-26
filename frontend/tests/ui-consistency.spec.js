@@ -6,7 +6,7 @@ const players = ['Morgan Ember', 'Casey Vale'].map((name, index) => ({ id: index
 const divisions = [{ id: 1, name: 'Premier Division', slug: 'premier', position: 1 }]
 const result = { player_one_legs: 3, player_two_legs: 1, player_one_average: null, player_two_average: 0, winner_id: 1 }
 const fixture = { id: 1, player_one: players[0].display_name, player_two: players[1].display_name, scheduled_at: '2026-06-15T09:00:00Z', game_variant: '501', legs_to_win: 3, result }
-const pending = { ...result, id: 1, external_match_id: 'mock-match', player_one_name: 'Morgan', player_two_name: 'Casey', status: 'pending', received_at: fixture.scheduled_at }
+const pending = { ...result, id: 1, external_match_id: 'mock-match', competition_type: 'league', player_one_name: 'Morgan', player_two_name: 'Casey', status: 'pending', received_at: fixture.scheduled_at }
 const pendingDetail = {
   pending_result: pending, source: 'autodarts', digest: 'mock', changed_import: false,
   settings_evidence: 'source_reported', review_reason: '', played_at: fixture.scheduled_at,

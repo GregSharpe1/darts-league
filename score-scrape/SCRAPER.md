@@ -1,34 +1,35 @@
-# Detailed capture (#40)
+# Autodarts score capture
 
-Paste `scoreScrape.js` into the completed-match browser tab. It retains the green
-installed indicator and settings-cookie dialog. Saved settings outside 501/first to 2 or 3
-open the dialog again with the endpoint retained. The league legs-to-win setting
-defaults to 2 and must match the Autodarts match format. Clear the `autodarts_score_scrape_settings` cookie to reconfigure.
+Install `scoreScrape.js` in the completed-match browser tab. The green indicator
+shows that capture is installed. Set the HTTPS relay endpoint on first use.
+Existing settings cookies retain the endpoint. Clear
+`autodarts_score_scrape_settings` to change it.
 
-**Sandbox is the default:** confirmations preview but never POST. Production
+The scraper supports **501 double out, first to 2 or 3 legs** for both league and
+tournament imports. Each captured match asks **Was this a league match or a
+tournament match?** Choose **League match** or **Tournament match**, then check
+the competition, players, score, format and original time in **Submit result**.
+The backend finds the fixture or bracket match. Two games between the same
+players need separate Autodarts match IDs.
+
+**Sandbox is the default.** Confirmations preview the result. Production
 submission requires deliberately setting `window.__scoreScrapeSandbox = false`
-before installing the script in a fresh tab. Every payload still requires an
-explicit confirmation showing destination, players, score and original time.
-Do not disable sandbox while testing synthetic sources. Recognized top-level
-synthetic/provenance markers block submission even outside sandbox. Unmarked
-fabricated data cannot be distinguished from source data; this is not provenance
-authentication. This iteration is not deployment approval.
+before installing the script in a fresh tab. Keep sandbox enabled for synthetic
+tests. Recognized top-level synthetic/provenance markers block submission.
 
-Success means accepted for delivery, not approved/published. Failures offer a
-deliberate Retry; closing or cancelling allows a later response to prompt again.
-Concurrent/exact successful payloads are deduplicated for this tab only. Changed
-payloads prompt separately, including during an earlier confirmation/submission.
-Timeouts may have delivered: retry preserves identical bytes for backend dedupe.
-No credentials, request headers, profiles or host metadata are copied. The relay
-remains unauthenticated by approved scope; admin review does not prove origin.
+An accepted submission is queued for delivery. Automatic approval and admin
+review happen in the backend. If a POST fails, **Retry** sends the same bytes,
+including the selected competition, for backend deduplication. Closing or
+cancelling allows a later stats response to prompt again. The scraper copies
+no credentials, headers, profiles or host metadata.
 
 ## Observed source mapping
 
 Only GET stats XHRs from `https://api.autodarts.com/as/v0/matches/{id}/stats`
 (or the same path at `api.autodarts.io`) are considered. Successful JSON/text
-responses must have the matching ID, X01/501/Double, targetLegs=2 or 3 (must match the saved league setting, default 2), no sets
+responses must have the matching ID, X01/501/Double, targetLegs=2 or 3, no sets
 (targetSets null/0), finishedAt, two distinct players and a matching winner with
-3-0/3-1/3-2 scores. Other app responses are untouched.
+2-0/2-1 or 3-0/3-1/3-2 scores. Other app responses are untouched.
 
 - Original `createdAt` becomes `playedAt`, preserving its offset and precision;
   missing time remains null, never capture time. `finishedAt` proves completion.
@@ -80,12 +81,11 @@ real-board acceptance; the new browser-click test is not a hardware test.
 
 ## Previously imported matches
 
-This fixes new captures; it does not reinterpret unknown stored coordinates or
-mutate immutable source payloads. Reload Autodarts and install the updated
-bookmarklet script before capturing again (an already-installed script is not
-replaced in place). Re-capturing an affected match produces changed source content,
-which requires admin review and explicit replacement of the active result source;
-it must not silently overwrite scores or bypass the existing approval rules.
+Older receipts without a competition type still arrive in Pending Results.
+An admin must choose the intended competition for manual approval. Existing
+scores and source evidence stay linked to their original destination. Reload
+Autodarts before installing a newer scraper in a tab where it is already active.
+See the [Pending Results guide](../README.md#pending-results-and-tournament-imports).
 
 ## Offline checks
 
@@ -95,7 +95,7 @@ Use the existing frontend Playwright dependency, or an isolated installation:
 node --test score-scrape/scraper.test.mjs
 # Alternatively point to an already installed module, without production deps:
 PLAYWRIGHT_MODULE=/path/to/node_modules/playwright node --test score-scrape/scraper.test.mjs
-node docs/autodarts/check-v1.mjs
+go -C backend test ./internal/autodarts
 node docs/autodarts-fixtures/verify.mjs
 ```
 

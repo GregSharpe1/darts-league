@@ -35,7 +35,7 @@ func mappedSetup(t *testing.T) (*MemoryStore, PendingResultService, autodarts.Pa
 		t.Fatal(err)
 	}
 	played := now.Add(-time.Hour).Format(time.RFC3339)
-	p := autodarts.Payload{SchemaVersion: "autodarts.import.v1", Source: "autodarts", ExternalMatchID: "new", PlayedAt: &played, Completed: true, Settings: autodarts.Settings{BaseScore: 501, LegsToWin: 3, Out: "double"}, Players: []autodarts.Player{{ID: "a", DisplayName: " source Two ", LegsWon: 3}, {ID: "b", DisplayName: "source One", LegsWon: 1}}}
+	p := autodarts.Payload{CompetitionType: autodarts.LeagueMatch, SchemaVersion: "autodarts.import.v1", Source: "autodarts", ExternalMatchID: "new", PlayedAt: &played, Completed: true, Settings: autodarts.Settings{BaseScore: 501, LegsToWin: 3, Out: "double"}, Players: []autodarts.Player{{ID: "a", DisplayName: " source Two ", LegsWon: 3}, {ID: "b", DisplayName: "source One", LegsWon: 1}}}
 	return store, s, p
 }
 
@@ -82,11 +82,13 @@ func TestAutoSubmitOnlyNewEligibleImports(t *testing.T) {
 }
 
 func TestAutoSubmitFallsBackToPending(t *testing.T) {
-	for _, name := range []string{"disabled", "missing_mapping", "same_names", "case_mismatch", "mixed_divisions", "unassigned", "missing_date", "future_date", "old_date", "completed", "not_started", "scored", "format", "ambiguous", "changed"} {
+	for _, name := range []string{"missing_competition", "disabled", "missing_mapping", "same_names", "case_mismatch", "mixed_divisions", "unassigned", "missing_date", "future_date", "old_date", "completed", "not_started", "scored", "format", "ambiguous", "changed"} {
 		t.Run(name, func(t *testing.T) {
 			ctx := context.Background()
 			store, s, p := mappedSetup(t)
 			switch name {
+			case "missing_competition":
+				p.CompetitionType = ""
 			case "disabled":
 				s = s.WithAutoSubmit(false)
 			case "missing_mapping":

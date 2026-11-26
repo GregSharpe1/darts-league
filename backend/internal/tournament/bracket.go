@@ -13,14 +13,17 @@ var (
 )
 
 type BracketSlot struct {
+	EntryID  int64  `json:"entry_id,omitempty"`
 	Player   string `json:"player,omitempty"`
 	WinnerOf int    `json:"winner_of,omitempty"`
 	Bye      bool   `json:"bye,omitempty"`
 }
 
 type BracketMatch struct {
-	Number int            `json:"number"`
-	Slots  [2]BracketSlot `json:"slots"`
+	WinnerID int64          `json:"winner_id,omitempty"`
+	Legs     *[2]int        `json:"legs,omitempty"`
+	Number   int            `json:"number"`
+	Slots    [2]BracketSlot `json:"slots"`
 }
 
 type Bracket [][]BracketMatch
@@ -58,11 +61,7 @@ func buildBracket(entries []Entry) Bracket {
 			continue
 		}
 		entry := entries[seed]
-		label := entry.DisplayName
-		if entry.Nickname != "" {
-			label = entry.Nickname
-		}
-		slots[i] = BracketSlot{Player: label}
+		slots[i] = BracketSlot{Player: entry.preferredName(), EntryID: entry.ID}
 	}
 
 	var rounds Bracket
@@ -87,4 +86,11 @@ func buildBracket(entries []Entry) Bracket {
 		slots = next
 	}
 	return rounds
+}
+
+func (e Entry) preferredName() string {
+	if e.Nickname != "" {
+		return e.Nickname
+	}
+	return e.DisplayName
 }

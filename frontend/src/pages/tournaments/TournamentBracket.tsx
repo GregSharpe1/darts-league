@@ -3,8 +3,9 @@ import './tournamentBracket.css'
 
 function slotLabel(slot: BracketSlot) {
   if (slot.bye) return 'Bye'
+  if (slot.player) return slot.player
   if (slot.winner_of) return `Winner of match ${slot.winner_of}`
-  return slot.player
+  return undefined
 }
 
 function roundLabel(matchCount: number) {
@@ -15,9 +16,12 @@ function roundLabel(matchCount: number) {
 }
 
 export function TournamentBracket({ rounds }: { rounds: BracketMatch[][] }) {
+  const final = rounds.at(-1)?.[0]
+  const champion = final?.winner_id ? final.slots.find(slot => slot.entry_id === final.winner_id)?.player : undefined
   return (
     <section className="content-panel tournament-bracket-panel" aria-labelledby="knockout-bracket">
       <h2 id="knockout-bracket">Knockout bracket</h2>
+      {champion && <p><strong>Winner:</strong> {champion}</p>}
       {rounds.length > 1 ? <p className="tournament-bracket-scroll-note">Scroll across to see later rounds.</p> : null}
       <div className="tournament-bracket" role="region" aria-label="Knockout rounds" tabIndex={0}>
         {rounds.map((round) => (
@@ -28,7 +32,7 @@ export function TournamentBracket({ rounds }: { rounds: BracketMatch[][] }) {
                 <li key={match.number}>
                   <span className="tournament-bracket-match-label">{match.slots.some((slot) => slot.bye) ? 'Automatic advance' : `Match ${match.number}`}</span>
                   {match.slots.map((slot, index) => (
-                    <div className={slot.player ? 'tournament-bracket-player' : 'fixture-meta'} key={index}>{slotLabel(slot)}</div>
+                    <div className={slot.player ? 'tournament-bracket-player' : 'fixture-meta'} key={index}><span>{slotLabel(slot)}</span>{match.legs && <b>{match.legs[index]}</b>}</div>
                   ))}
                 </li>
               ))}

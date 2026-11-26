@@ -485,7 +485,11 @@ export function useUndoResult() {
   })
 }
 
+export type CompetitionType = 'league' | 'tournament'
+
 export type PendingResult = {
+  competition_type?: CompetitionType
+  pending_reason?: string
   id: number
   external_match_id: string
   player_one_name: string
@@ -503,6 +507,7 @@ export function useAdminPendingResults(enabled: boolean) {
     queryKey: ['admin', 'pending-results'],
     queryFn: async () => (await request<{ pending_results: PendingResult[] }>('/api/admin/pending-results')).pending_results,
     enabled,
+    retry: false,
     refetchOnWindowFocus: false,
   })
 }
@@ -553,11 +558,18 @@ export function useConfirmPendingResult() {
         method: 'POST',
         body: JSON.stringify(payload),
       }),
-    onSuccess: async () => {
+    onSuccess: async (_result, { payload }) => {
       await queryClient.invalidateQueries({ queryKey: ['admin', 'pending-results'] })
       await queryClient.invalidateQueries({ queryKey: ['division'] })
       await queryClient.invalidateQueries({ queryKey: ['admin', 'division'] })
       await queryClient.invalidateQueries({ queryKey: ['season'] })
+      if ('tournament_slug' in payload) {
+        await Promise.all([
+          queryClient.invalidateQueries({ queryKey: ['tournament', payload.tournament_slug] }),
+          queryClient.invalidateQueries({ queryKey: ['tournaments'] }),
+          queryClient.invalidateQueries({ queryKey: ['admin', 'tournaments'] }),
+        ])
+      }
     },
   })
 }

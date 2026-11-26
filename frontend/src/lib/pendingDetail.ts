@@ -45,22 +45,38 @@ function leg(value: unknown): MatchLeg {
     return { number: number(visit.number), player_id: text(visit.player_id), start_remaining: number(visit.start_remaining), end_remaining: number(visit.end_remaining), bust: bool(visit.bust), throws: array(visit.throws).map(dart) }
   }) }
 }
+function mapping(value: unknown) {
+  return Object.fromEntries(Object.entries(object(value)).map(([key, id]) => [key, number(id)]))
+}
+
 function summary(value: unknown): PendingResult {
   const data = object(value)
   const status = data.status
   if (status !== 'pending' && status !== 'review_blocked' && status !== 'confirmed' && status !== 'rejected') return invalid()
-  return { id: number(data.id), external_match_id: text(data.external_match_id), player_one_name: text(data.player_one_name), player_two_name: text(data.player_two_name), player_one_legs: number(data.player_one_legs), player_two_legs: number(data.player_two_legs),
+  const competition = data.competition_type
+  if (competition != null && competition !== '' && competition !== 'league' && competition !== 'tournament') return invalid()
+  const pendingReason = nullable(data.pending_reason, text)
+  return { ...(competition ? { competition_type: competition } : {}), ...(pendingReason === null ? {} : { pending_reason: pendingReason }), id: number(data.id), external_match_id: text(data.external_match_id), player_one_name: text(data.player_one_name), player_two_name: text(data.player_two_name), player_one_legs: number(data.player_one_legs), player_two_legs: number(data.player_two_legs),
     ...(data.player_one_average == null ? {} : { player_one_average: number(data.player_one_average) }), ...(data.player_two_average == null ? {} : { player_two_average: number(data.player_two_average) }), status, received_at: text(data.received_at) }
 }
 
 export function parsePendingDetail(value: unknown): PendingDetail {
   const data = object(value)
+  const candidates = nullable(data.tournament_candidates, value => array(value).map(item => {
+    const candidate = object(item)
+    return {
+      tournament_slug: text(candidate.tournament_slug), tournament_name: text(candidate.tournament_name),
+      match_number: number(candidate.match_number), players: array(candidate.players).map(text),
+      mappings: array(candidate.mappings).map(mapping),
+    }
+  }))
   return {
+    ...(candidates === null ? {} : { tournament_candidates: candidates }),
     pending_result: summary(data.pending_result), source: text(data.source), digest: text(data.digest), changed_import: bool(data.changed_import), settings_evidence: text(data.settings_evidence), review_reason: text(data.review_reason), played_at: nullable(data.played_at, text),
     ...(data.suggestion === undefined ? {} : { suggestion: (() => {
       const suggestion = object(data.suggestion)
       return { season_id: nullable(suggestion.season_id, number), division_id: nullable(suggestion.division_id, number), fixture_id: nullable(suggestion.fixture_id, number),
-        mapping: Object.fromEntries(Object.entries(object(suggestion.mapping)).map(([key, value]) => [key, number(value)])) }
+        mapping: mapping(suggestion.mapping) }
     })() }),
     players: array(data.players).map(value => {
       const player = object(value)
@@ -72,6 +88,6 @@ export function parsePendingDetail(value: unknown): PendingDetail {
       return { coverage: detail.coverage, legs: array(detail.legs).map(leg) }
     }),
     original_payload: object(data.original_payload), season_id: nullable(data.season_id, number), fixture_id: nullable(data.fixture_id, number), result_id: nullable(data.result_id, number), source_active: bool(data.source_active),
-    mapping: nullable(data.mapping, value => Object.fromEntries(Object.entries(object(value)).map(([key, value]) => [key, number(value)]))), approval: nullable(data.approval, object),
+    mapping: nullable(data.mapping, mapping), approval: nullable(data.approval, object),
   }
 }

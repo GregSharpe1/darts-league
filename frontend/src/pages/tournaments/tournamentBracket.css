@@ -70,6 +70,10 @@
 }
 
 .tournament-bracket-player {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  font-variant-numeric: tabular-nums;
   font-weight: 700;
 }
 

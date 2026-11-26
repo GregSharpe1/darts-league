@@ -17,23 +17,24 @@ type ImportOutcome struct {
 	Pending   PendingResult
 	Duplicate bool
 	Changed   bool
-	// AutoSubmitted is the result recorded by automatic approval, if any.
+	// AutoSubmitted is the league result recorded by automatic approval, if any.
 	AutoSubmitted *Result
 }
 
 // ImportRecord is an admin/service DTO, never a public projection. Source IDs
 // join players, leg winners and visits; player array order is not identity.
 type ImportRecord struct {
-	Suggestion ImportSuggestion `json:"-"`
-	Pending    PendingResult
-	Import     autodarts.Import
-	Changed    bool
-	SeasonID   *int64
-	FixtureID  *int64
-	ResultID   *int64
-	Active     bool
-	Mapping    map[string]int64
-	Approval   *ImportAudit
+	Suggestion           ImportSuggestion            `json:"-"`
+	TournamentCandidates []TournamentImportCandidate `json:"-"`
+	Pending              PendingResult
+	Import               autodarts.Import
+	Changed              bool
+	SeasonID             *int64
+	FixtureID            *int64
+	ResultID             *int64
+	Active               bool
+	Mapping              map[string]int64
+	Approval             *ImportAudit
 }
 
 type ImportStore interface {
@@ -84,7 +85,7 @@ func (s PendingResultService) IngestPayload(ctx context.Context, body []byte) (I
 		}
 		scoped := s
 		scoped.store, scoped.results = tx, NewResultServiceWithNow(tx, s.now)
-		outcome, err = scoped.autoApproveImport(ctx, outcome)
+		outcome, err = scoped.routeImport(ctx, outcome)
 		return err
 	})
 	if err != nil {
@@ -113,7 +114,18 @@ func (s PendingResultService) ImportDetail(ctx context.Context, id int64) (Impor
 		}
 		scoped := s
 		scoped.store = tx
-		record.Suggestion, err = scoped.suggestImport(ctx, record)
+		if record.Import.CompetitionType != autodarts.LeagueMatch {
+			record.TournamentCandidates, _, err = scoped.tournamentCandidates(ctx, record)
+			if err != nil {
+				return err
+			}
+		}
+		if record.Import.CompetitionType != autodarts.TournamentMatch {
+			record.Suggestion, err = scoped.suggestImport(ctx, record)
+		}
+		if record.Suggestion.Mapping == nil {
+			record.Suggestion.Mapping = map[string]int64{}
+		}
 		return err
 	})
 	return record, err

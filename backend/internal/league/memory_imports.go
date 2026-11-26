@@ -41,7 +41,7 @@ func (s *MemoryStore) InsertImport(ctx context.Context, imported autodarts.Impor
 	if imported.ReviewReason != "" {
 		status = PendingResultStatusReviewBlocked
 	}
-	pending := PendingResult{ID: s.nextPendingID, ExternalMatchID: imported.ExternalMatchID,
+	pending := PendingResult{CompetitionType: imported.CompetitionType, ID: s.nextPendingID, ExternalMatchID: imported.ExternalMatchID,
 		PlayerOneName: a.DisplayName, PlayerOneLegs: a.LegsWon, PlayerOneAverage: a.Average(),
 		PlayerTwoName: b.DisplayName, PlayerTwoLegs: b.LegsWon, PlayerTwoAverage: b.Average(), Status: status, ReceivedAt: received}
 	data, err := json.Marshal(ImportRecord{Import: imported, Changed: changed})

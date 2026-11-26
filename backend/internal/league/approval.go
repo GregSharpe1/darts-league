@@ -7,6 +7,8 @@ import (
 	"reflect"
 	"strings"
 	"time"
+
+	"github.com/greg/darts-league/backend/internal/autodarts"
 )
 
 func (s PendingResultService) Approve(ctx context.Context, req ApprovalRequest) (Result, error) {
@@ -39,6 +41,9 @@ func (s PendingResultService) approve(ctx context.Context, req ApprovalRequest) 
 	}
 	if record.Pending.Status != PendingResultStatusPending {
 		return Result{}, ErrPendingResultNotPending
+	}
+	if record.Import.CompetitionType == autodarts.TournamentMatch || req.TournamentSlug != "" || req.MatchNumber != 0 {
+		return Result{}, ErrApprovalConflict
 	}
 	if strings.TrimSpace(req.Actor) == "" || req.SeasonID <= 0 || req.FixtureID <= 0 {
 		return Result{}, ErrApprovalConflict

@@ -11,10 +11,12 @@ export function SourceReview({ detail }: { readonly detail: PendingDetail }) {
     <section className="admin-card pending-provenance">
       <span className="eyebrow">Imported source / not yet published</span>
       <h2>Review source result</h2>
+      <p>{detail.pending_result.competition_type === 'league' ? 'League match' : detail.pending_result.competition_type === 'tournament' ? 'Tournament match' : 'Competition unspecified'}</p>
+      {detail.pending_result.pending_reason && <p>Auto-submit at receipt: <span>{detail.pending_result.pending_reason}</span></p>}
       <p>{detail.source} / Received {formatWhen(detail.pending_result.received_at)}</p>
       <p>Played: {detail.played_at ? formatWhen(detail.played_at) : 'Unknown - a reason is required before approval.'}</p>
       {blocked && <div className="pending-warning" role="alert"><strong>Source conflict - approval blocked</strong><p>{detail.review_reason || 'Source detail conflicts with its reported summary.'} Statistics are not presented as validated performance.</p></div>}
-      {detail.changed_import && <p className="pending-warning">Changed import: a different version of this source match exists. Verify the previous mapping and explicitly authorize replacement.</p>}
+      {detail.changed_import && <p className="pending-warning">Changed import: a different version of this source match exists. Verify the player mapping and explain why this version should be used.</p>}
       {detail.settings_evidence !== 'source_reported' && <p className="pending-warning">Legacy summary: match settings were not supplied by the source. Format attestation is required; no throw detail is inferred.</p>}
       {!match && <div className="pending-source-score" aria-label="Unverified source score"><strong>{detail.pending_result.player_one_name}</strong><b>{detail.pending_result.player_one_legs} - {detail.pending_result.player_two_legs}</b><strong>{detail.pending_result.player_two_name}</strong><small>Reported score only / {blocked ? 'conflicting source evidence' : 'unverified format'}</small>
         <small>Reported averages: {detail.pending_result.player_one_average?.toFixed(1) ?? 'Unavailable'} / {detail.pending_result.player_two_average?.toFixed(1) ?? 'Unavailable'}</small></div>}

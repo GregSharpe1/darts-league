@@ -121,12 +121,13 @@ Write tests before or alongside implementation for:
 ## Autodarts Score Capture
 
 - `score-scrape/scoreScrape.js` is loaded by the bookmarklet in `scripts/score-scrape.txt` from `main`; merging to `main` changes the live scraper immediately
-- The `legs_to_win` rule is enforced in four places that must stay in sync: the scraper, `backend/internal/autodarts/parse.go`, `backend/internal/league/approval.go`, and `frontend/src/lib/pendingReview.ts`
+- Keep the scraper, import parser, league approval, tournament matching, and Pending Results format checks in sync for 501 double out, first to 2 or 3 legs.
 - Approval validates against the fixture's own `legs_to_win`; never hardcode a leg count
-- `AUTODARTS_AUTO_SUBMIT` defaults false; only new eligible ingestions with both source names already mapped may be automatically approved, audited as `autodarts:auto-submit`; never auto-replace results or auto-submit prior pending imports
+- `AUTODARTS_AUTO_SUBMIT` defaults false. Auto-submit applies only to newly ingested, eligible league or tournament scores with a declared competition type. Audit as `autodarts:auto-submit`. Never auto-replace results or auto-submit prior pending imports.
 - Autodarts names are assumed unique and matched case-sensitively after trimming; mappings are current-season only and editable at any time without reopening completed-season scoring
-- Automatic approval requires a writable started season, distinct same-division players, exactly one compatible unscored fixture, source-reported supported format and a valid played-at date within the season through server time; unmapped or ambiguous imports stay pending
-- Scraper settings persist in the `autodarts_score_scrape_settings` cookie; users must clear it after the league format changes
+- Automatic league approval requires a writable started season, distinct same-division players, exactly one compatible unscored fixture, source-reported supported format and a valid played-at date within the season through server time; unmapped or ambiguous imports stay pending
+- Tournament imports use stable entrant IDs in published brackets and can be approved while the league is closed. An Autodarts match ID can score only one competition match.
+- The scraper saves the relay endpoint in the `autodarts_score_scrape_settings` cookie.
 
 ## Repository Workflows
 

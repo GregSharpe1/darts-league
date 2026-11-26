@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"time"
+
+	"github.com/greg/darts-league/backend/internal/autodarts"
 )
 
 type PendingResultStatus string
@@ -24,6 +26,8 @@ var (
 // PendingResult is an externally reported match awaiting admin confirmation
 // before it is recorded against a league fixture.
 type PendingResult struct {
+	CompetitionType  autodarts.CompetitionType
+	PendingReason    string
 	ID               int64
 	ExternalMatchID  string
 	PlayerOneName    string
@@ -84,6 +88,7 @@ func (s PendingResultService) Ingest(ctx context.Context, externalMatchID, playe
 		PlayerTwoLegs:    playerTwoLegs,
 		PlayerTwoAverage: playerTwoAverage,
 		Status:           PendingResultStatusPending,
+		PendingReason:    missingCompetitionReason,
 		ReceivedAt:       s.now().UTC(),
 	}
 

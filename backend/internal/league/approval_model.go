@@ -28,6 +28,8 @@ func ExpectedFromResult(r Result) *ExpectedResult {
 }
 
 type ApprovalRequest struct {
+	TournamentSlug    string           `json:"tournament_slug,omitempty"`
+	MatchNumber       int              `json:"match_number,omitempty"`
 	PendingID         int64            `json:"-"`
 	Actor             string           `json:"-"`
 	SeasonID          int64            `json:"season_id"`
@@ -41,6 +43,8 @@ type ApprovalRequest struct {
 }
 
 type ImportAudit struct {
+	TournamentSlug    string           `json:"tournament_slug,omitempty"`
+	MatchNumber       int              `json:"match_number,omitempty"`
 	ResultID          int64            `json:"result_id,omitempty"`
 	PendingID         int64            `json:"pending_id"`
 	Source            string           `json:"source"`
