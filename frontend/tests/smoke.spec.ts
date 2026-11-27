@@ -560,6 +560,40 @@ test('admins open a tournament and manage public entries independently of the le
     await expect(publicPage.getByRole('region', { name: 'Best placements' })).toBeVisible()
     const leagueAfter = await (await page.request.get('/api/season')).json()
     expect(leagueAfter).toEqual(leagueBefore)
+
+    expect((await publicPage.request.get('/api/admin/player-identities')).status()).toBe(401)
+    const secondCup = await page.request.post('/api/admin/tournaments', {
+      data: { name: 'Cardiff Spring Knockout', starts_on: '2027-04-10', game_variant: '501', legs_to_win: 3 },
+    })
+    expect(secondCup.status()).toBe(201)
+    const { slug: secondSlug } = await secondCup.json()
+    expect((await page.request.put(`/api/admin/tournaments/${secondSlug}/registration`, { data: { registration_open: true } })).ok()).toBe(true)
+    for (const display_name of ['Alex Morgan', 'Sam Patel']) {
+      expect((await publicPage.request.post(`/api/tournaments/${secondSlug}/entries`, { data: { display_name } })).status()).toBe(201)
+    }
+    await page.goto('/admin')
+    await page.getByRole('link', { name: 'Player identity review' }).click()
+    const suggestions = page.getByRole('region', { name: 'Possible matches' })
+    const alex = suggestions.getByRole('listitem').filter({ has: page.getByRole('button', { name: 'Link profiles' }) })
+      .filter({ hasText: 'Alex Morgan' })
+    const sam = suggestions.getByRole('listitem').filter({ has: page.getByRole('button', { name: 'Keep separate' }) })
+      .filter({ hasText: 'Sam Patel' })
+    await expect(alex).toContainText('Same display name')
+    await expect(sam).toContainText(eventName)
+    for (const width of [375, 768, 1280]) {
+      await page.setViewportSize({ width, height: 900 })
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
+      if (width !== 768) await captureScreenshot(page, `player-identity-review-${width}.png`)
+    }
+    page.once('dialog', dialog => dialog.accept())
+    await alex.getByRole('button', { name: 'Link profiles' }).click()
+    await expect(page.getByText('Player profiles linked.')).toBeVisible()
+    await sam.getByRole('button', { name: 'Keep separate' }).click()
+    await expect(page.getByText('Profiles marked as different people.')).toBeVisible()
+    await page.reload()
+    await expect(suggestions.getByRole('heading', { name: 'Possible matches' })).toBeVisible()
+    await expect(alex).toHaveCount(0)
+    await expect(sam).toHaveCount(0)
   } finally {
     await publicPage.close()
   }

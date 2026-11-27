@@ -23,6 +23,8 @@ func TestHistoricalLeaguePlacementAndTournamentIdentity(t *testing.T) {
 	events := tournament.NewMemoryStore()
 	now := time.Date(2026, 4, 6, 8, 0, 0, 0, time.UTC) // Monday at 09:00 UK time.
 	service := Service{League: store, Tournament: events, Now: func() time.Time { return now }}
+	identities := &MemoryIdentities{Source: service.IdentityEntries}
+	service.Identities = identities
 
 	season, err := store.GetActiveSeason(ctx)
 	season = must(t, season, err)
@@ -64,6 +66,15 @@ func TestHistoricalLeaguePlacementAndTournamentIdentity(t *testing.T) {
 	final.Legs, final.WinnerID = &legs, entry.ID
 
 	got, err := service.ForLeaguePlayer(ctx, season.ID, player.ID)
+	if err != nil || got.Tournament != nil {
+		t.Fatalf("unreviewed name match leaked tournament results: %+v, %v", got, err)
+	}
+	snapshot, err := identities.IdentitySnapshot(ctx)
+	index := must(t, snapshot, err).index()
+	if err := identities.DecideIdentity(ctx, IdentityDecision{IdentityPair: pair(index[entryKey{"league", player.ID}], index[entryKey{"tournament", entry.ID}]), Action: "link"}); err != nil {
+		t.Fatal(err)
+	}
+	got, err = service.ForLeaguePlayer(ctx, season.ID, player.ID)
 	if err != nil || got.League != nil || got.Tournament == nil || got.Tournament.Position != 1 {
 		t.Fatalf("active league and completed tournament: %+v, %v", got, err)
 	}
@@ -100,6 +111,11 @@ func TestHistoricalLeaguePlacementAndTournamentIdentity(t *testing.T) {
 	event, err = events.StartTournament(ctx, "later-cup")
 	must(t, event, err)
 
+	snapshot, err = identities.IdentitySnapshot(ctx)
+	index = must(t, snapshot, err).index()
+	if err := identities.DecideIdentity(ctx, IdentityDecision{IdentityPair: pair(index[entryKey{"tournament", other.ID}], index[entryKey{"tournament", repeat.ID}]), Action: "link"}); err != nil {
+		t.Fatal(err)
+	}
 	directory, err := service.Directory(ctx)
 	directory = must(t, directory, err)
 	if len(directory) != 4 || directory[2].EntryID != repeat.ID || directory[2].TournamentSlug != "later-cup" {

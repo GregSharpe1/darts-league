@@ -55,7 +55,14 @@ func main() {
 	pendingResultHandler.RegisterRoutes(mux, authHandler.RequireAdmin)
 	httpapi.NewMatchDetailHandler(league.NewFixtureServiceWithNow(store, now)).RegisterRoutes(mux, authHandler.RequireAdmin)
 	httpapi.NewPlayerStatisticsHandler(resultService).RegisterRoutes(mux, authHandler.RequireAdmin)
-	httpapi.PlayerDirectoryHandler{Service: playerstats.Service{League: store, Tournament: tournamentStore, Now: now}}.RegisterRoutes(mux)
+	playerProfiles := playerstats.Service{League: store, Tournament: tournamentStore, Now: now}
+	if persistent, ok := store.(playerstats.IdentityStore); ok {
+		playerProfiles.Identities = persistent
+	} else {
+		playerProfiles.Identities = &playerstats.MemoryIdentities{Source: playerProfiles.IdentityEntries}
+	}
+	httpapi.PlayerDirectoryHandler{Service: playerProfiles}.RegisterRoutes(mux)
+	httpapi.PlayerIdentityHandler{Store: playerProfiles.Identities}.RegisterRoutes(mux, authHandler.RequireAdmin)
 	versionHandler.RegisterRoutes(mux)
 	mux.HandleFunc("/healthz", func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusOK)

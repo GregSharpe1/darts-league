@@ -13,6 +13,7 @@ import (
 type Service struct {
 	League     league.Store
 	Tournament tournament.Store
+	Identities IdentityStore
 	Now        func() time.Time
 }
 
@@ -90,8 +91,12 @@ func (s Service) Directory(ctx context.Context) ([]Profile, error) {
 	if err != nil {
 		return nil, err
 	}
+	index, err := s.identityIndex(ctx)
+	if err != nil {
+		return nil, err
+	}
 	profiles := []Profile{}
-	seen := make(map[string]bool)
+	seen := make(map[int64]bool)
 	for _, season := range seasons {
 		if season.RegistrationOpen() {
 			continue
@@ -104,7 +109,10 @@ func (s Service) Directory(ctx context.Context) ([]Profile, error) {
 			if player.Status != league.PlayerStatusAssigned || player.DivisionID == nil {
 				continue
 			}
-			key := league.NormalizeDisplayName(player.DisplayName)
+			key := index[entryKey{"league", player.ID}]
+			if key == 0 {
+				continue
+			}
 			if seen[key] {
 				continue
 			}
@@ -118,7 +126,10 @@ func (s Service) Directory(ctx context.Context) ([]Profile, error) {
 	}
 	for _, event := range events {
 		for _, entry := range event.entries {
-			key := league.NormalizeDisplayName(entry.DisplayName)
+			key := index[entryKey{"tournament", entry.ID}]
+			if key == 0 {
+				continue
+			}
 			if seen[key] {
 				continue
 			}
@@ -140,7 +151,7 @@ func (s Service) ForLeaguePlayer(ctx context.Context, seasonID, playerID int64) 
 			if err != nil {
 				return Placements{}, err
 			}
-			return s.best(ctx, player.DisplayName, player.PreferredName(), events)
+			return s.best(ctx, entryKey{"league", player.ID}, player.PreferredName(), events)
 		}
 	}
 	return Placements{}, league.ErrPlayerNotFound
@@ -157,23 +168,38 @@ func (s Service) ForTournamentPlayer(ctx context.Context, slug string, entryID i
 		}
 		for _, entry := range event.entries {
 			if entry.ID == entryID {
-				return s.best(ctx, entry.DisplayName, entryName(entry), events)
+				return s.best(ctx, entryKey{"tournament", entry.ID}, entryName(entry), events)
 			}
 		}
 	}
 	return Placements{}, league.ErrPlayerNotFound
 }
 
-func (s Service) best(ctx context.Context, displayName, name string, events []publishedEvent) (Placements, error) {
-	key := league.NormalizeDisplayName(displayName)
-	bestLeague, err := s.bestLeague(ctx, key)
+func (s Service) identityIndex(ctx context.Context) (map[entryKey]int64, error) {
+	snapshot, err := s.Identities.IdentitySnapshot(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return snapshot.index(), nil
+}
+
+func (s Service) best(ctx context.Context, entry entryKey, name string, events []publishedEvent) (Placements, error) {
+	index, err := s.identityIndex(ctx)
+	if err != nil {
+		return Placements{}, err
+	}
+	identityID := index[entry]
+	if identityID == 0 {
+		return Placements{}, league.ErrPlayerNotFound
+	}
+	bestLeague, err := s.bestLeague(ctx, index, identityID)
 	if err != nil {
 		return Placements{}, err
 	}
 	best := Placements{Name: name, League: bestLeague}
 	for _, event := range events {
 		for _, entry := range event.entries {
-			if league.NormalizeDisplayName(entry.DisplayName) != key {
+			if index[entryKey{"tournament", entry.ID}] != identityID {
 				continue
 			}
 			position, tied := tournamentFinish(event.Bracket, entry.ID)
@@ -208,7 +234,7 @@ func tournamentFinish(bracket tournament.Bracket, entryID int64) (int, bool) {
 	return 0, false
 }
 
-func (s Service) bestLeague(ctx context.Context, normalizedName string) (*Placement, error) {
+func (s Service) bestLeague(ctx context.Context, index map[entryKey]int64, identityID int64) (*Placement, error) {
 	seasons, err := s.League.ListSeasons(ctx)
 	if err != nil {
 		return nil, err
@@ -224,7 +250,7 @@ func (s Service) bestLeague(ctx context.Context, normalizedName string) (*Placem
 			return nil, err
 		}
 		for _, player := range players {
-			if player.Status != league.PlayerStatusAssigned || player.DivisionID == nil || league.NormalizeDisplayName(player.DisplayName) != normalizedName {
+			if player.Status != league.PlayerStatusAssigned || player.DivisionID == nil || index[entryKey{"league", player.ID}] != identityID {
 				continue
 			}
 			finish, err := s.leagueFinish(ctx, season, player, players, now)
