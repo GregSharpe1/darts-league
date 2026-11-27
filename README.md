@@ -259,6 +259,27 @@ Example response:
 
 Both services use `APP_VERSION` during image builds. Local Docker Compose sets this to `local`, while mixed host development falls back to `dev` unless you override it.
 
+## Returning player sign-up
+
+Players can open **Returning player? Use your existing profile** on an open league
+or tournament sign-up page. An emailed link verifies access to their email.
+For an existing profile's first claim, an admin must confirm the claimant's
+identity independently and approve it under **Admin → Player identity review → Profile claims**.
+After approval, the player can enter leagues and tournaments with that profile.
+
+Enable this option on a Postgres-backed instance by setting the backend's
+`PLAYER_SMTP_ADDR` (SMTP host and port), `PLAYER_SMTP_FROM` (sender email), and
+`PLAYER_ACCESS_ORIGIN` (public site origin, such as `https://darts.example.com`).
+The origin defaults to `PUBLIC_BASE_URL` if unset. Set `PLAYER_SMTP_USERNAME`
+and `PLAYER_SMTP_PASSWORD` when the relay requires authentication. The SMTP relay
+must support STARTTLS. A loopback relay can accept unauthenticated test mail.
+Sign-in links expire after 20 minutes and can be used once.
+
+For Helm, set `backend.playerAccess.origin`, `backend.playerAccess.smtpAddress`,
+and `backend.playerAccess.smtpFrom`. Set `backend.playerAccess.smtpSecret` to an
+existing Kubernetes Secret with `PLAYER_SMTP_USERNAME` and `PLAYER_SMTP_PASSWORD`
+if the relay requires authentication.
+
 ## Slack Integration
 
 The backend supports an optional Slack app integration.

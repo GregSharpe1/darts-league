@@ -93,6 +93,9 @@ func (s RegistrationService) RegisterPlayer(ctx context.Context, player Player) 
 		return Player{}, err
 	}
 
+	if player.SeasonID != 0 && player.SeasonID != season.ID {
+		return Player{}, ErrSeasonTransition
+	}
 	book := NewRegistrationBook(existingPlayers)
 	if err := book.ValidateNewPlayer(season, player); err != nil {
 		return Player{}, err

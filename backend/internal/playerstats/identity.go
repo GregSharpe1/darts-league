@@ -12,9 +12,10 @@ import (
 )
 
 var (
-	ErrIdentityNotFound = errors.New("a player profile has changed; refresh and try again")
-	ErrIdentityOverlap  = errors.New("both profiles already have an entry in the same competition")
-	ErrIdentityDecision = errors.New("choose two different profiles and a valid decision")
+	ErrIdentityNotFound  = errors.New("a player profile has changed; refresh and try again")
+	ErrIdentityOverlap   = errors.New("both profiles already have an entry in the same competition")
+	ErrIdentitiesClaimed = errors.New("both profiles already belong to verified player accounts")
+	ErrIdentityDecision  = errors.New("choose two different profiles and a valid decision")
 )
 
 type IdentityEntry struct {

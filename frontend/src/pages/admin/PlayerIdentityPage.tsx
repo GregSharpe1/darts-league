@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom'
 import { StateNotice } from '../../components/StateNotice'
 import { ApiError, request } from '../../lib/api'
 import { readError } from '../../lib/utils'
+import { PlayerClaimQueue } from './PlayerClaimQueue'
 import './PlayerIdentityPage.css'
 
 type Entry = {
@@ -90,6 +91,7 @@ export function PlayerIdentityPage() {
           : <><StateNotice tone="error" message={readError(review.error)} />
             <button type="button" onClick={() => { void review.refetch() }}>Try again</button></>}
       </section> : <>
+        <PlayerClaimQueue />
         <div role="status">
           {decide.isSuccess ? <StateNotice message={decide.variables.action === 'link' ? 'Player profiles linked.' : 'Profiles marked as different people.'} /> : null}
         </div>

@@ -3,6 +3,7 @@ import { StateNotice } from '../../components/StateNotice'
 import { ApiError } from '../../lib/api'
 import { type Tournament, useTournament, useTournamentSignup } from '../../lib/tournamentsApi'
 import { readError } from '../../lib/utils'
+import { ReturningPlayerSignup } from '../register/ReturningPlayerSignup'
 import { PlayerSignupForm } from '../register/PlayerSignupForm'
 import { TournamentDate } from './TournamentDate'
 import { TournamentBracket } from './TournamentBracket'
@@ -87,15 +88,19 @@ function TournamentRegistration({ slug }: { slug: string }) {
           {event.registration_open ? <p className="competition-entry-status">Registration open</p> : null}
           <h2 id="competition-entry-title">{event.registration_open ? 'Player sign-up' : 'Registration closed'}</h2>
           {event.registration_open ? (
-            <PlayerSignupForm
-              action="Enter tournament"
-              busy={signup.isPending}
-              error={signup.error}
-              onRegister={async (entry) => {
-                const { preferred_name } = await signup.mutateAsync(entry)
-                return `${preferred_name} is registered for ${event.name}.`
-              }}
-            />
+            <ReturningPlayerSignup action="Enter tournament"
+              endpoint={`/api/player-access/tournaments/${encodeURIComponent(event.slug)}/entry`}
+              successMessage={name => `${name} is registered for ${event.name}.`}>
+              <PlayerSignupForm
+                action="Enter tournament"
+                busy={signup.isPending}
+                error={signup.error}
+                onRegister={async (entry) => {
+                  const { preferred_name } = await signup.mutateAsync(entry)
+                  return `${preferred_name} is registered for ${event.name}.`
+                }}
+              />
+            </ReturningPlayerSignup>
           ) : <Link className="button-link" to="/tournaments">Find another tournament</Link>}
         </section>
       </div>
