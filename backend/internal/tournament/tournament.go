@@ -75,9 +75,14 @@ type Store interface {
 	DeleteTournamentEntry(context.Context, string, int64) error
 }
 
+type RegistrationNotifier interface {
+	NotifyTournamentRegistered(ctx context.Context, tournamentName string, entry Entry)
+}
+
 type Service struct {
-	Store Store
-	Now   func() time.Time
+	Store    Store
+	Now      func() time.Time
+	Notifier RegistrationNotifier
 }
 
 func (s Service) Create(ctx context.Context, name, startsOn, endsOn string, format MatchFormat) (Event, error) {
@@ -163,9 +168,20 @@ func (s Service) Register(ctx context.Context, slug, displayName, nickname strin
 	if err := league.ValidatePlayerName(displayName, nickname); err != nil {
 		return Entry{}, err
 	}
-	return s.Store.CreateTournamentEntry(ctx, slug, Entry{
+	entry, err := s.Store.CreateTournamentEntry(ctx, slug, Entry{
 		DisplayName:  league.NormalizeWhitespace(displayName),
 		Nickname:     league.NormalizeWhitespace(nickname),
 		RegisteredAt: s.Now().UTC(),
 	})
+	if err != nil {
+		return Entry{}, err
+	}
+	if s.Notifier != nil {
+		tournamentName := slug
+		if event, err := s.Store.GetTournament(ctx, slug); err == nil {
+			tournamentName = event.Name
+		}
+		s.Notifier.NotifyTournamentRegistered(ctx, tournamentName, entry)
+	}
+	return entry, nil
 }

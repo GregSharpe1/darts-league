@@ -48,7 +48,9 @@ func main() {
 	versionHandler := httpapi.NewVersionHandler(cfg.Version)
 	authHandler.RegisterRoutes(mux)
 	registrationHandler.RegisterRoutes(mux, authHandler.RequireAdmin)
-	httpapi.TournamentHandler{Service: tournament.Service{Store: tournamentStore, Now: now}}.RegisterRoutes(mux, authHandler.RequireAdmin)
+	httpapi.TournamentHandler{Service: tournament.Service{
+		Store: tournamentStore, Now: now, Notifier: registrationNotifier,
+	}}.RegisterRoutes(mux, authHandler.RequireAdmin)
 	seasonHandler.RegisterRoutes(mux, authHandler.RequireAdmin)
 	resultHandler.RegisterRoutes(mux, authHandler.RequireAdmin)
 	pendingResultHandler.RegisterRoutes(mux, authHandler.RequireAdmin)
@@ -119,7 +121,7 @@ func runNotificationCommand(ctx context.Context, cfg config.Config, store league
 	log.Printf("notification command completed successfully")
 }
 
-func buildRegistrationNotifier(cfg config.Config) league.RegistrationNotifier {
+func buildRegistrationNotifier(cfg config.Config) notifications.RegistrationNotifier {
 	loc, err := time.LoadLocation(cfg.Timezone)
 	if err != nil {
 		loc = time.UTC
