@@ -19,8 +19,8 @@ export async function expectMatchingControlHeights(page: Page) {
   }
 }
 
-export async function expectSingleRowNavigation(page: Page, count: number) {
-  const nav = page.getByRole('navigation', { name: 'Primary' })
+export async function expectSingleRowNavigation(page: Page, count: number, name = 'Primary') {
+  const nav = page.getByRole('navigation', { name })
   await expect(nav.locator('a, button')).toHaveCount(count)
   const bounds = await nav.evaluate(bar => {
     const items = Array.from(bar.querySelectorAll<HTMLElement>('a, button'))
@@ -53,7 +53,8 @@ export async function expectSingleRowNavigation(page: Page, count: number) {
 export async function expectMatchingAdminLayout(page: Page) {
   for (const width of [375, 768, 1280]) {
     await page.setViewportSize({ width, height: 900 })
-    await expectSingleRowNavigation(page, 3)
+    await expectSingleRowNavigation(page, 4)
+    await expectSingleRowNavigation(page, 4, 'Administration')
     if (width === 1280) {
       const [player, username] = await page.locator('#mapping-player, #mapping-username')
         .evaluateAll(inputs => inputs.map(input => ({ top: input.getBoundingClientRect().top, height: input.getBoundingClientRect().height })))

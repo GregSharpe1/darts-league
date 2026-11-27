@@ -52,7 +52,7 @@ function App() {
 
   return (
     <div className="app-shell">
-      <header className={onAdminPage ? 'topbar' : 'topbar public-topbar'}>
+      <header className="topbar public-topbar">
         <NavLink to="/" className="brand-mark" aria-label="Go to home page">
           <img className="brand-badge" src="/favicon.png" width={96} height={96} alt="" />
           <div className="brand-copy">
@@ -60,28 +60,31 @@ function App() {
             <span>{currentDivision ? currentDivision.name : 'Monday unlocks. Saturday bragging rights.'}</span>
           </div>
         </NavLink>
-        {onAdminPage ? (
-          <nav className="primary-nav" aria-label="Primary">
-            {!onAdminHome ? <NavLink to="/admin">Admin home</NavLink> : null}
-            {onAdminHome && adminAuthenticated ? <NavLink to="/admin/pending-results" aria-label="Pending results"><span className="nav-full-label">Pending results</span><span className="nav-compact-label" aria-hidden="true">Results</span></NavLink> : null}
-            {onAdminHome && adminAuthenticated ? <NavLink to="/admin/tournaments" aria-label="Tournaments"><span className="nav-full-label">Tournaments</span><span className="nav-compact-label" aria-hidden="true">Events</span></NavLink> : null}
-            {adminAuthenticated ? (
-              <button
-                type="button"
-                onClick={async () => {
-                  await adminLogoutMutation.mutateAsync()
-                  navigate('/')
-                }}
-                disabled={adminLogoutMutation.isPending}
-              >
-                {adminLogoutMutation.isPending ? 'Logging out...' : 'Log out'}
-              </button>
-            ) : null}
-          </nav>
-        ) : <PublicNavigation />}
+        <PublicNavigation />
       </header>
 
       <main className="page-frame">
+        {onAdminPage && (adminAuthenticated || !onAdminHome) ? (
+          <nav className="primary-nav admin-navigation" aria-label="Administration">
+            <NavLink to="/admin" end aria-label="Admin home"><span className="nav-full-label">Admin home</span><span className="nav-compact-label" aria-hidden="true">Home</span></NavLink>
+            {adminAuthenticated ? (
+              <>
+                <NavLink to="/admin/pending-results" aria-label="Pending results"><span className="nav-full-label">Pending results</span><span className="nav-compact-label" aria-hidden="true">Results</span></NavLink>
+                <NavLink to="/admin/tournaments" aria-label="Manage tournaments"><span className="nav-full-label">Manage tournaments</span><span className="nav-compact-label" aria-hidden="true">Events</span></NavLink>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    await adminLogoutMutation.mutateAsync()
+                    navigate('/')
+                  }}
+                  disabled={adminLogoutMutation.isPending}
+                >
+                  {adminLogoutMutation.isPending ? 'Logging out...' : 'Log out'}
+                </button>
+              </>
+            ) : null}
+          </nav>
+        ) : null}
         <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="/divisions" element={<DivisionsPage />} />

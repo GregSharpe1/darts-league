@@ -185,8 +185,45 @@
   background: #211c1e;
 }
 
-.league-standings .standings-table tbody tr:first-child {
+.league-standings .standings-table tbody tr:first-child:not([data-promotion], [data-relegation]) {
   background: rgba(255, 91, 91, 0.07);
+}
+
+.standings-zones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 1.25rem;
+  margin-bottom: 1rem;
+  font-size: 0.9rem;
+}
+
+.standings-zones-note {
+  color: var(--color-muted);
+  flex-basis: 100%;
+}
+
+.standings-zone-labels {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem 0.75rem;
+  margin-top: 0.25rem;
+}
+
+.standings-zone-labels strong {
+  display: inline-flex;
+  gap: 0.25rem;
+  font: 600 0.78rem var(--font-body);
+}
+
+.promotion-label,
+.standings-zone-labels .promotion-label span { color: #8de2b0; }
+.relegation-label,
+.standings-zone-labels .relegation-label span { color: var(--color-accent-soft); }
+
+.league-standings tr[data-promotion] { background: rgba(91, 206, 137, 0.09); }
+.league-standings tr[data-relegation] { background: rgba(255, 91, 91, 0.09); }
+.league-standings tr[data-promotion][data-relegation] {
+  background: linear-gradient(90deg, rgba(91, 206, 137, 0.09), rgba(255, 91, 91, 0.09));
 }
 
 .league-standings .standings-table th:not(:first-child),
@@ -384,6 +421,31 @@
 .public-admin-menu summary:hover,
 .public-admin-menu[open] summary {
   background: var(--color-surface-raised);
+}
+
+.public-admin-link[aria-current],
+.public-admin-menu summary[data-admin-current] {
+  border-color: var(--color-accent);
+}
+
+.admin-navigation {
+  justify-content: flex-start;
+  margin-bottom: 0.75rem;
+}
+
+.admin-navigation :is(a, button) {
+  flex: 1 1 11rem;
+  max-width: 12rem;
+}
+
+@media (max-width: 760px) {
+  .admin-navigation { gap: 0.3rem; }
+  .admin-navigation :is(a, button) {
+    padding-inline: 0.2rem;
+    font-size: 0.8rem;
+  }
+  .admin-navigation .nav-full-label { display: none; }
+  .admin-navigation .nav-compact-label { display: inline; }
 }
 
 .public-admin-menu summary::-webkit-details-marker { display: none; }

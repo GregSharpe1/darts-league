@@ -271,6 +271,7 @@ test('register, assign divisions, start season, enter result, and view division 
   await expect(page.getByText('Luke Humphries')).toBeVisible()
   await expect(page.getByRole('columnheader', { name: 'LW' })).toBeVisible()
   await expect(page.getByRole('columnheader', { name: 'LL' })).toBeVisible()
+  await expect(page.getByRole('group', { name: 'Division movement' })).toHaveCount(0)
   await captureScreenshot(page, 'standings-post-start.png')
 
   await leagueNavigation.getByRole('link', { name: 'Player stats' }).click()
@@ -484,6 +485,43 @@ test('register, assign divisions, start season, enter result, and view division 
   await expect(page.getByRole('heading', { name: 'The Freeze' })).toBeVisible()
 })
 
+test('middle division shows both movement zones and links to neighboring tables', async ({ page }) => {
+  const divisions = [
+    { id: 3, name: 'Challenger Division', slug: 'challenger', position: 3 },
+    { id: 1, name: 'Premier Division', slug: 'premier', position: 1 },
+    { id: 2, name: 'Championship Division', slug: 'championship', position: 2 },
+  ]
+  const standings = ['The Freeze', 'The Ferret', 'Voltage', 'Snakebite', 'The Asp', 'Hollywood'].map((player, index) => ({
+    player, display_name: player, played: 5, won: 5 - index, lost: index,
+    legs_for: 15 - index, legs_against: 5 + index, leg_difference: 10 - index * 2, points: (5 - index) * 2,
+  }))
+  await page.route('**/api/divisions', route => route.fulfill({ json: { divisions } }))
+  await page.route('**/api/divisions/*/standings', route => route.fulfill({ json: { standings } }))
+  await page.goto('/divisions/championship/standings')
+  const table = page.getByRole('table')
+  const zone = page.getByRole('group', { name: 'Division movement' })
+  await expect(table.getByRole('row', { name: /The Freeze/ })).toContainText('Promotion')
+  await expect(table.getByRole('row', { name: /The Ferret/ })).toContainText('Promotion')
+  await expect(table.getByRole('row', { name: /Voltage|Snakebite/ }).getByText(/Promotion|Relegation/)).toHaveCount(0)
+  await expect(table.getByRole('row', { name: /The Asp/ })).toContainText('Relegation')
+  await expect(table.getByRole('row', { name: /Hollywood/ })).toContainText('Relegation')
+  await expect(zone.getByText('Provisional until the league ends.')).toBeVisible()
+  await expect(zone.getByRole('link', { name: 'Challenger Division' })).toHaveAttribute('href', '/divisions/challenger/standings')
+  await page.setViewportSize({ width: 1280, height: 900 })
+  await captureScreenshot(page, 'division-movement.png')
+  await page.setViewportSize({ width: 375, height: 900 })
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
+  await captureScreenshot(page, 'division-movement-mobile.png')
+  await zone.getByRole('link', { name: 'Premier Division' }).click()
+  await expect(page).toHaveURL(/\/premier\/standings$/)
+  await expect(table.getByText(/Promotion/)).toHaveCount(0)
+  await expect(table.getByText(/Relegation/)).toHaveCount(2)
+  await zone.getByRole('link', { name: 'Championship Division' }).click()
+  await zone.getByRole('link', { name: 'Challenger Division' }).click()
+  await expect(table.getByText(/Promotion/)).toHaveCount(2)
+  await expect(table.getByText(/Relegation/)).toHaveCount(0)
+})
+
 test('public navigation fits on one line and exposes Admin on mobile', async ({ page }) => {
   await page.route('**/api/season', route => route.fulfill({ json: { registration_open: true, status: 'registration_open' } }))
   await page.goto('/divisions/premier')
@@ -523,8 +561,12 @@ test('admins open a tournament and manage public entries independently of the le
   await page.getByLabel('Username').fill('admin')
   await page.getByLabel('Password').fill('change-me')
   await page.getByRole('button', { name: 'Unlock admin tools' }).click()
-  await page.getByRole('link', { name: 'Tournaments', exact: true }).click()
+  await page.getByRole('navigation', { name: 'Administration' }).getByRole('link', { name: 'Manage tournaments' }).click()
   await expect(page.getByRole('heading', { name: 'Create tournament' })).toBeVisible()
+  const adminNav = page.getByRole('navigation', { name: 'Administration' })
+  await expect(adminNav.getByRole('link', { name: 'Manage tournaments' })).toHaveAttribute('aria-current', 'page')
+  await expect(adminNav.getByRole('link', { name: 'Pending results' })).toBeVisible()
+  await expect(page.getByRole('navigation', { name: 'Primary' }).getByRole('link', { name: 'Records' })).toHaveAttribute('href', '/players/records')
   await captureScreenshot(page, 'tournament-admin-create.png')
   await page.getByLabel('Tournament name').fill(eventName)
   await page.getByLabel('Start date').fill('2027-02-06')
@@ -755,7 +797,7 @@ test('an admin can confirm deletion of an open tournament and its entries', asyn
   await page.getByLabel('Username').fill('admin')
   await page.getByLabel('Password').fill('change-me')
   await page.getByRole('button', { name: 'Unlock admin tools' }).click()
-  await page.getByRole('link', { name: 'Tournaments', exact: true }).click()
+  await page.getByRole('navigation', { name: 'Administration' }).getByRole('link', { name: 'Manage tournaments' }).click()
   await page.getByLabel('Tournament name').fill(name)
   await page.getByLabel('Start date').fill('2027-02-06')
   await page.getByRole('button', { name: 'Create tournament' }).click()

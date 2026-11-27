@@ -17,6 +17,8 @@ function activeDestination(pathname: string) {
 export function PublicNavigation() {
   const location = useLocation()
   const active = activeDestination(location.pathname)
+  const adminCurrent = matchPath('/admin', location.pathname) ? 'page'
+    : matchPath('/admin/*', location.pathname) ? 'location' : undefined
 
   return <>
     <nav className="primary-nav public-navigation" aria-label="Primary">
@@ -27,7 +29,7 @@ export function PublicNavigation() {
           <span className="nav-compact-label" aria-hidden="true">{compactLabel}</span>
         </Link>)}
     </nav>
-    <Link className="public-admin-link" to="/admin">Admin</Link>
+    <Link className="public-admin-link" to="/admin" aria-current={adminCurrent}>Admin</Link>
     <details className="public-admin-menu" key={location.pathname} onKeyDown={event => {
       if (event.key === 'Escape' && event.currentTarget.open) {
         event.stopPropagation()
@@ -35,8 +37,8 @@ export function PublicNavigation() {
         event.currentTarget.querySelector('summary')?.focus()
       }
     }}>
-      <summary>More</summary>
-      <div className="public-admin-menu-panel"><Link to="/admin">Admin</Link></div>
+      <summary data-admin-current={Boolean(adminCurrent) || undefined}>More</summary>
+      <div className="public-admin-menu-panel"><Link to="/admin" aria-current={adminCurrent}>Admin</Link></div>
     </details>
   </>
 }
