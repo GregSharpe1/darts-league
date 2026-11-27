@@ -17,6 +17,8 @@ import { DivisionAdminPage } from './pages/admin/DivisionAdminPage'
 import { PendingResultsPage } from './pages/admin/PendingResultsPage'
 import { MatchPage } from './pages/matches/MatchPage'
 import { PlayerPage } from './pages/players/PlayerPage'
+import { PlayerDirectoryPage } from './pages/players/PlayerDirectoryPage'
+import { TournamentPlayerPage } from './pages/players/PlayerPlacements'
 
 function App() {
   const location = useLocation()
@@ -106,6 +108,8 @@ function App() {
           <Route path="/tournaments" element={<TournamentsPage />} />
           <Route path="/tournaments/:slug" element={<TournamentPage />} />
           <Route path="/matches/:fixtureId" element={<MatchPage />} />
+          <Route path="/players" element={<PlayerDirectoryPage />} />
+          <Route path="/players/tournaments/:slug/:entryId" element={<TournamentPlayerPage />} />
           <Route path="/seasons/:seasonId/players/:playerId" element={<PlayerPage />} />
           <Route path="/admin/seasons/:seasonId/players/:playerId" element={<PlayerPage admin />} />
           <Route path="/admin/matches/:fixtureId" element={<MatchPage admin />} />

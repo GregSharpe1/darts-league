@@ -19,6 +19,7 @@ describe('Home page', () => {
     const toolbar = within(screen.getByRole('navigation', { name: 'Primary' }))
     expect(toolbar.getAllByRole('link')).toHaveLength(1)
     expect(toolbar.getByRole('link', { name: 'Admin' })).toHaveAttribute('href', '/admin')
+    expect(screen.getByRole('link', { name: 'Player stats' })).toHaveAttribute('href', '/players')
     const league = screen.getByRole('region', { name: 'League matches' })
     const tournaments = screen.getByRole('region', { name: 'Tournaments' })
     expect(within(league).getByRole('link', { name: 'Browse divisions' })).toHaveAttribute('href', '/divisions')

@@ -11,6 +11,7 @@ import (
 	"github.com/greg/darts-league/backend/internal/httpapi"
 	"github.com/greg/darts-league/backend/internal/league"
 	"github.com/greg/darts-league/backend/internal/notifications"
+	"github.com/greg/darts-league/backend/internal/playerstats"
 	"github.com/greg/darts-league/backend/internal/resultsrelay"
 	"github.com/greg/darts-league/backend/internal/slack"
 	pgstore "github.com/greg/darts-league/backend/internal/store/postgres"
@@ -54,6 +55,7 @@ func main() {
 	pendingResultHandler.RegisterRoutes(mux, authHandler.RequireAdmin)
 	httpapi.NewMatchDetailHandler(league.NewFixtureServiceWithNow(store, now)).RegisterRoutes(mux, authHandler.RequireAdmin)
 	httpapi.NewPlayerStatisticsHandler(resultService).RegisterRoutes(mux, authHandler.RequireAdmin)
+	httpapi.PlayerDirectoryHandler{Service: playerstats.Service{League: store, Tournament: tournamentStore, Now: now}}.RegisterRoutes(mux)
 	versionHandler.RegisterRoutes(mux)
 	mux.HandleFunc("/healthz", func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusOK)

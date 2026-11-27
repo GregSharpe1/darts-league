@@ -117,6 +117,10 @@ func TestLifecyclePersistsAfterReopenAndRollover(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	seasons, err := reopened.ListSeasons(ctx)
+	if err != nil || len(seasons) != 2 || seasons[0].ID != next.ID || seasons[1].ID != id || seasons[1].Status != league.SeasonStatusCompleted {
+		t.Fatalf("season history: %+v %v", seasons, err)
+	}
 	if _, err := reopened.CreatePlayer(ctx, league.Player{SeasonID: next.ID, DisplayName: "ALICE", RegisteredAt: time.Now()}); !errors.Is(err, league.ErrDuplicatePlayerName) {
 		t.Fatalf("database duplicate constraint: %v", err)
 	}

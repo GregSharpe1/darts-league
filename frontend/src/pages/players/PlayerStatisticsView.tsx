@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import type { PlayerStatistics } from '../../lib/playerStatistics'
 import { PlayerThrows } from './PlayerThrows'
@@ -12,7 +13,7 @@ function Metric({ label, value, known, total, note }: {
 }
 const average = (value: number | null) => value === null ? null : value.toFixed(2)
 
-export function PlayerStatisticsView({ stats: s, admin }: { readonly stats: PlayerStatistics; readonly admin: boolean }) {
+export function PlayerStatisticsView({ stats: s, admin, placements }: { readonly stats: PlayerStatistics; readonly admin: boolean; readonly placements?: ReactNode }) {
   const c = s.coverage
   const prefix = admin ? '/admin' : ''
   const checkout = s.checkout_hits === null || s.checkout_attempts === null ? null :
@@ -26,6 +27,7 @@ export function PlayerStatisticsView({ stats: s, admin }: { readonly stats: Play
           .map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}
       </dl>
     </div>
+    {placements}
     <section className="content-panel" aria-labelledby="player-metrics-title">
       <div className="player-section-heading"><h2 id="player-metrics-title">Scoring & finishing</h2><span>{c.matches_with_detail} of {c.eligible_matches} matches with throw detail</span></div>
       <p className="player-note">Coverage is specific to each metric. Values describe known evidence, not estimates for missing matches.</p>

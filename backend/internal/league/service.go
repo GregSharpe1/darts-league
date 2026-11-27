@@ -20,6 +20,7 @@ var ErrSeasonNotFound = errors.New("active season not found")
 type Store interface {
 	EnsureActiveSeason(ctx context.Context, season Season) (Season, error)
 	GetActiveSeason(ctx context.Context) (Season, error)
+	ListSeasons(ctx context.Context) ([]Season, error)
 	ListPlayersBySeason(ctx context.Context, seasonID int64) ([]Player, error)
 	AssignPlayer(ctx context.Context, seasonID, playerID int64, divisionID *int64, status PlayerStatus) (Player, error)
 	ListDivisionsBySeason(ctx context.Context, seasonID int64) ([]Division, error)

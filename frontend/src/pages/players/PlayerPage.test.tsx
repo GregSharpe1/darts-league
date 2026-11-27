@@ -13,7 +13,21 @@ function show(admin = false) {
     <Routes><Route path={`${admin ? '/admin' : ''}/seasons/:seasonId/players/:playerId`} element={<PlayerPage admin={admin} />} /></Routes>
   </MemoryRouter></QueryClientProvider>)
 }
-function respond(value: unknown) { vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(JSON.stringify(value)))) }
+const placements = {
+  name: 'Arrow',
+  league: { position: 2, competition: 'Winter League', division: 'Premier' },
+  tournament: { position: 3, competition: 'City Cup', tournament_slug: 'city-cup', tied: true },
+}
+
+function mockPlayerFetch(fetchStatistics: typeof fetch) {
+  vi.stubGlobal('fetch', (url: string, options: RequestInit) => url.endsWith('/placements')
+    ? Promise.resolve(Response.json(placements))
+    : fetchStatistics(url, options))
+}
+
+function respond(value: unknown) {
+  mockPlayerFetch(vi.fn(() => Promise.resolve(Response.json(value))))
+}
 
 it('renders partial metrics with known zero and scoped history links', async () => {
   respond(fixture)
@@ -26,6 +40,11 @@ it('renders partial metrics with known zero and scoped history links', async () 
   expect(screen.getByRole('link', { name: 'Match 12' })).toHaveClass('button-link')
   expect(screen.getByRole('link', { name: 'The Comet' })).toHaveAttribute('href', '/seasons/2/players/9')
   expect(screen.queryByText(/locked/i)).not.toBeInTheDocument()
+  const best = within(await screen.findByRole('region', { name: 'Best placements' }))
+  expect(best.getByText('2nd')).toBeInTheDocument()
+  expect(best.getByText('Winter League / Premier')).toBeInTheDocument()
+  expect(best.getByText('Tied 3rd')).toBeInTheDocument()
+  expect(best.getByRole('link', { name: 'City Cup' })).toHaveAttribute('href', '/tournaments/city-cup')
 })
 
 it('filters recorded entry types without plotting unverified automatic positions', async () => {
@@ -88,7 +107,7 @@ it('shows an empty season without inventing metric values', async () => {
 it('shows loading then retries without exposing the failed payload', async () => {
   const fetcher = vi.fn().mockResolvedValueOnce(new Response('private', { status: 503 }))
     .mockResolvedValueOnce(new Response(JSON.stringify(fixture)))
-  vi.stubGlobal('fetch', fetcher)
+  mockPlayerFetch(fetcher)
   show()
   expect(screen.getByText('Loading player statistics...')).toBeInTheDocument()
   fireEvent.click(await screen.findByRole('button', { name: 'Try again' }))
@@ -124,7 +143,7 @@ it('cancels an in-flight request when the page unmounts', () => {
 it('refetches current values when revisiting after a result edit', async () => {
   const fetcher = vi.fn().mockResolvedValueOnce(new Response(JSON.stringify(fixture)))
     .mockResolvedValueOnce(new Response(JSON.stringify({ ...fixture, match_average_mean: 55 })))
-  vi.stubGlobal('fetch', fetcher)
+  mockPlayerFetch(fetcher)
   const first = show()
   await screen.findByText('42.50')
   first.unmount()

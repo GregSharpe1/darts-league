@@ -38,3 +38,12 @@
   .player-history li { grid-template-columns: minmax(0, 1fr) auto; gap: 16px; }
   .player-history > li > .toolbar-actions { grid-column: 1 / -1; }
 }
+
+.player-search { max-width: 32rem; }
+.player-directory-results { list-style: none; padding: 0; margin: 0; }
+.player-directory-results li { border-top: var(--border-panel); }
+.player-directory-results a { display: flex; align-items: baseline; justify-content: space-between; flex-wrap: wrap; gap: 4px 16px; padding: 12px 0; overflow-wrap: anywhere; }
+.player-directory-results strong { font: 600 1.5rem var(--font-display); }
+.player-directory-results span { color: var(--color-muted); }
+.player-best-placements { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; margin-top: 16px; overflow-wrap: anywhere; }
+@media (max-width: 640px) { .player-best-placements { grid-template-columns: minmax(0, 1fr); gap: 12px; } }
