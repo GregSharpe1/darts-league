@@ -19,7 +19,7 @@ Use one clear page heading followed by sections in reading order. Use `hero-pane
 
 | Where | Header and page destinations |
 | --- | --- |
-| Public pages | Keep **League**, **Tournaments**, **Player stats**, and **Records** in the same order across the site. The logo links home and the current section is highlighted. Keep **Admin** separate on the right. On narrow screens use shorter labels where needed and place **Admin** under **More**. |
+| Public pages | Keep **League**, **Tournaments**, **Player stats**, and **Records** in the same order across the site. The logo links home and the current section is highlighted. Keep **Admin** separate on the right as an outlined action. On narrow screens use shorter labels where needed and place **Admin** under **More**. |
 | Home `/` | The two main cards explain league matches and standalone tournaments and link to their respective directories. Event names on the home card stay white through link states. |
 | League | Put **Fixtures**, **Standings**, and **All divisions** below the division heading. Show **Register** on the league directory while registration is open. |
 | Tournaments | Keep sign-up, event details, and bracket actions on the tournament pages. |

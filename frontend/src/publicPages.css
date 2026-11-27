@@ -355,24 +355,34 @@
   flex: 1 1 7.5rem;
 }
 
-.public-admin-link {
-  padding: 0.75rem 0.5rem;
-}
-
 .public-admin-menu {
   display: none;
   position: relative;
   justify-self: end;
 }
 
+.public-admin-link,
 .public-admin-menu summary {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   min-height: 44px;
   padding-inline: 0.75rem;
   border: var(--border-panel);
   border-radius: var(--radius-pill);
+  color: var(--color-text);
+  text-decoration: none;
   cursor: pointer;
+}
+
+.public-admin-link {
+  justify-content: center;
+  padding-inline: 1.1rem;
+}
+
+.public-admin-link:hover,
+.public-admin-menu summary:hover,
+.public-admin-menu[open] summary {
+  background: var(--color-surface-raised);
 }
 
 .public-admin-menu summary::-webkit-details-marker { display: none; }
@@ -386,7 +396,7 @@
   z-index: 1;
   top: calc(100% + 0.25rem);
   right: 0;
-  padding: 0.35rem 0.85rem;
+  padding: 0.25rem;
   background: var(--color-surface-raised);
   border: var(--border-panel);
   border-radius: var(--radius-field);
@@ -397,6 +407,14 @@
   display: inline-flex;
   align-items: center;
   min-height: 44px;
+  padding-inline: 0.85rem;
+  border-radius: var(--radius-field);
+  color: var(--color-text);
+  text-decoration: none;
+}
+
+.public-admin-menu-panel a:hover {
+  background: rgba(255, 255, 255, 0.08);
 }
 
 .division-navigation {
