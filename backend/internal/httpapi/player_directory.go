@@ -15,6 +15,7 @@ type PlayerDirectoryHandler struct {
 
 func (h PlayerDirectoryHandler) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /api/players", matchNoStore(h.directory))
+	mux.HandleFunc("GET /api/players/records", matchNoStore(h.records))
 	mux.HandleFunc("GET /api/seasons/{seasonID}/players/{playerID}/placements", matchNoStore(h.leaguePlacements))
 	mux.HandleFunc("GET /api/tournaments/{slug}/players/{entryID}/placements", matchNoStore(h.tournamentPlacements))
 }
@@ -26,6 +27,15 @@ func (h PlayerDirectoryHandler) directory(w http.ResponseWriter, r *http.Request
 		return
 	}
 	writeJSON(w, http.StatusOK, profiles)
+}
+
+func (h PlayerDirectoryHandler) records(w http.ResponseWriter, r *http.Request) {
+	records, err := h.Service.Records(r.Context())
+	if err != nil {
+		writeError(w, http.StatusServiceUnavailable, "temporarily_unavailable", "Player records are temporarily unavailable.")
+		return
+	}
+	writeJSON(w, http.StatusOK, records)
 }
 
 func (h PlayerDirectoryHandler) leaguePlacements(w http.ResponseWriter, r *http.Request) {

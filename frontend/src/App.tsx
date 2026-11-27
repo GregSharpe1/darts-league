@@ -19,6 +19,7 @@ import { PendingResultsPage } from './pages/admin/PendingResultsPage'
 import { MatchPage } from './pages/matches/MatchPage'
 import { PlayerPage } from './pages/players/PlayerPage'
 import { PlayerDirectoryPage } from './pages/players/PlayerDirectoryPage'
+import { PlayerRecordsPage } from './pages/players/PlayerRecordsPage'
 import { TournamentPlayerPage } from './pages/players/PlayerPlacements'
 
 function App() {
@@ -115,6 +116,7 @@ function App() {
           <Route path="/tournaments/:slug" element={<TournamentPage />} />
           <Route path="/matches/:fixtureId" element={<MatchPage />} />
           <Route path="/players" element={<PlayerDirectoryPage />} />
+          <Route path="/players/records" element={<PlayerRecordsPage />} />
           <Route path="/players/tournaments/:slug/:entryId" element={<TournamentPlayerPage />} />
           <Route path="/seasons/:seasonId/players/:playerId" element={<PlayerPage />} />
           <Route path="/admin/seasons/:seasonId/players/:playerId" element={<PlayerPage admin />} />

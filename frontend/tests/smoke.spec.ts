@@ -448,6 +448,31 @@ test('register, assign divisions, start season, enter result, and view division 
   await captureScreenshot(page, 'player-season-navigation-mobile.png')
   await current.click()
   await expect(current).toHaveAttribute('aria-current', 'page')
+
+  const leader = { profile: freeze[0], rank: 1, value: 3, played: 4, known_matches: 2 }
+  await page.route('**/api/players/records', route => route.fulfill({
+    json: {
+      total_180: [leader],
+      highest_finish: [{ ...leader, value: 170 }],
+      bullseyes: [{ ...leader, value: 1 }],
+      match_average: [{ ...leader, value: 96.4 }],
+      best_leg: [],
+      wins: [{ ...leader, known_matches: 4 }],
+    },
+  }))
+  await page.getByRole('link', { name: 'Player stats', exact: true }).click()
+  await page.getByRole('link', { name: 'Overall records' }).click()
+  await expect(page.getByRole('heading', { name: 'Overall records' })).toBeVisible()
+  await expect(page.getByRole('region', { name: 'Highest checkout' }).getByText('170')).toBeVisible()
+  await expect(page.getByRole('region', { name: 'Highest match average' }).getByText('96.40')).toBeVisible()
+  await expect(page.getByRole('region', { name: 'Recorded bullseyes' }).getByText('2 of 4 matches with data')).toBeVisible()
+  await expect(page.getByText('No complete winning legs have been recorded.')).toBeVisible()
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
+  await captureScreenshot(page, 'player-records-mobile.png')
+  await page.setViewportSize({ width: 1280, height: 900 })
+  await captureScreenshot(page, 'player-records.png')
+  await page.getByRole('region', { name: 'Most 180s' }).getByRole('link', { name: 'The Freeze' }).click()
+  await expect(page.getByRole('heading', { name: 'The Freeze' })).toBeVisible()
 })
 
 test('all five division navigation actions fit on one line without scrolling', async ({ page }) => {
