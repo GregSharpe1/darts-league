@@ -13,11 +13,6 @@ data:
   SLACK_ADMIN_CHANNEL_ID: {{ .Values.backend.env.slackAdminChannelId | quote }}
   RESULTS_POLL_INTERVAL: {{ .Values.backend.env.resultsPollInterval | default "15m" | quote }}
   AUTODARTS_AUTO_SUBMIT: {{ .Values.backend.env.autodartsAutoSubmit | default false | quote }}
-  {{- with .Values.backend.playerAccess }}
-  PLAYER_ACCESS_ORIGIN: {{ .origin | quote }}
-  PLAYER_SMTP_ADDR: {{ .smtpAddress | quote }}
-  PLAYER_SMTP_FROM: {{ .smtpFrom | quote }}
-  {{- end }}
   {{- if .Values.backend.env.resultsEndpoint }}
   RESULTS_ENDPOINT: {{ .Values.backend.env.resultsEndpoint | quote }}
   {{- end }}

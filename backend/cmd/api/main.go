@@ -11,7 +11,6 @@ import (
 	"github.com/greg/darts-league/backend/internal/httpapi"
 	"github.com/greg/darts-league/backend/internal/league"
 	"github.com/greg/darts-league/backend/internal/notifications"
-	"github.com/greg/darts-league/backend/internal/playeraccess"
 	"github.com/greg/darts-league/backend/internal/playerstats"
 	"github.com/greg/darts-league/backend/internal/resultsrelay"
 	"github.com/greg/darts-league/backend/internal/slack"
@@ -42,9 +41,7 @@ func main() {
 	}
 	registrationNotifier := buildRegistrationNotifier(cfg)
 	authHandler := httpapi.NewAuthHandler(cfg.AdminUser, cfg.AdminPass, cfg.AdminSessionSecret)
-	registrationService := league.NewRegistrationServiceWithNowAndNotifier(store, now, registrationNotifier)
-	registrationHandler := httpapi.NewRegistrationHandler(registrationService)
-	tournamentService := tournament.Service{Store: tournamentStore, Now: now}
+	registrationHandler := httpapi.NewRegistrationHandler(league.NewRegistrationServiceWithNowAndNotifier(store, now, registrationNotifier))
 	seasonHandler := httpapi.NewSeasonHandler(league.NewSeasonServiceWithNow(store, now), league.NewFixtureServiceWithNow(store, now), cfg.InstanceName)
 	resultService := league.NewResultServiceWithNow(store, now)
 	resultHandler := httpapi.NewResultHandler(resultService)
@@ -52,7 +49,7 @@ func main() {
 	versionHandler := httpapi.NewVersionHandler(cfg.Version)
 	authHandler.RegisterRoutes(mux)
 	registrationHandler.RegisterRoutes(mux, authHandler.RequireAdmin)
-	httpapi.TournamentHandler{Service: tournamentService}.RegisterRoutes(mux, authHandler.RequireAdmin)
+	httpapi.TournamentHandler{Service: tournament.Service{Store: tournamentStore, Now: now}}.RegisterRoutes(mux, authHandler.RequireAdmin)
 	seasonHandler.RegisterRoutes(mux, authHandler.RequireAdmin)
 	resultHandler.RegisterRoutes(mux, authHandler.RequireAdmin)
 	pendingResultHandler.RegisterRoutes(mux, authHandler.RequireAdmin)
@@ -66,24 +63,6 @@ func main() {
 	}
 	httpapi.PlayerDirectoryHandler{Service: playerProfiles}.RegisterRoutes(mux)
 	httpapi.PlayerIdentityHandler{Store: playerProfiles.Identities}.RegisterRoutes(mux, authHandler.RequireAdmin)
-	var access playeraccess.Service
-	if smtpAddress := os.Getenv("PLAYER_SMTP_ADDR"); smtpAddress != "" {
-		origin := os.Getenv("PLAYER_ACCESS_ORIGIN")
-		if origin == "" {
-			origin = cfg.PublicBaseURL
-		}
-		service, err := playeraccess.SMTP(origin, smtpAddress, os.Getenv("PLAYER_SMTP_FROM"), os.Getenv("PLAYER_SMTP_USERNAME"), os.Getenv("PLAYER_SMTP_PASSWORD"))
-		if err != nil {
-			log.Fatal(err)
-		}
-		if persistent, ok := store.(playeraccess.Store); ok {
-			access = service
-			access.Store = persistent
-		} else {
-			log.Print("returning player sign-in requires Postgres")
-		}
-	}
-	httpapi.PlayerAccessHandler{Access: access, Directory: playerProfiles, Registration: registrationService, Tournament: tournamentService}.RegisterRoutes(mux, authHandler.RequireAdmin)
 	versionHandler.RegisterRoutes(mux)
 	mux.HandleFunc("/healthz", func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusOK)

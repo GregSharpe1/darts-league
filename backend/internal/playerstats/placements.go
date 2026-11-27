@@ -18,7 +18,6 @@ type Service struct {
 }
 
 type Profile struct {
-	IdentityID     int64  `json:"identity_id"`
 	Name           string `json:"name"`
 	DisplayName    string `json:"display_name,omitempty"`
 	Competition    string `json:"competition"`
@@ -118,7 +117,7 @@ func (s Service) Directory(ctx context.Context) ([]Profile, error) {
 				continue
 			}
 			seen[key] = true
-			profiles = append(profiles, Profile{IdentityID: key, Name: player.PreferredName(), DisplayName: player.DisplayName, Competition: season.Name, SeasonID: season.ID, PlayerID: player.ID})
+			profiles = append(profiles, Profile{Name: player.PreferredName(), DisplayName: player.DisplayName, Competition: season.Name, SeasonID: season.ID, PlayerID: player.ID})
 		}
 	}
 	events, err := s.publishedEvents(ctx)
@@ -135,7 +134,7 @@ func (s Service) Directory(ctx context.Context) ([]Profile, error) {
 				continue
 			}
 			seen[key] = true
-			profiles = append(profiles, Profile{IdentityID: key, Name: entryName(entry), Competition: event.Name, TournamentSlug: event.Slug, EntryID: entry.ID})
+			profiles = append(profiles, Profile{Name: entryName(entry), Competition: event.Name, TournamentSlug: event.Slug, EntryID: entry.ID})
 		}
 	}
 	return profiles, nil

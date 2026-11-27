@@ -56,7 +56,7 @@ func (s *Store) DecideIdentity(ctx context.Context, decision playerstats.Identit
 	}
 	defer tx.Rollback(ctx)
 	// Serialize review decisions, and lock entry rows against concurrent deletion.
-	if err := lockPlayerIdentities(ctx, tx); err != nil {
+	if _, err := tx.Exec(ctx, `SELECT pg_advisory_xact_lock(390040)`); err != nil {
 		return err
 	}
 	left, right := min(decision.Left, decision.Right), max(decision.Left, decision.Right)
@@ -93,19 +93,6 @@ func (s *Store) DecideIdentity(ctx context.Context, decision playerstats.Identit
 }
 
 func mergeIdentities(ctx context.Context, tx pgx.Tx, keep, retire int64) error {
-	var accounts int
-	if err := tx.QueryRow(ctx, `SELECT count(*) FROM player_accounts WHERE identity_id IN ($1, $2)`, keep, retire).Scan(&accounts); err != nil {
-		return err
-	}
-	if accounts > 1 {
-		return playerstats.ErrIdentitiesClaimed
-	}
-	if _, err := tx.Exec(ctx, `UPDATE player_accounts SET identity_id = $1 WHERE identity_id = $2`, keep, retire); err != nil {
-		return err
-	}
-	if _, err := tx.Exec(ctx, `UPDATE player_profile_claims SET identity_id = $1 WHERE identity_id = $2 AND status = 'pending'`, keep, retire); err != nil {
-		return err
-	}
 	if _, err := tx.Exec(ctx, `UPDATE players SET identity_id = $1 WHERE identity_id = $2`, keep, retire); err != nil {
 		return err
 	}

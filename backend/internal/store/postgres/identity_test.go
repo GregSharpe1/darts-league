@@ -45,9 +45,6 @@ func TestIdentityMigrationAndReview(t *testing.T) {
 	if _, err := tx.Exec(ctx, identitySchema); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := tx.Exec(ctx, playerAccessSchema); err != nil {
-		t.Fatal(err)
-	}
 	snapshot, err := scoped.IdentitySnapshot(ctx)
 	if err != nil || len(snapshot.Entries) != 3 {
 		t.Fatalf("backfill: %+v %v", snapshot, err)

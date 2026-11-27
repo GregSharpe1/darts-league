@@ -52,11 +52,6 @@ backend:
     resultsEndpoint: ""
     resultsPollInterval: "15m"
     autodartsAutoSubmit: false
-  playerAccess:
-    origin: ""
-    smtpAddress: ""
-    smtpFrom: ""
-    smtpSecret: ""
   auth:
     existingSecret: ""
     existingSecretKeys:

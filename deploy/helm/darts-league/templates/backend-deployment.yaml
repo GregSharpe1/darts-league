@@ -70,18 +70,6 @@ spec:
                 secretKeyRef:
                   name: {{ include "darts-league.backendSlackSecretName" . }}
                   key: {{ .Values.backend.slack.existingSecretKeys.botToken }}
-            {{- with .Values.backend.playerAccess.smtpSecret }}
-            - name: PLAYER_SMTP_USERNAME
-              valueFrom:
-                secretKeyRef:
-                  name: {{ . | quote }}
-                  key: PLAYER_SMTP_USERNAME
-            - name: PLAYER_SMTP_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: {{ . | quote }}
-                  key: PLAYER_SMTP_PASSWORD
-            {{- end }}
           livenessProbe:
             httpGet:
               path: /healthz

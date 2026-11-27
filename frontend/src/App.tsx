@@ -9,7 +9,6 @@ import { DivisionsPage } from './pages/home/DivisionsPage'
 import { DivisionHomePage } from './pages/home/DivisionHomePage'
 import { StandingsPage } from './pages/standings/StandingsPage'
 import { RegisterPage } from './pages/register/RegisterPage'
-import { PlayerAccessPage } from './pages/register/PlayerAccessPage'
 import { AdminTournamentsPage } from './pages/tournaments/AdminTournamentsPage'
 import { TournamentPage } from './pages/tournaments/TournamentPage'
 import { TournamentsPage } from './pages/tournaments/TournamentsPage'
@@ -112,7 +111,6 @@ function App() {
           <Route path="/divisions/:slug" element={<DivisionHomePage />} />
           <Route path="/divisions/:slug/standings" element={<StandingsPage />} />
           <Route path="/register" element={<RegisterPage />} />
-          <Route path="/player-access" element={<PlayerAccessPage />} />
           <Route path="/tournaments" element={<TournamentsPage />} />
           <Route path="/tournaments/:slug" element={<TournamentPage />} />
           <Route path="/matches/:fixtureId" element={<MatchPage />} />

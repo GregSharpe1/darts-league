@@ -37,7 +37,7 @@ func (h PlayerIdentityHandler) decide(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNoContent)
 	case errors.Is(err, playerstats.ErrIdentityDecision):
 		writeError(w, http.StatusBadRequest, "invalid_decision", err.Error())
-	case errors.Is(err, playerstats.ErrIdentityNotFound), errors.Is(err, playerstats.ErrIdentityOverlap), errors.Is(err, playerstats.ErrIdentitiesClaimed):
+	case errors.Is(err, playerstats.ErrIdentityNotFound), errors.Is(err, playerstats.ErrIdentityOverlap):
 		writeError(w, http.StatusConflict, "identity_conflict", err.Error())
 	default:
 		writeError(w, http.StatusServiceUnavailable, "temporarily_unavailable", "The identity decision could not be saved.")

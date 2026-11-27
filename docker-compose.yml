@@ -40,11 +40,6 @@ services:
       RESULTS_ENDPOINT: https://cicoc33r4h.execute-api.eu-west-1.amazonaws.com/results
       RESULTS_POLL_INTERVAL: 15m
       AUTODARTS_AUTO_SUBMIT: ${AUTODARTS_AUTO_SUBMIT:-false}
-      PLAYER_ACCESS_ORIGIN: ${PLAYER_ACCESS_ORIGIN:-}
-      PLAYER_SMTP_ADDR: ${PLAYER_SMTP_ADDR:-}
-      PLAYER_SMTP_FROM: ${PLAYER_SMTP_FROM:-}
-      PLAYER_SMTP_USERNAME: ${PLAYER_SMTP_USERNAME:-}
-      PLAYER_SMTP_PASSWORD: ${PLAYER_SMTP_PASSWORD:-}
     depends_on:
       postgres:
         condition: service_healthy
