@@ -106,6 +106,14 @@ func (s Service) Directory(ctx context.Context) ([]Profile, error) {
 }
 
 func (s Service) directory(ctx context.Context, index map[entryKey]int64) ([]Profile, error) {
+	events, err := s.publishedEvents(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return s.directoryFromEvents(ctx, index, events)
+}
+
+func (s Service) directoryFromEvents(ctx context.Context, index map[entryKey]int64, events []publishedEvent) ([]Profile, error) {
 	seasons, err := s.League.ListSeasons(ctx)
 	if err != nil {
 		return nil, err
@@ -134,10 +142,6 @@ func (s Service) directory(ctx context.Context, index map[entryKey]int64) ([]Pro
 			seen[key] = true
 			profiles = append(profiles, Profile{IdentityID: key, registrationName: player.DisplayName, registrationNickname: player.Nickname, Name: player.PreferredName(), DisplayName: player.DisplayName, Competition: season.Name, SeasonID: season.ID, PlayerID: player.ID})
 		}
-	}
-	events, err := s.publishedEvents(ctx)
-	if err != nil {
-		return nil, err
 	}
 	for _, event := range events {
 		for _, entry := range event.entries {

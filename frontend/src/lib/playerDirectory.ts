@@ -12,6 +12,12 @@ export type PlayerProfile = {
   | { tournament_slug: string; entry_id: number }
 )
 
+export function playerProfilePath(profile: PlayerProfile) {
+  return 'season_id' in profile
+    ? `/seasons/${profile.season_id}/players/${profile.player_id}`
+    : `/players/tournaments/${profile.tournament_slug}/${profile.entry_id}`
+}
+
 export function usePlayerDirectory() {
   return useQuery({
     queryKey: ['public-player-directory'],

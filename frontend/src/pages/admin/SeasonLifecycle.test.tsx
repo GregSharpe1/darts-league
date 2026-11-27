@@ -49,7 +49,7 @@ it('keeps completed scores and audits readable without editing controls', async 
   vi.stubGlobal('fetch', createMockFetch({ authenticated: true, seasonStarted: true, seasonCompleted: true, seasonName: 'Finals', remainingFixtures: 0 }))
   renderApp('/admin/divisions/premier')
   expect(screen.getByRole('link', { name: 'Admin home' })).toHaveAttribute('href', '/admin')
-  expect(screen.queryByRole('link', { name: 'Pending results' })).not.toBeInTheDocument()
+  expect(await screen.findByRole('link', { name: /^Pending results$/ })).toHaveAttribute('href', '/admin/pending-results')
   expect(await screen.findByText(/league completed/i)).toBeInTheDocument()
   expect(await screen.findByLabelText('The Freeze (Luke Humphries) legs')).toHaveValue(3)
   expect(screen.getByLabelText('The Freeze (Luke Humphries) legs')).toHaveAttribute('readonly')
@@ -58,11 +58,11 @@ it('keeps completed scores and audits readable without editing controls', async 
   expect(screen.getByRole('heading', { name: 'Audit log' })).toBeInTheDocument()
 })
 
-it('shows admin home on pending results and keeps pending results navigation on the admin home only', async () => {
+it('shows the shared admin navigation on the pending results page', async () => {
   vi.stubGlobal('fetch', createMockFetch({ authenticated: true, seasonStarted: true, seasonName: 'Finals' }))
   renderApp('/admin/pending-results')
   expect(screen.getByRole('link', { name: 'Admin home' })).toHaveAttribute('href', '/admin')
-  expect(screen.queryByRole('link', { name: 'Pending results' })).not.toBeInTheDocument()
+  expect(await screen.findByRole('link', { name: /^Pending results$/ })).toHaveAttribute('href', '/admin/pending-results')
   expect(await screen.findByRole('heading', { name: 'Pending results' })).toBeInTheDocument()
 })
 

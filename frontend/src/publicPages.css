@@ -185,8 +185,45 @@
   background: #211c1e;
 }
 
-.league-standings .standings-table tbody tr:first-child {
+.league-standings .standings-table tbody tr:first-child:not([data-promotion], [data-relegation]) {
   background: rgba(255, 91, 91, 0.07);
+}
+
+.standings-zones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 1.25rem;
+  margin-bottom: 1rem;
+  font-size: 0.9rem;
+}
+
+.standings-zones-note {
+  color: var(--color-muted);
+  flex-basis: 100%;
+}
+
+.standings-zone-labels {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem 0.75rem;
+  margin-top: 0.25rem;
+}
+
+.standings-zone-labels strong {
+  display: inline-flex;
+  gap: 0.25rem;
+  font: 600 0.78rem var(--font-body);
+}
+
+.promotion-label,
+.standings-zone-labels .promotion-label span { color: #8de2b0; }
+.relegation-label,
+.standings-zone-labels .relegation-label span { color: var(--color-accent-soft); }
+
+.league-standings tr[data-promotion] { background: rgba(91, 206, 137, 0.09); }
+.league-standings tr[data-relegation] { background: rgba(255, 91, 91, 0.09); }
+.league-standings tr[data-promotion][data-relegation] {
+  background: linear-gradient(90deg, rgba(91, 206, 137, 0.09), rgba(255, 91, 91, 0.09));
 }
 
 .league-standings .standings-table th:not(:first-child),
@@ -339,15 +376,144 @@
     #111011 var(--competition-art) center 47% / cover no-repeat;
 }
 
+/* Public destinations use the same order and space on every public page. */
+.public-topbar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  grid-template-areas: "brand navigation admin";
+}
+
+.public-topbar .brand-mark { grid-area: brand; }
+.public-navigation { grid-area: navigation; }
+.public-admin-link,
+.public-admin-menu { grid-area: admin; }
+
+.public-navigation a {
+  flex: 1 1 7.5rem;
+  padding-block: 0;
+}
+
+.public-admin-menu {
+  display: none;
+  position: relative;
+  justify-self: end;
+}
+
+.public-admin-link,
+.public-admin-menu summary {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--control-height);
+  padding-inline: 0.75rem;
+  border: var(--border-panel);
+  border-radius: var(--radius-pill);
+  color: var(--color-text);
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.public-admin-link {
+  justify-content: center;
+  padding-inline: 1.1rem;
+}
+
+.public-admin-link:hover,
+.public-admin-menu summary:hover,
+.public-admin-menu[open] summary {
+  background: var(--color-surface-raised);
+}
+
+.public-admin-link[aria-current],
+.public-admin-menu summary[data-admin-current] {
+  border-color: var(--color-accent);
+}
+
+.admin-navigation {
+  justify-content: flex-start;
+  margin-bottom: 0.75rem;
+}
+
+.admin-navigation :is(a, button) {
+  flex: 1 1 11rem;
+  max-width: 12rem;
+}
+
+@media (max-width: 760px) {
+  .admin-navigation { gap: 0.3rem; }
+  .admin-navigation :is(a, button) {
+    padding-inline: 0.2rem;
+    font-size: 0.8rem;
+  }
+  .admin-navigation .nav-full-label { display: none; }
+  .admin-navigation .nav-compact-label { display: inline; }
+}
+
+.public-admin-menu summary::-webkit-details-marker { display: none; }
+.public-admin-menu summary:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+.public-admin-menu-panel {
+  position: absolute;
+  z-index: 1;
+  top: calc(100% + 0.25rem);
+  right: 0;
+  padding: 0.25rem;
+  background: var(--color-surface-raised);
+  border: var(--border-panel);
+  border-radius: var(--radius-field);
+  box-shadow: var(--shadow-panel);
+}
+
+.public-admin-menu-panel a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding-inline: 0.85rem;
+  border-radius: var(--radius-field);
+  color: var(--color-text);
+  text-decoration: none;
+}
+
+.public-admin-menu-panel a:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.division-navigation {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 1.25rem;
+  margin-top: 0.75rem;
+}
+
+.division-navigation a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+}
+
+.division-navigation a[aria-current="page"] {
+  font-weight: 700;
+  text-decoration-thickness: 2px;
+}
+
+@media (max-width: 1180px) {
+  .public-topbar {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas: "brand brand" "navigation admin";
+    align-items: center;
+    row-gap: 0.65rem;
+  }
+}
+
 @media (max-width: 760px) {
   .public-topbar {
     gap: 0.65rem;
     padding: 0.8rem 1rem;
   }
 
-  .public-topbar .primary-nav {
-    gap: 0.4rem;
-  }
+  .public-topbar .primary-nav { gap: 0.4rem; }
 
   .competition-hero {
     grid-template-columns: minmax(0, 1fr);
@@ -384,4 +550,15 @@
 .tournament-score-form > button {
   justify-self: start;
   padding-inline: 1rem;
+}
+
+@media (max-width: 640px) {
+  .public-topbar {
+    grid-template-areas: "brand admin" "navigation navigation";
+  }
+
+  .public-admin-link { display: none; }
+  .public-admin-menu { display: block; }
+  .public-navigation .nav-full-label { display: none; }
+  .public-navigation .nav-compact-label { display: inline; }
 }

@@ -30,6 +30,10 @@ func TestTournamentScoreCorrectionPreservesReceiptsAndClearsOnlyDependentScores(
 	if finalImport.Pending.Status != league.PendingResultStatusConfirmed {
 		t.Fatalf("final was not scored: %+v", finalImport)
 	}
+	source, err := store.TournamentRecordImport(ctx, event.Slug, final.Number)
+	if err != nil || !source.Active || source.Pending.ID != finalImport.Pending.ID {
+		t.Fatalf("records must use the active final source: %+v, %v", source, err)
+	}
 	semi := current.Bracket[0][0]
 	editor := tournament.Service{Store: store}
 	correction := tournament.ScoreCorrection{
@@ -58,6 +62,9 @@ func TestTournamentScoreCorrectionPreservesReceiptsAndClearsOnlyDependentScores(
 	if updatedFinal.Legs != nil || updatedFinal.WinnerID != 0 || updatedFinal.Slots[0].EntryID != semi.Slots[1].EntryID ||
 		updatedFinal.Slots[1] != final.Slots[1] || fixed.Bracket[0][1].Legs == nil {
 		t.Fatalf("invalid advancement after winner correction: %+v", fixed.Bracket)
+	}
+	if _, err := store.TournamentRecordImport(ctx, event.Slug, final.Number); !errors.Is(err, league.ErrPendingResultNotFound) {
+		t.Fatalf("records must exclude detached import evidence: %v", err)
 	}
 	receipt, err := store.GetImport(ctx, finalImport.Pending.ID)
 	if err != nil || receipt.Active || receipt.Pending.Status != league.PendingResultStatusConfirmed || receipt.Approval == nil {

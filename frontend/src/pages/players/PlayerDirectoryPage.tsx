@@ -1,14 +1,7 @@
 import { Link, useSearchParams } from 'react-router-dom'
 import { StateNotice } from '../../components/StateNotice'
-import { filterPlayerProfiles, usePlayerDirectory } from '../../lib/playerDirectory'
-import type { PlayerProfile } from '../../lib/playerDirectory'
+import { filterPlayerProfiles, playerProfilePath, usePlayerDirectory } from '../../lib/playerDirectory'
 import './PlayerPage.css'
-
-function profilePath(profile: PlayerProfile) {
-  return 'season_id' in profile
-    ? `/seasons/${profile.season_id}/players/${profile.player_id}`
-    : `/players/tournaments/${profile.tournament_slug}/${profile.entry_id}`
-}
 
 export function PlayerDirectoryPage() {
   const [params, setParams] = useSearchParams()
@@ -37,7 +30,7 @@ export function PlayerDirectoryPage() {
               ? search.trim() ? 'No players match your search.' : 'No player profiles are available yet.'
               : `${profiles.length} ${profiles.length === 1 ? 'profile' : 'profiles'}`}</p>
             <ul className="player-directory-results">{profiles.map((profile) =>
-              <li key={profilePath(profile)}><Link className="text-link" to={profilePath(profile)}>
+              <li key={playerProfilePath(profile)}><Link className="text-link" to={playerProfilePath(profile)}>
                 <strong>{profile.name}</strong><span>{profile.competition}</span>
               </Link></li>)}
             </ul>

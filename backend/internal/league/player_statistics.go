@@ -69,45 +69,39 @@ func (s ResultService) readPlayerStatistics(ctx context.Context, seasonID, playe
 		return PlayerStatistics{}, err
 	}
 	now := s.now()
-	currentWeek := CurrentPublicWeek(fixtures, now, loc)
+	var visible map[int64]bool
+	if public {
+		visible = publicStatisticsFixtures(fixtures, now, loc)
+	}
 	got := PlayerStatistics{SchemaVersion: "autodarts.api.v1", SeasonID: seasonID, PlayerID: playerID, PreferredName: name, History: []PlayerStatisticsMatch{}, Throws: []PlayerStatisticsThrow{}}
 	acc := playerStatisticsAccumulator{result: &got}
-	for _, week := range GroupFixturesByWeek(fixtures, loc) {
-		if public && (week.WeekNumber > currentWeek || now.Before(week.RevealAt)) {
+	for _, f := range fixtures {
+		if f.SeasonID != seasonID || (f.PlayerOneID != playerID && f.PlayerTwoID != playerID) || (public && !visible[f.ID]) {
 			continue
 		}
-		for _, f := range week.Fixtures {
-			if f.SeasonID != seasonID || (f.PlayerOneID != playerID && f.PlayerTwoID != playerID) {
-				continue
-			}
-			// Gate each fixture too, even if a malformed schedule shares a week number.
-			if public && CurrentPublicWeek([]Fixture{f}, now, loc) < f.WeekNumber {
-				continue
-			}
-			r, exists := byFixture[f.ID]
-			if !exists {
-				continue
-			}
-			source, sourceErr := imports.ImportByFixture(ctx, f.ID)
-			if sourceErr != nil && !errors.Is(sourceErr, ErrPendingResultNotFound) {
-				return PlayerStatistics{}, sourceErr
-			}
-			if sourceErr == nil && !statisticsSourceMatches(source, f, r) {
-				continue
-			}
-			history := PlayerStatisticsMatch{FixtureID: f.ID, WeekNumber: f.WeekNumber, ScheduledAt: f.ScheduledAt, OpponentID: f.PlayerTwoID, Won: r.WinnerID == playerID, LegsFor: r.PlayerOneLegs, LegsAgainst: r.PlayerTwoLegs, MatchAverage: r.PlayerOneAverage, DetailCoverage: "none"}
-			if f.PlayerTwoID == playerID {
-				history.OpponentID, history.LegsFor, history.LegsAgainst, history.MatchAverage = f.PlayerOneID, r.PlayerTwoLegs, r.PlayerOneLegs, r.PlayerTwoAverage
-			}
-			history.OpponentName = names[history.OpponentID]
-			if sourceErr == nil {
-				acc.addImport(source, f.ID)
-				if source.Import.Detail != nil {
-					history.DetailCoverage = source.Import.Detail.Coverage
-				}
-			}
-			acc.addMatch(history)
+		r, exists := byFixture[f.ID]
+		if !exists {
+			continue
 		}
+		source, sourceErr := imports.ImportByFixture(ctx, f.ID)
+		if sourceErr != nil && !errors.Is(sourceErr, ErrPendingResultNotFound) {
+			return PlayerStatistics{}, sourceErr
+		}
+		if sourceErr == nil && !statisticsSourceMatches(source, f, r) {
+			continue
+		}
+		history := PlayerStatisticsMatch{FixtureID: f.ID, WeekNumber: f.WeekNumber, ScheduledAt: f.ScheduledAt, OpponentID: f.PlayerTwoID, Won: r.WinnerID == playerID, LegsFor: r.PlayerOneLegs, LegsAgainst: r.PlayerTwoLegs, MatchAverage: r.PlayerOneAverage, DetailCoverage: "none"}
+		if f.PlayerTwoID == playerID {
+			history.OpponentID, history.LegsFor, history.LegsAgainst, history.MatchAverage = f.PlayerOneID, r.PlayerTwoLegs, r.PlayerOneLegs, r.PlayerTwoAverage
+		}
+		history.OpponentName = names[history.OpponentID]
+		if sourceErr == nil {
+			acc.addImport(source, f.ID)
+			if source.Import.Detail != nil {
+				history.DetailCoverage = source.Import.Detail.Coverage
+			}
+		}
+		acc.addMatch(history)
 	}
 	acc.finish()
 	sort.Slice(got.History, func(i, j int) bool {

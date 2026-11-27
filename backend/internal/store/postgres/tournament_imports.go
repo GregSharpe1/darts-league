@@ -2,6 +2,7 @@ package postgres
 
 import (
 	"context"
+	"errors"
 
 	"github.com/greg/darts-league/backend/internal/autodarts"
 	"github.com/greg/darts-league/backend/internal/league"
@@ -67,4 +68,20 @@ func (s *Store) SaveTournamentImport(ctx context.Context, record league.ImportRe
 	}
 	record.Active = true
 	return result, s.SaveImportApproval(ctx, record)
+}
+
+// TournamentRecordImport reads the receipt still attached to a scored match.
+// Score corrections remove this link before recording a replacement.
+func (s *Store) TournamentRecordImport(ctx context.Context, slug string, number int) (league.ImportRecord, error) {
+	var id int64
+	err := s.pool.QueryRow(ctx, `SELECT r.pending_result_id
+		FROM tournament_import_results r JOIN pending_results p ON p.id = r.pending_result_id
+		WHERE r.tournament_slug = $1 AND r.match_number = $2 AND p.source_active`, slug, number).Scan(&id)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return league.ImportRecord{}, league.ErrPendingResultNotFound
+	}
+	if err != nil {
+		return league.ImportRecord{}, err
+	}
+	return s.GetImport(ctx, id)
 }
