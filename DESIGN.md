@@ -19,9 +19,10 @@ Use one clear page heading followed by sections in reading order. Use `hero-pane
 
 | Where | Header and page destinations |
 | --- | --- |
-| Home `/` | Show **Records**, **Player stats**, and **Admin** in the header navigation. The two main cards explain league matches and standalone tournaments and link to their respective directories. Event names on the home card stay white through link states. |
-| Public tournaments `/tournaments/*` | Show only **League** in the header navigation. Keep sign-up, event details, and bracket actions on the tournament pages. |
-| Public league pages | Offer **Tournaments** and show **Register** while league registration is open. Omit **Divisions** on the division directory itself. Use **Fixtures**, **Standings**, and **All Divisions** for division detail navigation. |
+| Public pages | Keep **League**, **Tournaments**, **Player stats**, and **Records** in the same order across the site. The logo links home and the current section is highlighted. Keep **Admin** separate on the right. On narrow screens use shorter labels where needed and place **Admin** under **More**. |
+| Home `/` | The two main cards explain league matches and standalone tournaments and link to their respective directories. Event names on the home card stay white through link states. |
+| League | Put **Fixtures**, **Standings**, and **All divisions** below the division heading. Show **Register** on the league directory while registration is open. |
+| Tournaments | Keep sign-up, event details, and bracket actions on the tournament pages. |
 | Admin `/admin/*` | Keep admin destinations and session actions in the admin toolbar. Label actions by what they do and make the item affected clear in confirmations. |
 
 ## Page patterns

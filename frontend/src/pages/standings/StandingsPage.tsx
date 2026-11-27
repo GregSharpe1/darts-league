@@ -2,6 +2,7 @@ import { Link, useParams } from 'react-router-dom'
 import { useDivisions, useDivisionStandings, useSeasonSummary } from '../../lib/api'
 import { StateNotice } from '../../components/StateNotice'
 import { readError } from '../../lib/utils'
+import { DivisionNavigation } from '../home/DivisionNavigation'
 
 function formatAverage(average?: number | null) {
   return average === undefined || average === null ? '-' : average.toFixed(2)
@@ -21,6 +22,7 @@ export function StandingsPage() {
           <span className="competition-kicker">{seasonQuery.data?.status === 'completed' ? 'Final standings' : 'League standings'}</span>
           <h1>{division?.name ?? 'Division standings'}</h1>
           <p>{seasonQuery.data?.name ?? 'Active season'}</p>
+          {slug ? <DivisionNavigation slug={slug} /> : null}
         </div>
       </section>
 

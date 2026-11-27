@@ -1,9 +1,10 @@
 import { useMemo, useState } from 'react'
-import { NavLink, useParams } from 'react-router-dom'
+import { useParams } from 'react-router-dom'
 import { useDivisions, useDivisionFixtures, useDivisionStandings, useSeasonSummary, formatWhen } from '../../lib/api'
 import { StateNotice } from '../../components/StateNotice'
 import { readError } from '../../lib/utils'
 import { CompletedResults } from './CompletedResults'
+import { DivisionNavigation } from './DivisionNavigation'
 
 export function DivisionHomePage() {
   const { slug = '' } = useParams()
@@ -59,10 +60,7 @@ export function DivisionHomePage() {
           <p>
             Follow this division&apos;s fixtures and results. Match details unlock Mondays at 09:00 UK time.
           </p>
-          <div className="hero-actions">
-            <NavLink to="/divisions">All divisions</NavLink>
-            <NavLink to={`/divisions/${slug}/standings`}>View points table</NavLink>
-          </div>
+          <DivisionNavigation slug={slug} />
         </div>
 
         <div className="hero-side">

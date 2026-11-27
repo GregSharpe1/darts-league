@@ -339,15 +339,100 @@
     #111011 var(--competition-art) center 47% / cover no-repeat;
 }
 
+/* Public destinations use the same order and space on every public page. */
+.public-topbar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  grid-template-areas: "brand navigation admin";
+}
+
+.public-topbar .brand-mark { grid-area: brand; }
+.public-navigation { grid-area: navigation; }
+.public-admin-link,
+.public-admin-menu { grid-area: admin; }
+
+.public-navigation a {
+  flex: 1 1 7.5rem;
+}
+
+.public-admin-link {
+  padding: 0.75rem 0.5rem;
+}
+
+.public-admin-menu {
+  display: none;
+  position: relative;
+  justify-self: end;
+}
+
+.public-admin-menu summary {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  padding-inline: 0.75rem;
+  border: var(--border-panel);
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+}
+
+.public-admin-menu summary::-webkit-details-marker { display: none; }
+.public-admin-menu summary:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+.public-admin-menu-panel {
+  position: absolute;
+  z-index: 1;
+  top: calc(100% + 0.25rem);
+  right: 0;
+  padding: 0.35rem 0.85rem;
+  background: var(--color-surface-raised);
+  border: var(--border-panel);
+  border-radius: var(--radius-field);
+  box-shadow: var(--shadow-panel);
+}
+
+.public-admin-menu-panel a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+}
+
+.division-navigation {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 1.25rem;
+  margin-top: 0.75rem;
+}
+
+.division-navigation a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+}
+
+.division-navigation a[aria-current="page"] {
+  font-weight: 700;
+  text-decoration-thickness: 2px;
+}
+
+@media (max-width: 1180px) {
+  .public-topbar {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas: "brand brand" "navigation admin";
+    align-items: center;
+    row-gap: 0.65rem;
+  }
+}
+
 @media (max-width: 760px) {
   .public-topbar {
     gap: 0.65rem;
     padding: 0.8rem 1rem;
   }
 
-  .public-topbar .primary-nav {
-    gap: 0.4rem;
-  }
+  .public-topbar .primary-nav { gap: 0.4rem; }
 
   .competition-hero {
     grid-template-columns: minmax(0, 1fr);
@@ -384,4 +469,15 @@
 .tournament-score-form > button {
   justify-self: start;
   padding-inline: 1rem;
+}
+
+@media (max-width: 640px) {
+  .public-topbar {
+    grid-template-areas: "brand admin" "navigation navigation";
+  }
+
+  .public-admin-link { display: none; }
+  .public-admin-menu { display: block; }
+  .public-navigation .nav-full-label { display: none; }
+  .public-navigation .nav-compact-label { display: inline; }
 }
