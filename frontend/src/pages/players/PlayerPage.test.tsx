@@ -17,6 +17,10 @@ const placements = {
   name: 'Arrow',
   league: { position: 2, competition: 'Winter League', division: 'Premier' },
   tournament: { position: 3, competition: 'City Cup', tournament_slug: 'city-cup', tied: true },
+  league_seasons: [
+    { season_id: 1, player_id: 4, name: 'Autumn League' },
+    { season_id: 2, player_id: 7, name: 'Winter League' },
+  ],
 }
 
 function mockPlayerFetch(fetchStatistics: typeof fetch) {
@@ -45,6 +49,9 @@ it('renders partial metrics with known zero and scoped history links', async () 
   expect(best.getByText('Winter League / Premier')).toBeInTheDocument()
   expect(best.getByText('Tied 3rd')).toBeInTheDocument()
   expect(best.getByRole('link', { name: 'City Cup' })).toHaveAttribute('href', '/tournaments/city-cup')
+  const seasons = within(screen.getByRole('navigation', { name: 'League seasons' }))
+  expect(seasons.getByRole('link', { name: 'Winter League' })).toHaveAttribute('aria-current', 'page')
+  expect(seasons.getByRole('link', { name: 'Autumn League' })).toHaveAttribute('href', '/seasons/1/players/4')
 })
 
 it('filters recorded entry types without plotting unverified automatic positions', async () => {
@@ -90,6 +97,8 @@ it('keeps admin history links in the authenticated scope', async () => {
   respond(fixture)
   show(true)
   expect(await screen.findByRole('link', { name: 'Match 12' })).toHaveAttribute('href', '/admin/matches/12')
+  const seasons = within(await screen.findByRole('navigation', { name: 'League seasons' }))
+  expect(seasons.getByRole('link', { name: 'Autumn League' })).toHaveAttribute('href', '/admin/seasons/1/players/4')
   expect(screen.getByRole('link', { name: 'Match 12' })).toHaveClass('button-link')
 })
 

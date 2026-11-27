@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { Link, useParams } from 'react-router-dom'
+import { Link, NavLink, useParams } from 'react-router-dom'
 import { ApiError, request } from '../../lib/api'
 
 type Placement = {
@@ -10,10 +10,17 @@ type Placement = {
   tied?: boolean
 }
 
+type LeagueSeason = {
+  season_id: number
+  player_id: number
+  name: string
+}
+
 type Placements = {
   name: string
   league: Placement | null
   tournament: Placement | null
+  league_seasons?: LeagueSeason[]
 }
 
 function usePlacements(path: string) {
@@ -56,11 +63,28 @@ function PlacementSection({ placements }: { placements: Placements }) {
   </section>
 }
 
-export function LeaguePlayerPlacements({ seasonId, playerId }: { seasonId: string; playerId: string }) {
+function LeagueSeasonNavigation({ seasons, admin = false }: { seasons: LeagueSeason[]; admin?: boolean }) {
+  return <nav className="content-panel" aria-labelledby="player-seasons-title">
+    <h2 id="player-seasons-title">League seasons</h2>
+    <ul className="player-season-links">
+      {seasons.map(season => <li key={season.season_id}>
+        <NavLink className="text-link" end to={`${admin ? '/admin' : ''}/seasons/${season.season_id}/players/${season.player_id}`}>
+          {season.name}
+        </NavLink>
+      </li>)}
+    </ul>
+  </nav>
+}
+
+export function LeaguePlayerPlacements({ seasonId, playerId, admin }: { seasonId: string; playerId: string; admin: boolean }) {
   const query = usePlacements(`/api/seasons/${seasonId}/players/${playerId}/placements`)
   if (query.isPending) return <p className="content-panel" role="status">Loading best placements...</p>
   if (query.isError) return <p className="content-panel" role="status">Best placements could not be loaded.</p>
-  return <PlacementSection placements={query.data} />
+  const seasons = query.data.league_seasons ?? []
+  return <>
+    {seasons.some(season => String(season.season_id) !== seasonId) ? <LeagueSeasonNavigation seasons={seasons} admin={admin} /> : null}
+    <PlacementSection placements={query.data} />
+  </>
 }
 
 export function TournamentPlayerPage() {
@@ -73,6 +97,7 @@ export function TournamentPlayerPage() {
         <h1>{query.error instanceof ApiError && query.error.status === 404 ? 'Player not found' : 'Player statistics unavailable'}</h1>
       </div> : <>
         <div className="player-hero content-panel"><h1>{query.data.name}</h1></div>
+        {query.data.league_seasons?.length ? <LeagueSeasonNavigation seasons={query.data.league_seasons} /> : null}
         <PlacementSection placements={query.data} />
       </>}
   </div>

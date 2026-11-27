@@ -39,10 +39,17 @@ type Placement struct {
 	Tied           bool   `json:"tied,omitempty"`
 }
 
+type LeagueSeasonLink struct {
+	SeasonID int64  `json:"season_id"`
+	PlayerID int64  `json:"player_id"`
+	Name     string `json:"name"`
+}
+
 type Placements struct {
-	Name       string     `json:"name"`
-	League     *Placement `json:"league"`
-	Tournament *Placement `json:"tournament"`
+	Name          string             `json:"name"`
+	League        *Placement         `json:"league"`
+	Tournament    *Placement         `json:"tournament"`
+	LeagueSeasons []LeagueSeasonLink `json:"league_seasons"`
 }
 
 type publishedEvent struct {
@@ -267,11 +274,10 @@ func (s Service) best(ctx context.Context, entry entryKey, name string, events [
 	if identityID == 0 {
 		return Placements{}, league.ErrPlayerNotFound
 	}
-	bestLeague, err := s.bestLeague(ctx, index, identityID)
-	if err != nil {
+	best := Placements{Name: name, LeagueSeasons: []LeagueSeasonLink{}}
+	if err := s.addLeaguePlacements(ctx, index, identityID, &best); err != nil {
 		return Placements{}, err
 	}
-	best := Placements{Name: name, League: bestLeague}
 	for _, event := range events {
 		for _, entry := range event.entries {
 			if index[entryKey{"tournament", entry.ID}] != identityID {
@@ -309,35 +315,39 @@ func tournamentFinish(bracket tournament.Bracket, entryID int64) (int, bool) {
 	return 0, false
 }
 
-func (s Service) bestLeague(ctx context.Context, index map[entryKey]int64, identityID int64) (*Placement, error) {
+func (s Service) addLeaguePlacements(ctx context.Context, index map[entryKey]int64, identityID int64, stats *Placements) error {
 	seasons, err := s.League.ListSeasons(ctx)
 	if err != nil {
-		return nil, err
+		return err
 	}
-	var best *Placement
 	now := s.Now()
 	for _, season := range seasons {
-		if season.Status != league.SeasonStatusCompleted {
+		if season.RegistrationOpen() {
 			continue
 		}
 		players, err := s.League.ListPlayersBySeason(ctx, season.ID)
 		if err != nil {
-			return nil, err
+			return err
 		}
 		for _, player := range players {
 			if player.Status != league.PlayerStatusAssigned || player.DivisionID == nil || index[entryKey{"league", player.ID}] != identityID {
 				continue
 			}
+			stats.LeagueSeasons = append(stats.LeagueSeasons, LeagueSeasonLink{SeasonID: season.ID, PlayerID: player.ID, Name: season.Name})
+			if season.Status != league.SeasonStatusCompleted {
+				continue
+			}
 			finish, err := s.leagueFinish(ctx, season, player, players, now)
 			if err != nil {
-				return nil, err
+				return err
 			}
-			if finish != nil && (best == nil || finish.Position < best.Position) {
-				best = finish
+			if finish != nil && (stats.League == nil || finish.Position < stats.League.Position) {
+				stats.League = finish
 			}
 		}
 	}
-	return best, nil
+	slices.Reverse(stats.LeagueSeasons)
+	return nil
 }
 
 func (s Service) leagueFinish(ctx context.Context, season league.Season, player league.Player, players []league.Player, now time.Time) (*Placement, error) {

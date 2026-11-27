@@ -24,6 +24,6 @@ export function PlayerPage({ admin = false }: { readonly admin?: boolean }) {
         <h1>{status === 404 ? 'Player not found in this season.' : status === 401 ? 'Admin login required' : 'Player statistics unavailable'}</h1>
         {status === 401 ? <Link className="text-link" to="/admin">Admin login</Link> : status === 404 ? <p>Check the season and player link.</p> :
           <><p>Statistics could not be loaded. Please try again.</p><button type="button" onClick={() => { void query.refetch() }}>Try again</button></>}
-      </div> : <PlayerStatisticsView key={`${admin}-${seasonId}-${playerId}`} stats={query.data} admin={admin} placements={<LeaguePlayerPlacements seasonId={seasonId} playerId={playerId} />} />}
+      </div> : <PlayerStatisticsView key={`${admin}-${seasonId}-${playerId}`} stats={query.data} admin={admin} placements={<LeaguePlayerPlacements seasonId={seasonId} playerId={playerId} admin={admin} />} />}
   </section>
 }
