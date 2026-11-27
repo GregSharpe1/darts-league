@@ -166,11 +166,16 @@ func (s *Store) CreateTournamentEntry(ctx context.Context, slug string, entry to
 		return tournament.Entry{}, league.ErrRegistrationClosed
 	}
 
+	if entry.RequestedIdentityID > 0 {
+		if err := verifyReturningIdentity(ctx, tx, entry.RequestedIdentityID); err != nil {
+			return tournament.Entry{}, err
+		}
+	}
 	created, err := scanTournamentEntry(tx.QueryRow(ctx, `
-		INSERT INTO tournament_entries (tournament_slug, display_name, display_name_normalized, nickname, registered_at)
-		VALUES ($1, $2, $3, $4, $5)
+		INSERT INTO tournament_entries (tournament_slug, display_name, display_name_normalized, nickname, registered_at, requested_identity_id)
+		VALUES ($1, $2, $3, $4, $5, NULLIF($6::bigint, 0))
 		ON CONFLICT (tournament_slug, display_name_normalized) DO NOTHING
-		RETURNING `+tournamentEntryColumns, slug, entry.DisplayName, league.NormalizeDisplayName(entry.DisplayName), entry.Nickname, entry.RegisteredAt))
+		RETURNING `+tournamentEntryColumns, slug, entry.DisplayName, league.NormalizeDisplayName(entry.DisplayName), entry.Nickname, entry.RegisteredAt, entry.RequestedIdentityID))
 	if errors.Is(err, pgx.ErrNoRows) {
 		return tournament.Entry{}, league.ErrDuplicatePlayerName
 	}

@@ -18,13 +18,16 @@ type Service struct {
 }
 
 type Profile struct {
-	Name           string `json:"name"`
-	DisplayName    string `json:"display_name,omitempty"`
-	Competition    string `json:"competition"`
-	SeasonID       int64  `json:"season_id,omitempty"`
-	PlayerID       int64  `json:"player_id,omitempty"`
-	TournamentSlug string `json:"tournament_slug,omitempty"`
-	EntryID        int64  `json:"entry_id,omitempty"`
+	IdentityID           int64 `json:"identity_id"`
+	registrationName     string
+	registrationNickname string
+	Name                 string `json:"name"`
+	DisplayName          string `json:"display_name,omitempty"`
+	Competition          string `json:"competition"`
+	SeasonID             int64  `json:"season_id,omitempty"`
+	PlayerID             int64  `json:"player_id,omitempty"`
+	TournamentSlug       string `json:"tournament_slug,omitempty"`
+	EntryID              int64  `json:"entry_id,omitempty"`
 }
 
 type Placement struct {
@@ -117,7 +120,7 @@ func (s Service) Directory(ctx context.Context) ([]Profile, error) {
 				continue
 			}
 			seen[key] = true
-			profiles = append(profiles, Profile{Name: player.PreferredName(), DisplayName: player.DisplayName, Competition: season.Name, SeasonID: season.ID, PlayerID: player.ID})
+			profiles = append(profiles, Profile{IdentityID: key, registrationName: player.DisplayName, registrationNickname: player.Nickname, Name: player.PreferredName(), DisplayName: player.DisplayName, Competition: season.Name, SeasonID: season.ID, PlayerID: player.ID})
 		}
 	}
 	events, err := s.publishedEvents(ctx)
@@ -134,10 +137,24 @@ func (s Service) Directory(ctx context.Context) ([]Profile, error) {
 				continue
 			}
 			seen[key] = true
-			profiles = append(profiles, Profile{Name: entryName(entry), Competition: event.Name, TournamentSlug: event.Slug, EntryID: entry.ID})
+			profiles = append(profiles, Profile{IdentityID: key, registrationName: entry.DisplayName, registrationNickname: entry.Nickname, Name: entryName(entry), Competition: event.Name, TournamentSlug: event.Slug, EntryID: entry.ID})
 		}
 	}
 	return profiles, nil
+}
+
+// ReturningName only accepts identities with a public, previously published entry.
+func (s Service) ReturningName(ctx context.Context, identityID int64) (displayName, nickname string, err error) {
+	profiles, err := s.Directory(ctx)
+	if err != nil {
+		return "", "", err
+	}
+	for _, profile := range profiles {
+		if profile.IdentityID == identityID {
+			return profile.registrationName, profile.registrationNickname, nil
+		}
+	}
+	return "", "", ErrIdentityNotFound
 }
 
 func (s Service) ForLeaguePlayer(ctx context.Context, seasonID, playerID int64) (Placements, error) {

@@ -4,9 +4,12 @@ import (
 	"context"
 	"errors"
 	"os"
+	"slices"
 	"testing"
+	"time"
 
 	"github.com/greg/darts-league/backend/internal/playerstats"
+	"github.com/greg/darts-league/backend/internal/tournament"
 )
 
 func TestIdentityMigrationAndReview(t *testing.T) {
@@ -79,6 +82,37 @@ func TestIdentityMigrationAndReview(t *testing.T) {
 	}
 	if len(snapshot.Review().Suggestions) != 0 {
 		t.Fatalf("separation should carry across a link: %+v", snapshot.Review())
+	}
+	if _, err := tx.Exec(ctx, `INSERT INTO tournaments (slug, name, starts_on, registration_open) VALUES ('next-cup', 'Next Cup', '2027-05-01', TRUE)`); err != nil {
+		t.Fatal(err)
+	}
+	// The legacy tournament entry used an explicit ID.
+	if _, err := tx.Exec(ctx, `SELECT setval(pg_get_serial_sequence('tournament_entries', 'id'), 1)`); err != nil {
+		t.Fatal(err)
+	}
+	entry, err := scoped.CreateTournamentEntry(ctx, "next-cup", tournament.Entry{
+		DisplayName: "A different name", RegisteredAt: time.Now(), RequestedIdentityID: alex,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	snapshot, err = scoped.IdentitySnapshot(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var newID int64
+	for _, e := range snapshot.Entries {
+		if e.Kind == "tournament" && e.EntryID == entry.ID {
+			newID = e.IdentityID
+		}
+	}
+	if newID <= 0 || newID == alex {
+		t.Fatalf("returning registration must have its own ID pending review: %+v", snapshot.Entries)
+	}
+	suggestions := snapshot.Review().Suggestions
+	if len(suggestions) != 1 || suggestions[0].Left != alex || suggestions[0].Right != newID ||
+		!slices.Contains(suggestions[0].Signals, "Selected existing profile at sign-up") {
+		t.Fatalf("the requested link must be available in identity review: %+v", suggestions)
 	}
 	var actions int
 	if err := tx.QueryRow(ctx, `SELECT count(*) FROM player_identity_decisions WHERE actor = 'league-admin'`).Scan(&actions); err != nil || actions != 2 {

@@ -53,7 +53,7 @@ export function StandingsPage() {
                     <td className="player-cell">
                       <strong>
                         <span className="position-badge" aria-label={`Position ${index + 1}`}>{index + 1}</span>
-                        {row.player_id && seasonQuery.data?.id ? <Link to={`/seasons/${seasonQuery.data.id}/players/${row.player_id}`}>{row.player}</Link> : row.player}
+                        {row.player_id && seasonQuery.data?.id ? <Link className="text-link" to={`/seasons/${seasonQuery.data.id}/players/${row.player_id}`}>{row.player}</Link> : row.player}
                       </strong>
                       <span>{row.display_name}</span>
                     </td>
