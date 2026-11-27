@@ -91,7 +91,7 @@ func (s Service) Directory(ctx context.Context) ([]Profile, error) {
 		return nil, err
 	}
 	profiles := []Profile{}
-	leagueNames := make(map[string]bool)
+	seen := make(map[string]bool)
 	for _, season := range seasons {
 		if season.RegistrationOpen() {
 			continue
@@ -104,7 +104,11 @@ func (s Service) Directory(ctx context.Context) ([]Profile, error) {
 			if player.Status != league.PlayerStatusAssigned || player.DivisionID == nil {
 				continue
 			}
-			leagueNames[league.NormalizeDisplayName(player.DisplayName)] = true
+			key := league.NormalizeDisplayName(player.DisplayName)
+			if seen[key] {
+				continue
+			}
+			seen[key] = true
 			profiles = append(profiles, Profile{Name: player.PreferredName(), DisplayName: player.DisplayName, Competition: season.Name, SeasonID: season.ID, PlayerID: player.ID})
 		}
 	}
@@ -114,9 +118,11 @@ func (s Service) Directory(ctx context.Context) ([]Profile, error) {
 	}
 	for _, event := range events {
 		for _, entry := range event.entries {
-			if leagueNames[league.NormalizeDisplayName(entry.DisplayName)] {
+			key := league.NormalizeDisplayName(entry.DisplayName)
+			if seen[key] {
 				continue
 			}
+			seen[key] = true
 			profiles = append(profiles, Profile{Name: entryName(entry), Competition: event.Name, TournamentSlug: event.Slug, EntryID: entry.ID})
 		}
 	}

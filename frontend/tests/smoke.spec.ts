@@ -51,7 +51,7 @@ test('register, assign divisions, start season, enter result, and view division 
   const homeLeague = page.getByRole('region', { name: 'League matches' })
   const homeTournaments = page.getByRole('region', { name: 'Tournaments' })
   const homeToolbar = page.getByRole('navigation', { name: 'Primary' })
-  await expect(homeToolbar.getByRole('link')).toHaveText(['Admin'])
+  await expect(homeToolbar.getByRole('link')).toHaveText(['Player stats', 'Admin'])
   await expect(homeToolbar.getByRole('link', { name: 'Admin' })).toHaveAttribute('href', '/admin')
   await expect(homeTournaments.getByRole('link', { name: 'Browse tournaments' })).toHaveAttribute('href', '/tournaments')
   await expect(homeLeague.getByRole('link', { name: 'Browse divisions' })).toHaveAttribute('href', '/divisions')

@@ -62,7 +62,12 @@ function App() {
           </div>
         </NavLink>
         <nav className="primary-nav" aria-label="Primary">
-          {onHomePage ? <NavLink to="/admin">Admin</NavLink> : onAdminPage ? (
+          {onHomePage ? (
+            <>
+              <NavLink to="/players">Player stats</NavLink>
+              <NavLink to="/admin">Admin</NavLink>
+            </>
+          ) : onAdminPage ? (
             <>
               {!onAdminHome ? <NavLink to="/admin">Admin home</NavLink> : null}
               {onAdminHome && adminAuthenticated ? <NavLink to="/admin/pending-results" aria-label="Pending results"><span className="nav-full-label">Pending results</span><span className="nav-compact-label" aria-hidden="true">Results</span></NavLink> : null}

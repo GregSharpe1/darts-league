@@ -87,9 +87,22 @@ func TestHistoricalLeaguePlacementAndTournamentIdentity(t *testing.T) {
 	if err != nil || tournamentOnly.League != nil || tournamentOnly.Tournament == nil || tournamentOnly.Tournament.Position != 2 {
 		t.Fatalf("shared nickname must not join distinct entrants: %+v, %v", tournamentOnly, err)
 	}
+	_, err = events.CreateTournament(ctx, tournament.Event{Slug: "later-cup", Name: "Later Cup", StartsOn: "2026-05-01", RegistrationOpen: true, MatchFormat: tournament.DefaultMatchFormat()})
+	if err != nil {
+		t.Fatal(err)
+	}
+	repeat, err := events.CreateTournamentEntry(ctx, "later-cup", tournament.Entry{DisplayName: "taylor EVANS", Nickname: "New nickname"})
+	repeat = must(t, repeat, err)
+	guest, err := events.CreateTournamentEntry(ctx, "later-cup", tournament.Entry{DisplayName: "New player"})
+	must(t, guest, err)
+	event, err = events.SetTournamentRegistration(ctx, "later-cup", false)
+	must(t, event, err)
+	event, err = events.StartTournament(ctx, "later-cup")
+	must(t, event, err)
+
 	directory, err := service.Directory(ctx)
 	directory = must(t, directory, err)
-	if len(directory) != 3 || directory[2].EntryID != other.ID {
+	if len(directory) != 4 || directory[2].EntryID != repeat.ID || directory[2].TournamentSlug != "later-cup" {
 		t.Fatalf("directory: %+v", directory)
 	}
 }

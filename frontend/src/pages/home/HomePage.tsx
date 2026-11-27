@@ -19,7 +19,6 @@ export function HomePage() {
       <section className="page-intro">
         <h1>Darts league &amp; tournaments</h1>
         <p>Find your division&apos;s next match or join a standalone knockout event.</p>
-        <div className="hero-actions"><Link to="/players">Player stats</Link></div>
       </section>
 
       <div className="grid-panels">
