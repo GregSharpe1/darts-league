@@ -346,6 +346,7 @@ func (s Service) addLeaguePlacements(ctx context.Context, index map[entryKey]int
 			}
 		}
 	}
+	slices.Reverse(stats.LeagueSeasons)
 	return nil
 }
 

@@ -436,6 +436,7 @@ test('register, assign divisions, start season, enter result, and view division 
   const seasons = page.getByRole('navigation', { name: 'League seasons' })
   const current = seasons.getByRole('link', { name: 'Next League' })
   const earlier = seasons.getByRole('link', { name: leagueName })
+  await expect(seasons.getByRole('link')).toHaveText([leagueName, 'Next League'])
   await expect(current).toHaveAttribute('aria-current', 'page')
   await captureScreenshot(page, 'player-season-navigation.png')
   await earlier.click()

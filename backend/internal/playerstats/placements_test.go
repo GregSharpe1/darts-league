@@ -139,9 +139,9 @@ func TestHistoricalLeaguePlacementAndTournamentIdentity(t *testing.T) {
 	must(t, started, err)
 	got, err = service.ForLeaguePlayer(ctx, nextSeason.ID, returning.ID)
 	if err != nil || len(got.LeagueSeasons) != 2 ||
-		got.LeagueSeasons[0] != (LeagueSeasonLink{SeasonID: nextSeason.ID, PlayerID: returning.ID, Name: nextSeason.Name}) ||
-		got.LeagueSeasons[1] != (LeagueSeasonLink{SeasonID: season.ID, PlayerID: player.ID, Name: season.Name}) {
-		t.Fatalf("expected linked season links newest first: %+v, %v", got.LeagueSeasons, err)
+		got.LeagueSeasons[0] != (LeagueSeasonLink{SeasonID: season.ID, PlayerID: player.ID, Name: season.Name}) ||
+		got.LeagueSeasons[1] != (LeagueSeasonLink{SeasonID: nextSeason.ID, PlayerID: returning.ID, Name: nextSeason.Name}) {
+		t.Fatalf("expected linked season links oldest first: %+v, %v", got.LeagueSeasons, err)
 	}
 }
 

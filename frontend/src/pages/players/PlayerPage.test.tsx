@@ -18,8 +18,8 @@ const placements = {
   league: { position: 2, competition: 'Winter League', division: 'Premier' },
   tournament: { position: 3, competition: 'City Cup', tournament_slug: 'city-cup', tied: true },
   league_seasons: [
-    { season_id: 2, player_id: 7, name: 'Winter League' },
     { season_id: 1, player_id: 4, name: 'Autumn League' },
+    { season_id: 2, player_id: 7, name: 'Winter League' },
   ],
 }
 
