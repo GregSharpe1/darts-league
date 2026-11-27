@@ -465,7 +465,7 @@ test('register, assign divisions, start season, enter result, and view division 
     },
   }))
   await page.getByRole('link', { name: 'Player stats', exact: true }).click()
-  await expect(page.getByRole('link', { name: 'Overall records' })).toHaveAttribute('href', '/players/records')
+  await expect(page.getByRole('link', { name: 'Overall records' })).toHaveCount(0)
   await page.getByRole('link', { name: 'Go to home page' }).click()
   await homeToolbar.getByRole('link', { name: 'Records', exact: true }).click()
   await expect(page.getByRole('heading', { name: 'Overall records' })).toBeVisible()

@@ -13,7 +13,6 @@ export function PlayerDirectoryPage() {
     <section className="page-intro">
       <h1>Player stats</h1>
       <p>Find players in league seasons and published tournament brackets.</p>
-      <p><Link className="text-link" to="/players/records">Overall records</Link></p>
     </section>
     <section className="content-panel" aria-label="Player directory">
       <div className="field player-search">
