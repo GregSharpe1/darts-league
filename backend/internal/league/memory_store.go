@@ -201,7 +201,11 @@ func (s *MemoryStore) CreatePlayer(_ context.Context, player Player) (Player, er
 		return Player{}, ErrSeasonCompleted
 	}
 	for _, existing := range s.playersByID {
-		if existing.SeasonID == player.SeasonID && NormalizeDisplayName(existing.DisplayName) == NormalizeDisplayName(player.DisplayName) {
+		if existing.SeasonID != player.SeasonID {
+			continue
+		}
+		if NormalizeDisplayName(existing.DisplayName) == NormalizeDisplayName(player.DisplayName) ||
+			(player.ReturningIdentityID > 0 && existing.ReturningIdentityID == player.ReturningIdentityID) {
 			return Player{}, ErrDuplicatePlayerName
 		}
 	}
@@ -510,4 +514,15 @@ func (s *MemoryStore) PendingResultExistsForExternalMatch(_ context.Context, ext
 		}
 	}
 	return false, nil
+}
+
+func (s *MemoryStore) ListSeasons(_ context.Context) ([]Season, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	seasons := make([]Season, 0, len(s.seasonsByID))
+	for _, season := range s.seasonsByID {
+		seasons = append(seasons, season)
+	}
+	sort.Slice(seasons, func(i, j int) bool { return seasons[i].ID > seasons[j].ID })
+	return seasons, nil
 }

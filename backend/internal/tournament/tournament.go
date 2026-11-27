@@ -51,10 +51,11 @@ func (f MatchFormat) validate() error {
 }
 
 type Entry struct {
-	ID           int64     `json:"id"`
-	DisplayName  string    `json:"display_name"`
-	Nickname     string    `json:"nickname,omitempty"`
-	RegisteredAt time.Time `json:"registered_at"`
+	ReturningIdentityID int64     `json:"-"`
+	ID                  int64     `json:"id"`
+	DisplayName         string    `json:"display_name"`
+	Nickname            string    `json:"nickname,omitempty"`
+	RegisteredAt        time.Time `json:"registered_at"`
 }
 
 func (e Event) CanDelete() bool {
@@ -165,14 +166,18 @@ func (s Service) UpdateFormat(ctx context.Context, slug string, format MatchForm
 }
 
 func (s Service) Register(ctx context.Context, slug, displayName, nickname string) (Entry, error) {
-	if err := league.ValidatePlayerName(displayName, nickname); err != nil {
+	return s.RegisterEntry(ctx, slug, Entry{DisplayName: displayName, Nickname: nickname})
+}
+
+func (s Service) RegisterEntry(ctx context.Context, slug string, entry Entry) (Entry, error) {
+	if err := league.ValidatePlayerName(entry.DisplayName, entry.Nickname); err != nil {
 		return Entry{}, err
 	}
-	entry, err := s.Store.CreateTournamentEntry(ctx, slug, Entry{
-		DisplayName:  league.NormalizeWhitespace(displayName),
-		Nickname:     league.NormalizeWhitespace(nickname),
-		RegisteredAt: s.Now().UTC(),
-	})
+	entry.ID = 0
+	entry.DisplayName = league.NormalizeWhitespace(entry.DisplayName)
+	entry.Nickname = league.NormalizeWhitespace(entry.Nickname)
+	entry.RegisteredAt = s.Now().UTC()
+	created, err := s.Store.CreateTournamentEntry(ctx, slug, entry)
 	if err != nil {
 		return Entry{}, err
 	}
@@ -181,7 +186,7 @@ func (s Service) Register(ctx context.Context, slug, displayName, nickname strin
 		if event, err := s.Store.GetTournament(ctx, slug); err == nil {
 			tournamentName = event.Name
 		}
-		s.Notifier.NotifyTournamentRegistered(ctx, tournamentName, entry)
+		s.Notifier.NotifyTournamentRegistered(ctx, tournamentName, created)
 	}
-	return entry, nil
+	return created, nil
 }

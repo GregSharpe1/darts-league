@@ -454,11 +454,23 @@ func (s *Store) CreatePlayer(ctx context.Context, player league.Player) (league.
 		return league.Player{}, err
 	}
 	defer tx.Rollback(ctx)
+	if player.ReturningIdentityID > 0 {
+		var status league.SeasonStatus
+		if err := tx.QueryRow(ctx, `SELECT status FROM seasons WHERE id = $1`, player.SeasonID).Scan(&status); err != nil {
+			return league.Player{}, err
+		}
+		if status != league.SeasonStatusRegistrationOpen {
+			return league.Player{}, league.ErrRegistrationClosed
+		}
+		if err := verifyReturningIdentity(ctx, tx, player.ReturningIdentityID, player.SeasonID, ""); err != nil {
+			return league.Player{}, err
+		}
+	}
 	row := tx.QueryRow(ctx, `
-		INSERT INTO players (season_id, division_id, display_name, display_name_normalized, nickname, status, registered_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7)
+		INSERT INTO players (season_id, division_id, display_name, display_name_normalized, nickname, status, registered_at, identity_id)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, COALESCE(NULLIF($8::bigint, 0), nextval('player_identity_id_seq')))
 		RETURNING id, season_id, division_id, display_name, nickname, status, registered_at
-	`, player.SeasonID, player.DivisionID, player.DisplayName, league.NormalizeDisplayName(player.DisplayName), nullIfBlank(player.Nickname), player.Status, player.RegisteredAt)
+	`, player.SeasonID, player.DivisionID, player.DisplayName, league.NormalizeDisplayName(player.DisplayName), nullIfBlank(player.Nickname), player.Status, player.RegisteredAt, player.ReturningIdentityID)
 	var created league.Player
 	var divisionID *int64
 	var nickname *string

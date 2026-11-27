@@ -13,10 +13,13 @@ import { AdminTournamentsPage } from './pages/tournaments/AdminTournamentsPage'
 import { TournamentPage } from './pages/tournaments/TournamentPage'
 import { TournamentsPage } from './pages/tournaments/TournamentsPage'
 import { AdminPage } from './pages/admin/AdminPage'
+import { PlayerIdentityPage } from './pages/admin/PlayerIdentityPage'
 import { DivisionAdminPage } from './pages/admin/DivisionAdminPage'
 import { PendingResultsPage } from './pages/admin/PendingResultsPage'
 import { MatchPage } from './pages/matches/MatchPage'
 import { PlayerPage } from './pages/players/PlayerPage'
+import { PlayerDirectoryPage } from './pages/players/PlayerDirectoryPage'
+import { TournamentPlayerPage } from './pages/players/PlayerPlacements'
 
 function App() {
   const location = useLocation()
@@ -60,7 +63,12 @@ function App() {
           </div>
         </NavLink>
         <nav className="primary-nav" aria-label="Primary">
-          {onHomePage ? <NavLink to="/admin">Admin</NavLink> : onAdminPage ? (
+          {onHomePage ? (
+            <>
+              <NavLink to="/players">Player stats</NavLink>
+              <NavLink to="/admin">Admin</NavLink>
+            </>
+          ) : onAdminPage ? (
             <>
               {!onAdminHome ? <NavLink to="/admin">Admin home</NavLink> : null}
               {onAdminHome && adminAuthenticated ? <NavLink to="/admin/pending-results" aria-label="Pending results"><span className="nav-full-label">Pending results</span><span className="nav-compact-label" aria-hidden="true">Results</span></NavLink> : null}
@@ -106,10 +114,13 @@ function App() {
           <Route path="/tournaments" element={<TournamentsPage />} />
           <Route path="/tournaments/:slug" element={<TournamentPage />} />
           <Route path="/matches/:fixtureId" element={<MatchPage />} />
+          <Route path="/players" element={<PlayerDirectoryPage />} />
+          <Route path="/players/tournaments/:slug/:entryId" element={<TournamentPlayerPage />} />
           <Route path="/seasons/:seasonId/players/:playerId" element={<PlayerPage />} />
           <Route path="/admin/seasons/:seasonId/players/:playerId" element={<PlayerPage admin />} />
           <Route path="/admin/matches/:fixtureId" element={<MatchPage admin />} />
           <Route path="/admin" element={<AdminPage />} />
+          <Route path="/admin/player-identities" element={<PlayerIdentityPage />} />
           <Route path="/admin/pending-results" element={<PendingResultsPage />} />
           <Route path="/admin/tournaments/:slug?" element={<AdminTournamentsPage />} />
           <Route path="/admin/divisions/:slug" element={<DivisionAdminPage />} />

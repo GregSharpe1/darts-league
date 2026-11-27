@@ -1,0 +1,38 @@
+.identity-suggestions,
+.identity-entry-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.identity-suggestions > li {
+  border-top: var(--border-panel);
+  padding: 16px 0;
+}
+
+.identity-compare {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  margin: 12px 0;
+}
+
+.identity-entry-list {
+  display: grid;
+  gap: 12px;
+  padding: 12px;
+  background: var(--color-surface-raised);
+  border-radius: var(--radius-panel-small);
+  overflow-wrap: anywhere;
+}
+
+.identity-entry-list span {
+  display: block;
+  color: var(--color-muted);
+}
+
+.identity-compare select { width: 100%; }
+
+@media (max-width: 640px) {
+  .identity-compare { grid-template-columns: minmax(0, 1fr); }
+}

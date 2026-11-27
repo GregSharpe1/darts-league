@@ -27,6 +27,9 @@ func (s *Store) migrateImports(ctx context.Context) error {
 	if _, err := tx.Exec(ctx, initialSchema); err != nil {
 		return err
 	}
+	if _, err := tx.Exec(ctx, identitySchema); err != nil {
+		return err
+	}
 	if _, err := tx.Exec(ctx, importExpansionSchema); err != nil {
 		return err
 	}
