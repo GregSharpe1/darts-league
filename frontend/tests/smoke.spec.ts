@@ -457,14 +457,16 @@ test('register, assign divisions, start season, enter result, and view division 
   await expect(current).toHaveAttribute('aria-current', 'page')
 
   const leader = { profile: freeze[0], rank: 1, value: 3, played: 4, known_matches: 2 }
+  const recordRows = [freeze[0], ...profiles.filter((profile: { name: string }) => profile.name !== 'The Freeze')].slice(0, 7)
+    .map((profile, index) => ({ ...leader, profile, rank: index + 1, value: 7 - index }))
   await page.route('**/api/players/records', route => route.fulfill({
     json: {
-      total_180: [leader],
-      highest_finish: [{ ...leader, value: 170 }],
+      total_180: recordRows,
+      highest_finish: recordRows.map((row, index) => ({ ...row, value: 170 - index * 10 })),
       bullseyes: [{ ...leader, value: 1 }],
       match_average: [{ ...leader, value: 96.4 }],
       best_leg: [],
-      wins: [{ ...leader, known_matches: 4 }],
+      wins: recordRows.slice(0, 5).map(row => ({ ...row, known_matches: 4 })),
     },
   }))
   await homeToolbar.getByRole('link', { name: 'Player stats', exact: true }).click()
@@ -473,7 +475,23 @@ test('register, assign divisions, start season, enter result, and view division 
   await homeToolbar.getByRole('link', { name: 'Records', exact: true }).click()
   await expect(homeToolbar.getByRole('link', { name: 'Records' })).toHaveAttribute('aria-current', 'page')
   await expect(page.getByRole('heading', { name: 'Overall records' })).toBeVisible()
-  await expect(page.getByRole('region', { name: 'Highest checkout' }).getByText('170')).toBeVisible()
+  const most180s = page.getByRole('region', { name: 'Most 180s' })
+  const highestCheckout = page.getByRole('region', { name: 'Highest checkout' })
+  await expect(highestCheckout.getByText('170')).toBeVisible()
+  await expect(most180s.getByRole('listitem')).toHaveCount(5)
+  await expect(highestCheckout.getByRole('listitem')).toHaveCount(5)
+  await expect(page.getByRole('region', { name: 'Most match wins' }).getByRole('button')).toHaveCount(0)
+  const toggle = most180s.getByRole('button')
+  await expect(toggle).toHaveAttribute('aria-expanded', 'false')
+  await toggle.press('Enter')
+  await expect(toggle).toHaveText('Show top 5')
+  await expect(toggle).toHaveAttribute('aria-expanded', 'true')
+  await expect(most180s.getByRole('listitem')).toHaveCount(7)
+  await expect(highestCheckout.getByRole('listitem')).toHaveCount(5)
+  await captureScreenshot(page, 'player-records-expanded-mobile.png')
+  await toggle.click()
+  await expect(toggle).toHaveText('Show all 7')
+  await expect(most180s.getByRole('listitem')).toHaveCount(5)
   await expect(page.getByRole('region', { name: 'Highest match average' }).getByText('96.40')).toBeVisible()
   await expect(page.getByRole('region', { name: 'Recorded bullseyes' }).getByText('2 of 4 matches with data')).toBeVisible()
   await expect(page.getByText('No complete winning legs have been recorded.')).toBeVisible()

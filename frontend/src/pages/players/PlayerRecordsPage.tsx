@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { StateNotice } from '../../components/StateNotice'
@@ -15,7 +16,10 @@ const metrics = [
   { key: 'wins', title: 'Most match wins', empty: 'No match wins have been recorded.' },
 ] as const
 
-type Metric = typeof metrics[number]['key']
+type MetricDefinition = typeof metrics[number]
+type Metric = MetricDefinition['key']
+
+const previewSize = 5
 
 type PlayerRecord = {
   profile: PlayerProfile
@@ -29,6 +33,37 @@ function displayValue(metric: Metric, value: number) {
   if (metric === 'match_average') return value.toFixed(2)
   if (metric === 'best_leg') return `${value} darts`
   return value.toLocaleString('en-GB')
+}
+
+function RecordSection({ metric, rows }: { metric: MetricDefinition; rows: PlayerRecord[] }) {
+  const [expanded, setExpanded] = useState(false)
+  const headingId = `player-record-${metric.key}`
+  const listId = `${headingId}-rows`
+  const visibleRows = expanded ? rows : rows.slice(0, previewSize)
+
+  return <section className="content-panel" aria-labelledby={headingId}>
+    <div className="player-record-heading">
+      <h2 id={headingId}>{metric.title}</h2>
+      {rows.length > previewSize && (
+        <div className="toolbar-actions">
+          <button type="button" className="button-link secondary-button" aria-expanded={expanded} aria-controls={listId}
+            onClick={() => setExpanded(!expanded)}>
+            {expanded ? `Show top ${previewSize}` : `Show all ${rows.length}`}
+          </button>
+        </div>
+      )}
+    </div>
+    {rows.length === 0 ? <p className="player-note">{metric.empty}</p> : (
+      <ol id={listId} className="player-record-rows">{visibleRows.map(row => <li key={row.profile.identity_id}>
+        <span className="position-badge" aria-label={`Position ${row.rank}`}>{row.rank}</span>
+        <div>
+          <Link className="text-link" to={playerProfilePath(row.profile)}>{row.profile.name}</Link>
+          <span className="player-note">{row.known_matches} of {row.played} matches with data</span>
+        </div>
+        <strong>{displayValue(metric.key, row.value)}</strong>
+      </li>)}</ol>
+    )}
+  </section>
 }
 
 export function PlayerRecordsPage() {
@@ -49,20 +84,8 @@ export function PlayerRecordsPage() {
         <StateNotice tone="error" message="Player records could not be loaded." />
         <div className="toolbar-actions"><button type="button" onClick={() => { void query.refetch() }}>Try again</button></div>
       </div> :
-        <div className="player-records-grid">{metrics.map(metric => {
-          const rows = query.data[metric.key]
-          return <section className="content-panel" key={metric.key} aria-labelledby={`player-record-${metric.key}`}>
-            <h2 id={`player-record-${metric.key}`}>{metric.title}</h2>
-            {rows.length === 0 ? <p className="player-note">{metric.empty}</p> :
-              <ol className="player-record-rows">{rows.map(row => <li key={row.profile.identity_id}>
-                <span className="position-badge" aria-label={`Position ${row.rank}`}>{row.rank}</span>
-                <div>
-                  <Link className="text-link" to={playerProfilePath(row.profile)}>{row.profile.name}</Link>
-                  <span className="player-note">{row.known_matches} of {row.played} matches with data</span>
-                </div>
-                <strong>{displayValue(metric.key, row.value)}</strong>
-              </li>)}</ol>}
-          </section>
-        })}</div>}
+        <div className="player-records-grid">
+          {metrics.map(metric => <RecordSection key={metric.key} metric={metric} rows={query.data[metric.key]} />)}
+        </div>}
   </div>
 }
