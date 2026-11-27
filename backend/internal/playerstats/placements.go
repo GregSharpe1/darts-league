@@ -90,11 +90,15 @@ func entryName(entry tournament.Entry) string {
 }
 
 func (s Service) Directory(ctx context.Context) ([]Profile, error) {
-	seasons, err := s.League.ListSeasons(ctx)
+	index, err := s.identityIndex(ctx)
 	if err != nil {
 		return nil, err
 	}
-	index, err := s.identityIndex(ctx)
+	return s.directory(ctx, index)
+}
+
+func (s Service) directory(ctx context.Context, index map[entryKey]int64) ([]Profile, error) {
+	seasons, err := s.League.ListSeasons(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -143,14 +147,56 @@ func (s Service) Directory(ctx context.Context) ([]Profile, error) {
 	return profiles, nil
 }
 
+type ReturningCompetition struct {
+	Kind  string
+	Scope string
+}
+
+func (s Service) returningProfiles(ctx context.Context, competition ReturningCompetition) ([]Profile, map[int64]bool, map[string]bool, error) {
+	snapshot, err := s.Identities.IdentitySnapshot(ctx)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+	profiles, err := s.directory(ctx, snapshot.index())
+	if err != nil {
+		return nil, nil, nil, err
+	}
+	entered := make(map[int64]bool)
+	names := make(map[string]bool)
+	for _, entry := range snapshot.Entries {
+		if entry.Kind != competition.Kind || entry.Scope != competition.Scope {
+			continue
+		}
+		entered[entry.IdentityID] = true
+		if entry.RequestedIdentityID > 0 {
+			entered[entry.RequestedIdentityID] = true
+		}
+		names[league.NormalizeDisplayName(entry.DisplayName)] = true
+	}
+	return profiles, entered, names, nil
+}
+
+func (s Service) EligibleReturningProfiles(ctx context.Context, competition ReturningCompetition) ([]Profile, error) {
+	profiles, entered, names, err := s.returningProfiles(ctx, competition)
+	if err != nil {
+		return nil, err
+	}
+	return slices.DeleteFunc(profiles, func(profile Profile) bool {
+		return entered[profile.IdentityID] || names[league.NormalizeDisplayName(profile.registrationName)]
+	}), nil
+}
+
 // ReturningName only accepts identities with a public, previously published entry.
-func (s Service) ReturningName(ctx context.Context, identityID int64) (displayName, nickname string, err error) {
-	profiles, err := s.Directory(ctx)
+func (s Service) ReturningName(ctx context.Context, competition ReturningCompetition, identityID int64) (displayName, nickname string, err error) {
+	profiles, entered, names, err := s.returningProfiles(ctx, competition)
 	if err != nil {
 		return "", "", err
 	}
 	for _, profile := range profiles {
 		if profile.IdentityID == identityID {
+			if entered[identityID] || names[league.NormalizeDisplayName(profile.registrationName)] {
+				return "", "", league.ErrDuplicatePlayerName
+			}
 			return profile.registrationName, profile.registrationNickname, nil
 		}
 	}

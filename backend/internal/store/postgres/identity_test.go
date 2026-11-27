@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/greg/darts-league/backend/internal/league"
 	"github.com/greg/darts-league/backend/internal/playerstats"
 	"github.com/greg/darts-league/backend/internal/tournament"
 )
@@ -113,6 +114,11 @@ func TestIdentityMigrationAndReview(t *testing.T) {
 	if len(suggestions) != 1 || suggestions[0].Left != alex || suggestions[0].Right != newID ||
 		!slices.Contains(suggestions[0].Signals, "Selected existing profile at sign-up") {
 		t.Fatalf("the requested link must be available in identity review: %+v", suggestions)
+	}
+	if _, err := scoped.CreateTournamentEntry(ctx, "next-cup", tournament.Entry{
+		DisplayName: "Another alias", RegisteredAt: time.Now(), RequestedIdentityID: alex,
+	}); !errors.Is(err, league.ErrDuplicatePlayerName) {
+		t.Fatalf("returning profile cannot enter the same tournament a second time: %v", err)
 	}
 	var actions int
 	if err := tx.QueryRow(ctx, `SELECT count(*) FROM player_identity_decisions WHERE actor = 'league-admin'`).Scan(&actions); err != nil || actions != 2 {

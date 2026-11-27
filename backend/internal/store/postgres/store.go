@@ -462,7 +462,7 @@ func (s *Store) CreatePlayer(ctx context.Context, player league.Player) (league.
 		if status != league.SeasonStatusRegistrationOpen {
 			return league.Player{}, league.ErrRegistrationClosed
 		}
-		if err := verifyReturningIdentity(ctx, tx, player.RequestedIdentityID); err != nil {
+		if err := verifyReturningIdentity(ctx, tx, player.RequestedIdentityID, player.SeasonID, ""); err != nil {
 			return league.Player{}, err
 		}
 	}

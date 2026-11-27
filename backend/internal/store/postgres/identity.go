@@ -4,6 +4,7 @@ import (
 	"context"
 	_ "embed"
 
+	"github.com/greg/darts-league/backend/internal/league"
 	"github.com/greg/darts-league/backend/internal/playerstats"
 	"github.com/jackc/pgx/v5"
 )
@@ -117,17 +118,23 @@ func mergeIdentities(ctx context.Context, tx pgx.Tx, keep, retire int64) error {
 }
 
 // Keep the selected identity stable while inserting the returning player's entry.
-func verifyReturningIdentity(ctx context.Context, tx pgx.Tx, identityID int64) error {
+func verifyReturningIdentity(ctx context.Context, tx pgx.Tx, identityID, seasonID int64, tournamentSlug string) error {
 	if _, err := tx.Exec(ctx, `SELECT pg_advisory_xact_lock(390040)`); err != nil {
 		return err
 	}
-	var exists bool
-	if err := tx.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM players WHERE identity_id = $1)
-		OR EXISTS (SELECT 1 FROM tournament_entries WHERE identity_id = $1)`, identityID).Scan(&exists); err != nil {
+	var exists, entered bool
+	if err := tx.QueryRow(ctx, `SELECT
+		EXISTS (SELECT 1 FROM players WHERE identity_id = $1) OR EXISTS (SELECT 1 FROM tournament_entries WHERE identity_id = $1),
+		EXISTS (SELECT 1 FROM players WHERE season_id = $2 AND (identity_id = $1 OR requested_identity_id = $1))
+		  OR EXISTS (SELECT 1 FROM tournament_entries WHERE tournament_slug = $3 AND (identity_id = $1 OR requested_identity_id = $1))
+	`, identityID, seasonID, tournamentSlug).Scan(&exists, &entered); err != nil {
 		return err
 	}
 	if !exists {
 		return playerstats.ErrIdentityNotFound
+	}
+	if entered {
+		return league.ErrDuplicatePlayerName
 	}
 	return nil
 }

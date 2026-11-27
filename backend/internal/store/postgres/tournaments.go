@@ -167,7 +167,7 @@ func (s *Store) CreateTournamentEntry(ctx context.Context, slug string, entry to
 	}
 
 	if entry.RequestedIdentityID > 0 {
-		if err := verifyReturningIdentity(ctx, tx, entry.RequestedIdentityID); err != nil {
+		if err := verifyReturningIdentity(ctx, tx, entry.RequestedIdentityID, 0, slug); err != nil {
 			return tournament.Entry{}, err
 		}
 	}

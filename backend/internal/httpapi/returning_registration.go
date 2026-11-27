@@ -17,6 +17,8 @@ type ReturningRegistrationHandler struct {
 }
 
 func (h ReturningRegistrationHandler) RegisterRoutes(mux *http.ServeMux) {
+	mux.HandleFunc("GET /api/seasons/{seasonID}/returning-entry", matchNoStore(h.leagueProfiles))
+	mux.HandleFunc("GET /api/tournaments/{slug}/returning-entry", matchNoStore(h.tournamentProfiles))
 	mux.HandleFunc("POST /api/seasons/{seasonID}/returning-entry", matchNoStore(h.leagueEntry))
 	mux.HandleFunc("POST /api/tournaments/{slug}/returning-entry", matchNoStore(h.tournamentEntry))
 }
@@ -25,7 +27,7 @@ type returningEntry struct {
 	IdentityID int64 `json:"identity_id"`
 }
 
-func (h ReturningRegistrationHandler) selection(w http.ResponseWriter, r *http.Request) (int64, string, string, bool) {
+func (h ReturningRegistrationHandler) selection(w http.ResponseWriter, r *http.Request, competition playerstats.ReturningCompetition) (int64, string, string, bool) {
 	var req returningEntry
 	if !readTournamentJSON(w, r, &req) {
 		return 0, "", "", false
@@ -34,7 +36,7 @@ func (h ReturningRegistrationHandler) selection(w http.ResponseWriter, r *http.R
 		writeError(w, http.StatusBadRequest, "invalid_profile", "Choose an existing player profile.")
 		return 0, "", "", false
 	}
-	displayName, nickname, err := h.Profiles.ReturningName(r.Context(), req.IdentityID)
+	displayName, nickname, err := h.Profiles.ReturningName(r.Context(), competition, req.IdentityID)
 	if err != nil {
 		if !writeReturningError(w, err) {
 			writeError(w, http.StatusServiceUnavailable, "temporarily_unavailable", "The player directory is temporarily unavailable.")
@@ -44,13 +46,35 @@ func (h ReturningRegistrationHandler) selection(w http.ResponseWriter, r *http.R
 	return req.IdentityID, displayName, nickname, true
 }
 
+func (h ReturningRegistrationHandler) leagueProfiles(w http.ResponseWriter, r *http.Request) {
+	seasonID, err := strconv.ParseInt(r.PathValue("seasonID"), 10, 64)
+	if err != nil || seasonID <= 0 {
+		writeError(w, http.StatusBadRequest, "invalid_season", "Open the current league sign-up page to enter.")
+		return
+	}
+	h.profiles(w, r, playerstats.ReturningCompetition{Kind: "league", Scope: strconv.FormatInt(seasonID, 10)})
+}
+
+func (h ReturningRegistrationHandler) tournamentProfiles(w http.ResponseWriter, r *http.Request) {
+	h.profiles(w, r, playerstats.ReturningCompetition{Kind: "tournament", Scope: r.PathValue("slug")})
+}
+
+func (h ReturningRegistrationHandler) profiles(w http.ResponseWriter, r *http.Request, competition playerstats.ReturningCompetition) {
+	profiles, err := h.Profiles.EligibleReturningProfiles(r.Context(), competition)
+	if err != nil {
+		writeError(w, http.StatusServiceUnavailable, "temporarily_unavailable", "The player directory is temporarily unavailable.")
+		return
+	}
+	writeJSON(w, http.StatusOK, profiles)
+}
+
 func (h ReturningRegistrationHandler) leagueEntry(w http.ResponseWriter, r *http.Request) {
 	seasonID, err := strconv.ParseInt(r.PathValue("seasonID"), 10, 64)
 	if err != nil || seasonID <= 0 {
 		writeError(w, http.StatusBadRequest, "invalid_season", "Open the current league sign-up page to enter.")
 		return
 	}
-	id, displayName, nickname, ok := h.selection(w, r)
+	id, displayName, nickname, ok := h.selection(w, r, playerstats.ReturningCompetition{Kind: "league", Scope: strconv.FormatInt(seasonID, 10)})
 	if !ok {
 		return
 	}
@@ -67,7 +91,7 @@ func (h ReturningRegistrationHandler) leagueEntry(w http.ResponseWriter, r *http
 }
 
 func (h ReturningRegistrationHandler) tournamentEntry(w http.ResponseWriter, r *http.Request) {
-	id, displayName, nickname, ok := h.selection(w, r)
+	id, displayName, nickname, ok := h.selection(w, r, playerstats.ReturningCompetition{Kind: "tournament", Scope: r.PathValue("slug")})
 	if !ok {
 		return
 	}
@@ -88,9 +112,17 @@ func (h ReturningRegistrationHandler) tournamentEntry(w http.ResponseWriter, r *
 }
 
 func writeReturningError(w http.ResponseWriter, err error) bool {
-	if !errors.Is(err, playerstats.ErrIdentityNotFound) {
+	switch {
+	case errors.Is(err, league.ErrDuplicatePlayerName):
+		writeReturningDuplicate(w)
+	case errors.Is(err, playerstats.ErrIdentityNotFound):
+		writeError(w, http.StatusConflict, "profile_changed", "This player profile has changed. Refresh the list and choose it again.")
+	default:
 		return false
 	}
-	writeError(w, http.StatusConflict, "profile_changed", "This player profile has changed. Refresh the list and choose it again.")
 	return true
+}
+
+func writeReturningDuplicate(w http.ResponseWriter) {
+	writeError(w, http.StatusConflict, "already_registered", "This player is already registered for this competition.")
 }
