@@ -17,8 +17,9 @@ describe('Home page', () => {
     renderApp('/')
 
     const toolbar = within(screen.getByRole('navigation', { name: 'Primary' }))
-    expect(toolbar.getAllByRole('link').map(link => link.textContent)).toEqual(['Player stats', 'Admin'])
+    expect(toolbar.getAllByRole('link').map(link => link.textContent)).toEqual(['Records', 'Player stats', 'Admin'])
     expect(toolbar.getByRole('link', { name: 'Admin' })).toHaveAttribute('href', '/admin')
+    expect(toolbar.getByRole('link', { name: 'Records' })).toHaveAttribute('href', '/players/records')
     expect(toolbar.getByRole('link', { name: 'Player stats' })).toHaveAttribute('href', '/players')
     const league = screen.getByRole('region', { name: 'League matches' })
     const tournaments = screen.getByRole('region', { name: 'Tournaments' })

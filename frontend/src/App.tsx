@@ -66,6 +66,7 @@ function App() {
         <nav className="primary-nav" aria-label="Primary">
           {onHomePage ? (
             <>
+              <NavLink to="/players/records">Records</NavLink>
               <NavLink to="/players">Player stats</NavLink>
               <NavLink to="/admin">Admin</NavLink>
             </>
