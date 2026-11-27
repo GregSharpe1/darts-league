@@ -9,7 +9,8 @@ commands scheduled by the [Helm chart](../deploy/helm/darts-league/README.md).
 
 | Message | Trigger | Destination | Content |
 | --- | --- | --- | --- |
-| New player signup | Successful player registration | Admin channel | Player label, registration time, total registered players |
+| New player signup | Successful league registration | Admin channel | Player label, registration time, total registered players |
+| New tournament signup | Successful tournament registration | Admin channel | Tournament name, player label, registration time |
 | New pending score | New result saved by scheduled or manual relay polling that needs admin review (auto-submit disabled, or the import is ineligible: unmapped players, ambiguous fixture, etc.) | Admin channel | Reported player names, leg scores, competition type when supplied, review reason, pending-results page link |
 | Autodarts league auto-submit | `AUTODARTS_AUTO_SUBMIT=true` and an eligible league import was approved, after the transaction commits | Admin channel | Players, leg score, division, `/admin/matches/{fixtureId}` link |
 | Autodarts import failure | A relay message fails ingestion or automatic approval during scheduled or manual polling | Admin channel | Safe failure reason, Autodarts match ID and relay message ID when available, pending-results link |

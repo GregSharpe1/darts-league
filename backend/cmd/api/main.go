@@ -43,7 +43,7 @@ func main() {
 	authHandler := httpapi.NewAuthHandler(cfg.AdminUser, cfg.AdminPass, cfg.AdminSessionSecret)
 	registrationService := league.NewRegistrationServiceWithNowAndNotifier(store, now, registrationNotifier)
 	registrationHandler := httpapi.NewRegistrationHandler(registrationService)
-	tournamentService := tournament.Service{Store: tournamentStore, Now: now}
+	tournamentService := tournament.Service{Store: tournamentStore, Now: now, Notifier: registrationNotifier}
 	seasonHandler := httpapi.NewSeasonHandler(league.NewSeasonServiceWithNow(store, now), league.NewFixtureServiceWithNow(store, now), cfg.InstanceName)
 	resultService := league.NewResultServiceWithNow(store, now)
 	resultHandler := httpapi.NewResultHandler(resultService)
@@ -131,7 +131,7 @@ func runNotificationCommand(ctx context.Context, cfg config.Config, store league
 	log.Printf("notification command completed successfully")
 }
 
-func buildRegistrationNotifier(cfg config.Config) league.RegistrationNotifier {
+func buildRegistrationNotifier(cfg config.Config) notifications.RegistrationNotifier {
 	loc, err := time.LoadLocation(cfg.Timezone)
 	if err != nil {
 		loc = time.UTC
