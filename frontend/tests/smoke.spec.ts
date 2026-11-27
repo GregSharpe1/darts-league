@@ -4,6 +4,7 @@ import { execSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 
 import { expect, test, type Page } from '@playwright/test'
+import type { Tournament } from '../src/lib/tournamentsApi'
 import { expectAdminActionLayout, expectMatchingAdminLayout, expectMatchingControlHeights, expectMatchingDivisionWidths, expectSingleRowNavigation } from './form-control-checks'
 
 const captureUiScreenshots = process.env.CAPTURE_UI_SCREENSHOTS === '1'
@@ -391,7 +392,10 @@ test('register, assign divisions, start season, enter result, and view division 
   await expect(returningLeague).toHaveCSS('color', 'rgb(246, 241, 235)')
   await returningLeague.click()
   await expect(page.getByRole('button', { name: 'Register for the league' })).toBeDisabled()
-  await page.getByLabel('Search previous players').fill('luke hum')
+  const leagueSearch = page.getByLabel('Search previous players by first name or nickname')
+  await leagueSearch.fill('LuKe')
+  await expect(page.getByLabel('Previous player profile').getByRole('option', { name: /The Freeze/ })).toHaveCount(1)
+  await leagueSearch.fill('freeze')
   await page.getByLabel('Previous player profile').selectOption({ label: `The Freeze / ${leagueName}` })
   const returningIdentity = Number(await page.getByLabel('Previous player profile').inputValue())
   await captureScreenshot(page, 'returning-league.png')
@@ -551,8 +555,8 @@ test('admins open a tournament and manage public entries independently of the le
     await expect(page.getByText('No entries yet.')).toBeVisible()
     await page.getByRole('button', { name: 'Open registration' }).click()
     await expect(page.getByRole('heading', { name: 'Registration open' })).toBeVisible()
-    for (const name of ['Alex Morgan', 'Sam Patel', 'Maya Evans']) {
-      const response = await publicPage.request.post(`/api${eventPath}/entries`, { data: { display_name: name } })
+    for (const [display_name, nickname] of [['Alex Morgan', ''], ['Sam Patel', ''], ['Maya Evans', 'Sharp Shot']]) {
+      const response = await publicPage.request.post(`/api${eventPath}/entries`, { data: { display_name, nickname } })
       expect(response.status()).toBe(201)
     }
     await page.reload()
@@ -574,9 +578,9 @@ test('admins open a tournament and manage public entries independently of the le
     await expect(signupLink).toHaveCount(0)
     await directory.getByRole('link', { name: `View bracket for ${eventName}`, exact: true }).click()
     await expect(publicPage.getByRole('heading', { name: 'Knockout bracket' })).toBeVisible()
-    await publicPage.goto('/players?q=Maya')
-    await publicPage.getByRole('link', { name: /Maya Evans/ }).click()
-    await expect(publicPage.getByRole('heading', { name: 'Maya Evans' })).toBeVisible()
+    await publicPage.goto('/players?q=Sharp')
+    await publicPage.getByRole('link', { name: /Sharp Shot/ }).click()
+    await expect(publicPage.getByRole('heading', { name: 'Sharp Shot' })).toBeVisible()
     await expect(publicPage.getByRole('region', { name: 'Best placements' })).toBeVisible()
     const leagueAfter = await (await page.request.get('/api/season')).json()
     expect(leagueAfter).toEqual(leagueBefore)
@@ -596,20 +600,25 @@ test('admins open a tournament and manage public entries independently of the le
     await expect(returningCup).toHaveCSS('color', 'rgb(246, 241, 235)')
     await returningCup.click()
     const selection = publicPage.getByLabel('Previous player profile')
-    await expect(selection.getByRole('option', { name: /Maya Evans/ })).toHaveCount(1)
+    await expect(selection.getByRole('option', { name: /Sharp Shot/ })).toHaveCount(1)
     await expect(selection.getByRole('option', { name: /Alex Morgan|Sam Patel/ })).toHaveCount(0)
-    await publicPage.getByLabel('Search previous players').fill('Maya')
-    await selection.selectOption({ label: `Maya Evans / ${eventName}` })
+    const tournamentSearch = publicPage.getByLabel('Search previous players by first name or nickname')
+    await tournamentSearch.fill('MaYa')
+    await expect(selection.getByRole('option', { name: /Sharp Shot/ })).toHaveCount(1)
+    await expect(selection.getByRole('option', { name: 'Choose a player' })).toHaveCount(1)
+    await expect(selection.getByRole('option')).toHaveCount(2)
+    await tournamentSearch.fill('sharp shot')
+    await selection.selectOption({ label: `Sharp Shot / ${eventName}` })
     await captureScreenshot(publicPage, 'returning-tournament.png')
     const identity_id = Number(await selection.inputValue())
     await publicPage.getByRole('button', { name: 'Enter tournament' }).click()
-    await expect(publicPage.getByText('Maya Evans is registered for Cardiff Spring Knockout.')).toBeVisible()
+    await expect(publicPage.getByText('Sharp Shot is registered for Cardiff Spring Knockout.')).toBeVisible()
     expect((await publicPage.request.post(`/api/tournaments/${secondSlug}/returning-entry`, { data: { identity_id } })).status()).toBe(409)
     const eligible = await (await publicPage.request.get(`/api/tournaments/${secondSlug}/returning-entry`)).json()
     expect(eligible.map((profile: { identity_id: number }) => profile.identity_id)).not.toContain(identity_id)
     await publicPage.reload()
     await expect(publicPage.getByText('Loading previous players...')).toHaveCount(0)
-    await expect(selection.getByRole('option', { name: /Maya Evans/ })).toHaveCount(0)
+    await expect(selection.getByRole('option', { name: /Sharp Shot/ })).toHaveCount(0)
     await page.goto('/admin')
     await page.getByRole('link', { name: 'Player identity review' }).click()
     const suggestions = page.getByRole('region', { name: 'Possible matches' })
@@ -638,6 +647,29 @@ test('admins open a tournament and manage public entries independently of the le
     await expect(suggestions.getByRole('heading', { name: 'Possible matches' })).toBeVisible()
     await expect(alex).toHaveCount(0)
     await expect(sam).toHaveCount(0)
+
+    const finished: Tournament = await (await page.request.get(`/api${eventPath}`)).json()
+    const rounds = finished.bracket!
+    const semiFinal = rounds[0].find(match => !match.slots.some(slot => slot.bye))!
+    const final = rounds[1][0]
+    const advanced = semiFinal.slots[0]
+    semiFinal.legs = [7, 2]
+    semiFinal.winner_id = advanced.entry_id
+    final.slots = final.slots.map(slot => slot.winner_of === semiFinal.number ? { ...slot, ...advanced } : slot) as typeof final.slots
+    await page.route('**/api/admin/tournaments', route => route.fulfill({ json: [finished] }))
+    await page.goto(`/admin${eventPath}`)
+    await expect(page.getByRole('heading', { name: 'Tournament started' })).toBeVisible()
+    await expect(page.getByText('Event dates 6 February 2027 - 18 February 2027')).toBeVisible()
+    final.legs = [7, 4]
+    final.winner_id = final.slots[0].entry_id
+    await page.reload()
+    await expect(page.getByRole('heading', { name: 'Tournament finished' })).toBeVisible()
+    await expect(page.getByText('Event dates 6 February 2027 - 18 February 2027')).toBeVisible()
+    await captureScreenshot(page, 'tournament-admin-finished.png')
+    await page.getByRole('link', { name: 'All tournaments' }).click()
+    const tournamentRow = page.getByRole('listitem').filter({ hasText: eventName })
+    await expect(tournamentRow).toContainText('6 February 2027 - 18 February 2027 | Tournament finished')
+    await captureScreenshot(page, 'tournament-admin-directory.png')
   } finally {
     await publicPage.close()
   }
