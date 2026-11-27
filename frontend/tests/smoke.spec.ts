@@ -487,15 +487,21 @@ test('register, assign divisions, start season, enter result, and view division 
 test('public navigation fits on one line and exposes Admin on mobile', async ({ page }) => {
   await page.route('**/api/season', route => route.fulfill({ json: { registration_open: true, status: 'registration_open' } }))
   await page.goto('/divisions/premier')
-  for (const width of [320, 375, 480, 481, 640, 768, 1181, 1280]) {
+  const nav = page.getByRole('navigation', { name: 'Primary' })
+  const admin = page.getByRole('link', { name: 'Admin', exact: true })
+  const more = page.locator('summary').filter({ hasText: /^More$/ })
+  for (const width of [320, 375, 480, 481, 640, 641, 768, 1181, 1280]) {
     await page.setViewportSize({ width, height: 850 })
     await expectSingleRowNavigation(page, 4)
+    const adminControl = width <= 640 ? more : admin
+    await expect(adminControl).toBeVisible()
+    const adminHeight = await adminControl.evaluate(control => control.getBoundingClientRect().height)
+    const navHeight = await nav.getByRole('link', { name: 'League', exact: true })
+      .evaluate(link => link.getBoundingClientRect().height)
+    expect(adminHeight, `Admin control height at ${width}px`).toBe(navHeight)
   }
-  const admin = page.getByRole('link', { name: 'Admin', exact: true })
-  await expect(admin).toBeVisible()
   await page.setViewportSize({ width: 375, height: 850 })
   await expect(admin).toBeHidden()
-  const more = page.locator('summary').filter({ hasText: /^More$/ })
   await more.focus()
   await more.press('Enter')
   await expect(admin).toBeVisible()

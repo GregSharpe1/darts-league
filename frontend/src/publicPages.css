@@ -353,6 +353,7 @@
 
 .public-navigation a {
   flex: 1 1 7.5rem;
+  padding-block: 0;
 }
 
 .public-admin-menu {
@@ -365,7 +366,7 @@
 .public-admin-menu summary {
   display: inline-flex;
   align-items: center;
-  min-height: 44px;
+  min-height: var(--control-height);
   padding-inline: 0.75rem;
   border: var(--border-panel);
   border-radius: var(--radius-pill);
