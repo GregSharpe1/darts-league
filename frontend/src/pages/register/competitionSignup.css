@@ -108,6 +108,14 @@
   line-height: 1.1;
 }
 
+.competition-signup-alternate {
+  margin-top: 0.85rem;
+}
+
+.competition-entry .field select {
+  width: 100%;
+}
+
 .competition-entry .form-preview {
   gap: 1.15rem;
   margin-top: 1.65rem;

@@ -41,7 +41,9 @@ func main() {
 	}
 	registrationNotifier := buildRegistrationNotifier(cfg)
 	authHandler := httpapi.NewAuthHandler(cfg.AdminUser, cfg.AdminPass, cfg.AdminSessionSecret)
-	registrationHandler := httpapi.NewRegistrationHandler(league.NewRegistrationServiceWithNowAndNotifier(store, now, registrationNotifier))
+	registrationService := league.NewRegistrationServiceWithNowAndNotifier(store, now, registrationNotifier)
+	registrationHandler := httpapi.NewRegistrationHandler(registrationService)
+	tournamentService := tournament.Service{Store: tournamentStore, Now: now}
 	seasonHandler := httpapi.NewSeasonHandler(league.NewSeasonServiceWithNow(store, now), league.NewFixtureServiceWithNow(store, now), cfg.InstanceName)
 	resultService := league.NewResultServiceWithNow(store, now)
 	resultHandler := httpapi.NewResultHandler(resultService)
@@ -49,13 +51,21 @@ func main() {
 	versionHandler := httpapi.NewVersionHandler(cfg.Version)
 	authHandler.RegisterRoutes(mux)
 	registrationHandler.RegisterRoutes(mux, authHandler.RequireAdmin)
-	httpapi.TournamentHandler{Service: tournament.Service{Store: tournamentStore, Now: now}}.RegisterRoutes(mux, authHandler.RequireAdmin)
+	httpapi.TournamentHandler{Service: tournamentService}.RegisterRoutes(mux, authHandler.RequireAdmin)
 	seasonHandler.RegisterRoutes(mux, authHandler.RequireAdmin)
 	resultHandler.RegisterRoutes(mux, authHandler.RequireAdmin)
 	pendingResultHandler.RegisterRoutes(mux, authHandler.RequireAdmin)
 	httpapi.NewMatchDetailHandler(league.NewFixtureServiceWithNow(store, now)).RegisterRoutes(mux, authHandler.RequireAdmin)
 	httpapi.NewPlayerStatisticsHandler(resultService).RegisterRoutes(mux, authHandler.RequireAdmin)
-	httpapi.PlayerDirectoryHandler{Service: playerstats.Service{League: store, Tournament: tournamentStore, Now: now}}.RegisterRoutes(mux)
+	playerProfiles := playerstats.Service{League: store, Tournament: tournamentStore, Now: now}
+	if persistent, ok := store.(playerstats.IdentityStore); ok {
+		playerProfiles.Identities = persistent
+	} else {
+		playerProfiles.Identities = &playerstats.MemoryIdentities{Source: playerProfiles.IdentityEntries}
+	}
+	httpapi.PlayerDirectoryHandler{Service: playerProfiles}.RegisterRoutes(mux)
+	httpapi.ReturningRegistrationHandler{Profiles: playerProfiles, Registration: registrationService, Tournament: tournamentService}.RegisterRoutes(mux)
+	httpapi.PlayerIdentityHandler{Store: playerProfiles.Identities}.RegisterRoutes(mux, authHandler.RequireAdmin)
 	versionHandler.RegisterRoutes(mux)
 	mux.HandleFunc("/healthz", func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusOK)

@@ -97,6 +97,7 @@ export function AdminPage() {
                   <button className="season-start-button" type="button" aria-describedby={needsPlayers ? 'season-start-help' : undefined} onClick={() => seasonStartMutation.mutate()} disabled={seasonStartMutation.isPending || season.assigned_count < 2}>{seasonStartMutation.isPending ? 'Starting season...' : 'Start season'}</button>
                 ) : null}
                 <Link className="button-link secondary-button" to="/divisions">View public league</Link>
+                <Link className="button-link secondary-button" to="/admin/player-identities">Player identity review</Link>
               </div>
             </>
           ) : <p>Sign in to manage league fixtures, tournament draws, and incoming results.</p>}

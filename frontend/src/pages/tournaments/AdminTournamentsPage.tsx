@@ -16,10 +16,15 @@ import {
   useUpdateTournamentFormat,
 } from '../../lib/tournamentsApi'
 import { readError } from '../../lib/utils'
-import { TournamentDate } from './TournamentDate'
+import { TournamentDateRange } from './TournamentDate'
 import { TournamentList } from './TournamentList'
 import { TournamentFormat } from './TournamentFormat'
 import { TournamentScoreEditor } from './TournamentScoreEditor'
+
+function tournamentFinished(event: Tournament) {
+  const matches = event.bracket?.flat().filter(match => !match.slots.some(slot => slot.bye)) ?? []
+  return matches.length > 0 && matches.every(match => Boolean(match.legs && match.winner_id))
+}
 
 export function AdminTournamentsPage() {
   const { slug } = useParams()
@@ -49,7 +54,7 @@ export function AdminTournamentsPage() {
           <CreateTournament />
           <article className="admin-card">
             <h2>Manage tournaments</h2>
-            <TournamentList admin events={tournaments.data.map((item) => ({ ...item, started: Boolean(item.bracket?.length) }))} />
+            <TournamentList admin events={tournaments.data.map((item) => ({ ...item, started: Boolean(item.bracket?.length), finished: tournamentFinished(item) }))} />
           </article>
         </section>
       ) : null}
@@ -132,7 +137,8 @@ function TournamentRoster({ event }: { event: Tournament }) {
   const deleteTournament = useDeleteTournament(event.slug)
   const updateFormat = useUpdateTournamentFormat(event.slug)
   const updateEndDate = useUpdateTournamentEndDate(event.slug)
-  const started = Boolean(event.bracket)
+  const started = Boolean(event.bracket?.length)
+  const finished = tournamentFinished(event)
   const canStart = !event.registration_open && (entries.data?.length ?? 0) >= 2
   const canDelete = event.registration_open && !started
   const tournamentBusy = updateFormat.isPending || updateEndDate.isPending || start.isPending || deleteTournament.isPending
@@ -150,8 +156,10 @@ function TournamentRoster({ event }: { event: Tournament }) {
   return (
     <section className="admin-grid">
       <article className="admin-card">
-        <h2>{started ? 'Tournament started' : event.registration_open ? 'Registration open' : 'Registration closed'}</h2>
-        <p>{started ? 'Event date' : 'Starts'} <TournamentDate date={event.starts_on} /></p>
+        <h2>{finished ? 'Tournament finished' : started ? 'Tournament started' : event.registration_open ? 'Registration open' : 'Registration closed'}</h2>
+        <p>{event.ends_on && event.ends_on !== event.starts_on ? 'Event dates' : started ? 'Event date' : 'Starts'}{' '}
+          <TournamentDateRange startsOn={event.starts_on} endsOn={event.ends_on} />
+        </p>
         {!started && !event.registration_open && entries.isSuccess && !canStart ? <p>At least two entrants are needed to draw the bracket.</p> : null}
         <div className="toolbar-actions tournament-registration-actions">
           <Link className="button-link secondary-button" to={`/tournaments/${event.slug}`}>{started ? 'View bracket' : 'Public sign-up page'}</Link>

@@ -40,7 +40,7 @@ function PlacementCard({ label, placement, empty }: {
     {placement ? <>
       <strong>{placement.tied ? 'Tied ' : ''}{ordinal(placement.position)}</strong>
       <p>{placement.tournament_slug
-        ? <Link to={`/tournaments/${placement.tournament_slug}`}>{placement.competition}</Link>
+        ? <Link className="text-link" to={`/tournaments/${placement.tournament_slug}`}>{placement.competition}</Link>
         : <>{placement.competition} / {placement.division}</>}</p>
     </> : <p>{empty}</p>}
   </div>
@@ -67,7 +67,7 @@ export function TournamentPlayerPage() {
   const { slug = '', entryId = '' } = useParams()
   const query = usePlacements(`/api/tournaments/${encodeURIComponent(slug)}/players/${encodeURIComponent(entryId)}/placements`)
   return <div className="player-page">
-    <header className="player-page-heading"><Link to="/players">Player stats</Link></header>
+    <header className="player-page-heading"><Link className="text-link" to="/players">Player stats</Link></header>
     {query.isPending ? <p className="content-panel" role="status">Loading player statistics...</p> :
       query.isError ? <div className="content-panel" role="status">
         <h1>{query.error instanceof ApiError && query.error.status === 404 ? 'Player not found' : 'Player statistics unavailable'}</h1>

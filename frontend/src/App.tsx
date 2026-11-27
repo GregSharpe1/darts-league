@@ -13,6 +13,7 @@ import { AdminTournamentsPage } from './pages/tournaments/AdminTournamentsPage'
 import { TournamentPage } from './pages/tournaments/TournamentPage'
 import { TournamentsPage } from './pages/tournaments/TournamentsPage'
 import { AdminPage } from './pages/admin/AdminPage'
+import { PlayerIdentityPage } from './pages/admin/PlayerIdentityPage'
 import { DivisionAdminPage } from './pages/admin/DivisionAdminPage'
 import { PendingResultsPage } from './pages/admin/PendingResultsPage'
 import { MatchPage } from './pages/matches/MatchPage'
@@ -119,6 +120,7 @@ function App() {
           <Route path="/admin/seasons/:seasonId/players/:playerId" element={<PlayerPage admin />} />
           <Route path="/admin/matches/:fixtureId" element={<MatchPage admin />} />
           <Route path="/admin" element={<AdminPage />} />
+          <Route path="/admin/player-identities" element={<PlayerIdentityPage />} />
           <Route path="/admin/pending-results" element={<PendingResultsPage />} />
           <Route path="/admin/tournaments/:slug?" element={<AdminTournamentsPage />} />
           <Route path="/admin/divisions/:slug" element={<DivisionAdminPage />} />

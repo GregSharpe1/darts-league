@@ -17,6 +17,7 @@ export type Tournament = TournamentMatchFormat & {
 
 export type TournamentSummary = Pick<Tournament, 'slug' | 'name' | 'starts_on' | 'ends_on' | 'registration_open'> & {
   started: boolean
+  finished?: boolean
 }
 
 export type BracketSlot = { player?: string; entry_id?: number; winner_of?: number; bye?: true }
