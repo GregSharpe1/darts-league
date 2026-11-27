@@ -5,8 +5,11 @@ import (
 	"errors"
 	"os"
 	"testing"
+	"time"
 
+	"github.com/greg/darts-league/backend/internal/league"
 	"github.com/greg/darts-league/backend/internal/playerstats"
+	"github.com/greg/darts-league/backend/internal/tournament"
 )
 
 func TestIdentityMigrationAndReview(t *testing.T) {
@@ -79,6 +82,54 @@ func TestIdentityMigrationAndReview(t *testing.T) {
 	}
 	if len(snapshot.Review().Suggestions) != 0 {
 		t.Fatalf("separation should carry across a link: %+v", snapshot.Review())
+	}
+	if _, err := tx.Exec(ctx, `INSERT INTO tournaments (slug, name, starts_on, registration_open) VALUES ('next-cup', 'Next Cup', '2027-05-01', TRUE)`); err != nil {
+		t.Fatal(err)
+	}
+	// The legacy tournament entry used an explicit ID.
+	if _, err := tx.Exec(ctx, `SELECT setval(pg_get_serial_sequence('tournament_entries', 'id'), 1)`); err != nil {
+		t.Fatal(err)
+	}
+	entry, err := scoped.CreateTournamentEntry(ctx, "next-cup", tournament.Entry{
+		DisplayName: "A different name", RegisteredAt: time.Now(), ReturningIdentityID: alex,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	snapshot, err = scoped.IdentitySnapshot(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var newID int64
+	for _, e := range snapshot.Entries {
+		if e.Kind == "tournament" && e.EntryID == entry.ID {
+			newID = e.IdentityID
+		}
+	}
+	if newID != alex {
+		t.Fatalf("returning registration must immediately reuse identity %d: %+v", alex, snapshot.Entries)
+	}
+	if suggestions := snapshot.Review().Suggestions; len(suggestions) != 0 {
+		t.Fatalf("a linked entry must not create a review suggestion: %+v", suggestions)
+	}
+	if _, err := scoped.CreateTournamentEntry(ctx, "next-cup", tournament.Entry{
+		DisplayName: "Another alias", RegisteredAt: time.Now(), ReturningIdentityID: alex,
+	}); !errors.Is(err, league.ErrDuplicatePlayerName) {
+		t.Fatalf("returning profile cannot enter the same tournament a second time: %v", err)
+	}
+	if _, err := tx.Exec(ctx, `INSERT INTO seasons (id, name, status) VALUES (2, 'Next League', 'registration_open');
+		SELECT setval(pg_get_serial_sequence('players', 'id'), 2)`); err != nil {
+		t.Fatal(err)
+	}
+	player, err := scoped.CreatePlayer(ctx, league.Player{
+		SeasonID: 2, DisplayName: "Alex Morgan", Status: league.PlayerStatusWaitlist, RegisteredAt: time.Now(), ReturningIdentityID: alex,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var leagueIdentity int64
+	if err := tx.QueryRow(ctx, `SELECT identity_id FROM players WHERE id = $1`, player.ID).Scan(&leagueIdentity); err != nil || leagueIdentity != alex {
+		t.Fatalf("returning league registration identity = %d, want %d: %v", leagueIdentity, alex, err)
 	}
 	var actions int
 	if err := tx.QueryRow(ctx, `SELECT count(*) FROM player_identity_decisions WHERE actor = 'league-admin'`).Scan(&actions); err != nil || actions != 2 {

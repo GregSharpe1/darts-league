@@ -17,12 +17,12 @@ export function PlayerPage({ admin = false }: { readonly admin?: boolean }) {
   return <section className={admin ? 'player-page' : 'player-page public-player-page'} aria-label="Player season statistics">
     <header className="player-page-heading">
       <span className="eyebrow">{admin ? 'Admin player view' : 'Player season statistics'} / Season {seasonId}</span>
-      <Link to={admin ? '/admin' : '/players'}>{admin ? 'Admin home' : 'Player stats'}</Link>
+      <Link className="text-link" to={admin ? '/admin' : '/players'}>{admin ? 'Admin home' : 'Player stats'}</Link>
     </header>
     {query.isPending || query.isFetching ? <div className="content-panel" role="status">Loading player statistics...</div> :
       query.isError ? <div className="content-panel" role="status">
         <h1>{status === 404 ? 'Player not found in this season.' : status === 401 ? 'Admin login required' : 'Player statistics unavailable'}</h1>
-        {status === 401 ? <Link to="/admin">Admin login</Link> : status === 404 ? <p>Check the season and player link.</p> :
+        {status === 401 ? <Link className="text-link" to="/admin">Admin login</Link> : status === 404 ? <p>Check the season and player link.</p> :
           <><p>Statistics could not be loaded. Please try again.</p><button type="button" onClick={() => { void query.refetch() }}>Try again</button></>}
       </div> : <PlayerStatisticsView key={`${admin}-${seasonId}-${playerId}`} stats={query.data} admin={admin} placements={<LeaguePlayerPlacements seasonId={seasonId} playerId={playerId} />} />}
   </section>

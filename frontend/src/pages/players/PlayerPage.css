@@ -1,8 +1,6 @@
 .player-page { display: grid; gap: 24px; min-width: 0; }
 .player-page .content-panel { min-width: 0; padding: 24px; }
 .player-page-heading, .player-section-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
-.player-page a { color: var(--color-accent-soft); text-underline-offset: 4px; }
-.player-page a:hover { color: var(--color-text); }
 .player-page a:focus-visible, .player-page button:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 4px; }
 .player-page h1 { margin: 8px 0 16px; font-size: clamp(3rem, 6vw, 4rem); overflow-wrap: anywhere; }
 .player-page h2 { margin: 0; font-size: 2rem; }

@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom'
 import { useSeasonSummary, useRegisterPlayer } from '../../lib/api'
 import { StateNotice } from '../../components/StateNotice'
 import { readError } from '../../lib/utils'
+import { ReturningPlayerSignup } from './ReturningPlayerSignup'
 import { PlayerSignupForm } from './PlayerSignupForm'
 import './competitionSignup.css'
 
@@ -40,15 +41,19 @@ export function RegisterPage() {
           {season?.registration_open ? (
             <>
               <p className="competition-entry-description">An admin will assign you to a division after you register.</p>
-              <PlayerSignupForm
-                action="Register for the league"
-                busy={registerMutation.isPending}
-                error={registerMutation.error}
-                onRegister={async (entry) => {
-                  const player = await registerMutation.mutateAsync(entry)
-                  return `${player.preferred_name} is registered and waiting for division assignment.`
-                }}
-              />
+              <ReturningPlayerSignup action="Register for the league"
+                endpoint={`/api/seasons/${season.id}/returning-entry`}
+                successMessage={name => `${name} is registered and waiting for division assignment.`}>
+                <PlayerSignupForm
+                  action="Register for the league"
+                  busy={registerMutation.isPending}
+                  error={registerMutation.error}
+                  onRegister={async (entry) => {
+                    const player = await registerMutation.mutateAsync(entry)
+                    return `${player.preferred_name} is registered and waiting for division assignment.`
+                  }}
+                />
+              </ReturningPlayerSignup>
             </>
           ) : season ? (
             <>

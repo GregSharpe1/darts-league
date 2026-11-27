@@ -89,6 +89,16 @@ a:focus-visible {
   outline-offset: 2px;
 }
 
+.text-link {
+  color: var(--color-text);
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+
+.text-link:hover {
+  text-decoration-thickness: 2px;
+}
+
 button:disabled {
   cursor: not-allowed;
 }

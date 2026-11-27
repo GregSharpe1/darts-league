@@ -81,7 +81,7 @@ export function PlayerIdentityPage() {
   return <div className="admin-workspace">
     <section className="page-intro">
       <h1>Player identity review</h1>
-      <p>Review names and nicknames shared by league and tournament entries before combining their player stats.</p>
+      <p>Review possible name matches before combining player stats.</p>
     </section>
     {review.isPending ? <p role="status">Loading player identities...</p> :
       review.isError ? <section className="admin-card">

@@ -47,7 +47,7 @@ export function PlayerStatisticsView({ stats: s, admin, placements }: { readonly
       {s.history.length === 0 ? <p>No eligible matches yet. Statistics will appear when results are available.</p> :
         <ol className="player-history">{s.history.map(h => <li key={h.fixture_id}>
           <div><span className="eyebrow">Week {h.week_number} / <time dateTime={h.scheduled_at}>{new Date(h.scheduled_at).toLocaleDateString('en-GB', { timeZone: 'Europe/London', day: 'numeric', month: 'short', year: 'numeric' })}</time></span>
-            <h3>vs <Link to={`${prefix}/seasons/${s.season_id}/players/${h.opponent_id}`}>{h.opponent_name}</Link></h3>
+            <h3>vs <Link className="text-link" to={`${prefix}/seasons/${s.season_id}/players/${h.opponent_id}`}>{h.opponent_name}</Link></h3>
             <p>Average {average(h.match_average) ?? 'unavailable'} / Detail: {h.detail_coverage}</p></div>
           <div className="player-history-result"><strong>{h.legs_for} - {h.legs_against}</strong><span>{h.won ? 'Won' : 'Lost'}</span></div>
           <div className="toolbar-actions"><Link className="button-link" to={`${prefix}/matches/${h.fixture_id}`}>Match {h.fixture_id}</Link></div>

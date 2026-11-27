@@ -18,13 +18,14 @@ var (
 )
 
 type IdentityEntry struct {
-	IdentityID  int64  `json:"identity_id"`
-	Kind        string `json:"kind"`
-	EntryID     int64  `json:"entry_id"`
-	Scope       string `json:"scope"`
-	Competition string `json:"competition"`
-	DisplayName string `json:"display_name"`
-	Nickname    string `json:"nickname"`
+	RequestedIdentityID int64  `json:"-"`
+	IdentityID          int64  `json:"identity_id"`
+	Kind                string `json:"kind"`
+	EntryID             int64  `json:"entry_id"`
+	Scope               string `json:"scope"`
+	Competition         string `json:"competition"`
+	DisplayName         string `json:"display_name"`
+	Nickname            string `json:"nickname"`
 }
 
 type IdentityPair struct {
@@ -110,6 +111,8 @@ func (s IdentitySnapshot) ValidateDecision(d IdentityDecision) error {
 	return nil
 }
 
+const selectedProfileSignal = "Selected existing profile at sign-up"
+
 func (s IdentitySnapshot) Review() IdentityReview {
 	groups := s.groups()
 	byName := make(map[string][]IdentityEntry)
@@ -122,6 +125,12 @@ func (s IdentitySnapshot) Review() IdentityReview {
 		}
 	}
 	matches := make(map[IdentityPair]map[string]bool)
+	for _, entry := range s.Entries {
+		key := pair(entry.IdentityID, entry.RequestedIdentityID)
+		if entry.RequestedIdentityID != 0 && key.Left != key.Right && groups[entry.RequestedIdentityID] != nil && !s.Separated[key] {
+			matches[key] = map[string]bool{selectedProfileSignal: true}
+		}
+	}
 	for name, entries := range byName {
 		for i, a := range entries {
 			for _, b := range entries[i+1:] {
@@ -150,6 +159,13 @@ func (s IdentitySnapshot) Review() IdentityReview {
 		review.Suggestions = append(review.Suggestions, IdentitySuggestion{key, labels, !overlaps(groups[key.Left], groups[key.Right])})
 	}
 	slices.SortFunc(review.Suggestions, func(a, b IdentitySuggestion) int {
+		selectedA, selectedB := slices.Contains(a.Signals, selectedProfileSignal), slices.Contains(b.Signals, selectedProfileSignal)
+		if selectedA != selectedB {
+			if selectedA {
+				return -1
+			}
+			return 1
+		}
 		if a.Left != b.Left {
 			return compareID(a.Left, b.Left)
 		}
@@ -187,10 +203,16 @@ func (m *MemoryIdentities) snapshot(ctx context.Context) (IdentitySnapshot, erro
 		if entry.Kind == "tournament" {
 			id++
 		}
+		if entry.IdentityID > 0 {
+			id = entry.IdentityID
+		}
 		if linked := m.linked[id]; linked != 0 {
 			id = linked
 		}
 		entries[i].IdentityID = id
+		if linked := m.linked[entry.RequestedIdentityID]; linked != 0 {
+			entries[i].RequestedIdentityID = linked
+		}
 	}
 	return IdentitySnapshot{Entries: entries, Separated: m.separated}, nil
 }
@@ -264,7 +286,7 @@ func (s Service) IdentityEntries(ctx context.Context) ([]IdentityEntry, error) {
 			return nil, err
 		}
 		for _, p := range players {
-			entries = append(entries, IdentityEntry{Kind: "league", EntryID: p.ID, Scope: strconv.FormatInt(season.ID, 10), Competition: season.Name, DisplayName: p.DisplayName, Nickname: p.Nickname})
+			entries = append(entries, IdentityEntry{Kind: "league", EntryID: p.ID, IdentityID: p.ReturningIdentityID, Scope: strconv.FormatInt(season.ID, 10), Competition: season.Name, DisplayName: p.DisplayName, Nickname: p.Nickname})
 		}
 	}
 	events, err := s.Tournament.ListTournaments(ctx)
@@ -277,7 +299,7 @@ func (s Service) IdentityEntries(ctx context.Context) ([]IdentityEntry, error) {
 			return nil, err
 		}
 		for _, entry := range roster {
-			entries = append(entries, IdentityEntry{Kind: "tournament", EntryID: entry.ID, Scope: event.Slug, Competition: event.Name, DisplayName: entry.DisplayName, Nickname: strings.TrimSpace(entry.Nickname)})
+			entries = append(entries, IdentityEntry{Kind: "tournament", EntryID: entry.ID, IdentityID: entry.ReturningIdentityID, Scope: event.Slug, Competition: event.Name, DisplayName: entry.DisplayName, Nickname: strings.TrimSpace(entry.Nickname)})
 		}
 	}
 	return entries, nil
