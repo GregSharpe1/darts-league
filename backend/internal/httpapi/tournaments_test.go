@@ -1,13 +1,16 @@
 package httpapi
 
 import (
+	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
 	"time"
 
+	"github.com/greg/darts-league/backend/internal/notifications"
 	"github.com/greg/darts-league/backend/internal/tournament"
 )
 
@@ -15,7 +18,12 @@ func TestTournamentRegistrationLifecycle(t *testing.T) {
 	mux := http.NewServeMux()
 	auth := NewAuthHandler("admin", "test-password", "test-secret")
 	auth.RegisterRoutes(mux)
-	TournamentHandler{Service: tournament.Service{Store: tournament.NewMemoryStore(), Now: time.Now}}.RegisterRoutes(mux, auth.RequireAdmin)
+	poster := &tournamentSignupPoster{}
+	now := func() time.Time { return time.Date(2027, time.March, 20, 12, 30, 0, 0, time.UTC) }
+	TournamentHandler{Service: tournament.Service{
+		Store: tournament.NewMemoryStore(), Now: now,
+		Notifier: notifications.NewRegistrationNotifier(poster, "CADMIN", time.UTC, nil),
+	}}.RegisterRoutes(mux, auth.RequireAdmin)
 
 	request := func(method, path, body string, cookie *http.Cookie, status int) *httptest.ResponseRecorder {
 		t.Helper()
@@ -92,6 +100,10 @@ func TestTournamentRegistrationLifecycle(t *testing.T) {
 		t.Fatalf("unexpected public signup response: %s", signup.Body)
 	}
 	request("POST", publicEvent+"/entries", `{"display_name":"maya EVANS"}`, nil, http.StatusConflict)
+	if len(poster.posts) != 1 || poster.posts[0].channel != "CADMIN" ||
+		poster.posts[0].message != "New tournament signup\n- Tournament: City Cup!\n- Player: Flight (Maya Evans)\n- Signed up: Sat 20 Mar 2027 12:30 UTC" {
+		t.Fatalf("expected one admin Slack post for the accepted signup, got %+v", poster.posts)
+	}
 	event := request("GET", publicEvent, "", nil, http.StatusOK)
 	if !strings.Contains(event.Body.String(), `"game_variant":"301"`) || !strings.Contains(event.Body.String(), `"legs_to_win":5`) {
 		t.Fatalf("public event did not show the saved format: %s", event.Body)
@@ -113,7 +125,12 @@ func TestTournamentRegistrationLifecycle(t *testing.T) {
 	const secondEvent = "/api/tournaments/another-cup"
 	request("POST", adminPath, `{"slug":"ignored-client-slug","name":"Another Cup","starts_on":"2027-03-20","game_variant":"501","legs_to_win":2}`, cookie, http.StatusCreated)
 	request("PUT", adminPath+"/another-cup/registration", `{"registration_open":true}`, cookie, http.StatusOK)
+	poster.err = errors.New("Slack unavailable")
 	request("POST", secondEvent+"/entries", entrant, nil, http.StatusCreated)
+	poster.err = nil
+	if len(poster.posts) != 2 || !strings.Contains(poster.posts[1].message, "Tournament: Another Cup") {
+		t.Fatalf("expected a notification attempt for the other tournament, got %+v", poster.posts)
+	}
 	request("DELETE", adminPath+"/another-cup/entries/1", "", cookie, http.StatusNotFound)
 
 	request("PUT", adminEvent+"/registration", `{"registration_open":false}`, cookie, http.StatusOK)
@@ -164,4 +181,19 @@ func TestTournamentRegistrationLifecycle(t *testing.T) {
 	if strings.TrimSpace(cleanRoster.Body.String()) != "[]" {
 		t.Fatalf("deleted entries persisted after recreating the tournament: %s", cleanRoster.Body)
 	}
+}
+
+type tournamentSignupPost struct {
+	channel string
+	message string
+}
+
+type tournamentSignupPoster struct {
+	posts []tournamentSignupPost
+	err   error
+}
+
+func (p *tournamentSignupPoster) PostMessage(_ context.Context, channel, message string) error {
+	p.posts = append(p.posts, tournamentSignupPost{channel: channel, message: message})
+	return p.err
 }

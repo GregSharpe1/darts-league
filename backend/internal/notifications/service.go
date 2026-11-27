@@ -10,6 +10,7 @@ import (
 
 	"github.com/greg/darts-league/backend/internal/league"
 	"github.com/greg/darts-league/backend/internal/slack"
+	"github.com/greg/darts-league/backend/internal/tournament"
 )
 
 type MessagePoster interface {
@@ -29,7 +30,7 @@ type RegistrationNotifier struct {
 	logger    *log.Logger
 }
 
-func NewRegistrationNotifier(poster MessagePoster, channelID string, location *time.Location, logger *log.Logger) league.RegistrationNotifier {
+func NewRegistrationNotifier(poster MessagePoster, channelID string, location *time.Location, logger *log.Logger) RegistrationNotifier {
 	if location == nil {
 		location = time.UTC
 	}
@@ -51,6 +52,21 @@ func (n RegistrationNotifier) NotifyPlayerRegistered(ctx context.Context, player
 	}
 
 	text := fmt.Sprintf("New player signup\n- Player: %s\n- Signed up: %s\n- Total registered: %d", escapePlayerLabel(player.AdminLabel()), player.RegisteredAt.In(n.location).Format("Mon 02 Jan 2006 15:04 MST"), totalRegistered)
+	n.postSignup(ctx, text)
+}
+
+func (n RegistrationNotifier) NotifyTournamentRegistered(ctx context.Context, tournamentName string, entry tournament.Entry) {
+	if n.poster == nil || n.channelID == "" {
+		return
+	}
+
+	player := league.Player{DisplayName: entry.DisplayName, Nickname: entry.Nickname}
+	text := fmt.Sprintf("New tournament signup\n- Tournament: %s\n- Player: %s\n- Signed up: %s",
+		escapePlayerLabel(tournamentName), escapePlayerLabel(player.AdminLabel()), entry.RegisteredAt.In(n.location).Format("Mon 02 Jan 2006 15:04 MST"))
+	n.postSignup(ctx, text)
+}
+
+func (n RegistrationNotifier) postSignup(ctx context.Context, text string) {
 	if err := n.poster.PostMessage(ctx, n.channelID, text); err != nil && !errorsIsDisabled(err) {
 		n.logger.Printf("slack signup notification failed: %v", err)
 	}
