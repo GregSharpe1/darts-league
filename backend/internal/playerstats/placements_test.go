@@ -121,6 +121,28 @@ func TestHistoricalLeaguePlacementAndTournamentIdentity(t *testing.T) {
 	if len(directory) != 4 || directory[2].EntryID != repeat.ID || directory[2].TournamentSlug != "later-cup" {
 		t.Fatalf("directory: %+v", directory)
 	}
+
+	nextSeason, err := store.GetActiveSeason(ctx)
+	nextSeason = must(t, nextSeason, err)
+	nextDivisions, err := store.ReplaceDivisions(ctx, nextSeason.ID, []league.Division{{Name: "Premier", Slug: "premier"}})
+	nextDivision := must(t, nextDivisions, err)[0].ID
+	returning, err := store.CreatePlayer(ctx, league.Player{
+		SeasonID: nextSeason.ID, DivisionID: &nextDivision, Status: league.PlayerStatusAssigned,
+		DisplayName: "Alex Morgan", Nickname: "Arrow", ReturningIdentityID: index[entryKey{"league", player.ID}],
+	})
+	returning = must(t, returning, err)
+	got, err = service.ForLeaguePlayer(ctx, season.ID, player.ID)
+	if err != nil || len(got.LeagueSeasons) != 1 || got.LeagueSeasons[0].SeasonID != season.ID {
+		t.Fatalf("registration-open season must not appear in public navigation: %+v, %v", got.LeagueSeasons, err)
+	}
+	started, err := store.UpsertSeason(ctx, nextSeason.Start(now))
+	must(t, started, err)
+	got, err = service.ForLeaguePlayer(ctx, nextSeason.ID, returning.ID)
+	if err != nil || len(got.LeagueSeasons) != 2 ||
+		got.LeagueSeasons[0] != (LeagueSeasonLink{SeasonID: nextSeason.ID, PlayerID: returning.ID, Name: nextSeason.Name}) ||
+		got.LeagueSeasons[1] != (LeagueSeasonLink{SeasonID: season.ID, PlayerID: player.ID, Name: season.Name}) {
+		t.Fatalf("expected linked season links newest first: %+v, %v", got.LeagueSeasons, err)
+	}
 }
 
 func TestTournamentFinishUsesRecordedEliminationsAndByes(t *testing.T) {
