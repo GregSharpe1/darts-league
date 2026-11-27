@@ -6,6 +6,7 @@ export type PlayerProfile = {
   name: string
   competition: string
   display_name?: string
+  first_name?: string
 } & (
   | { season_id: number; player_id: number }
   | { tournament_slug: string; entry_id: number }
@@ -24,7 +25,7 @@ function normalizeName(name: string) {
 
 export function filterPlayerProfiles(profiles: PlayerProfile[], search: string) {
   const needle = normalizeName(search)
-  return profiles.filter(({ name, display_name }) =>
-    normalizeName(name).includes(needle) || (display_name && normalizeName(display_name).includes(needle)))
+  return profiles.filter(({ name, display_name, first_name }) =>
+    [name, display_name, first_name].some(value => value && normalizeName(value).includes(needle)))
     .sort((a, b) => a.name.localeCompare(b.name, 'en-GB') || a.competition.localeCompare(b.competition, 'en-GB'))
 }

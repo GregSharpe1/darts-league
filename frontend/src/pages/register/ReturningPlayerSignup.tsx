@@ -67,7 +67,7 @@ function ReturningPlayerForm({ action, endpoint, successMessage }: ReturningProp
   return <form className="form-preview" onSubmit={event => { event.preventDefault(); enter.mutate() }}>
     <p>Choose the profile you played under to keep your previous results linked.</p>
     <div className="field">
-      <label htmlFor="returning-search">Search previous players</label>
+      <label htmlFor="returning-search">Search previous players by first name or nickname</label>
       <input id="returning-search" type="search" value={search} disabled={enter.isPending} onChange={event => {
         setSearch(event.target.value)
         setIdentity('')

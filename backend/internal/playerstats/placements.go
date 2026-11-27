@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"slices"
+	"strings"
 	"time"
 
 	"github.com/greg/darts-league/backend/internal/league"
@@ -176,14 +177,25 @@ func (s Service) returningProfiles(ctx context.Context, competition ReturningCom
 	return profiles, entered, names, nil
 }
 
-func (s Service) EligibleReturningProfiles(ctx context.Context, competition ReturningCompetition) ([]Profile, error) {
+type ReturningProfile struct {
+	Profile
+	FirstName string `json:"first_name,omitempty"`
+}
+
+func (s Service) EligibleReturningProfiles(ctx context.Context, competition ReturningCompetition) ([]ReturningProfile, error) {
 	profiles, entered, names, err := s.returningProfiles(ctx, competition)
 	if err != nil {
 		return nil, err
 	}
-	return slices.DeleteFunc(profiles, func(profile Profile) bool {
-		return entered[profile.IdentityID] || names[league.NormalizeDisplayName(profile.registrationName)]
-	}), nil
+	eligible := make([]ReturningProfile, 0, len(profiles))
+	for _, profile := range profiles {
+		if entered[profile.IdentityID] || names[league.NormalizeDisplayName(profile.registrationName)] {
+			continue
+		}
+		firstName, _, _ := strings.Cut(league.NormalizeWhitespace(profile.registrationName), " ")
+		eligible = append(eligible, ReturningProfile{Profile: profile, FirstName: firstName})
+	}
+	return eligible, nil
 }
 
 // ReturningName only accepts identities with a public, previously published entry.
