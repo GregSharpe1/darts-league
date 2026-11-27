@@ -393,6 +393,7 @@ test('register, assign divisions, start season, enter result, and view division 
   await expect(page.getByRole('button', { name: 'Register for the league' })).toBeDisabled()
   await page.getByLabel('Search previous players').fill('luke hum')
   await page.getByLabel('Previous player profile').selectOption({ label: `The Freeze / ${leagueName}` })
+  const returningIdentity = Number(await page.getByLabel('Previous player profile').inputValue())
   await captureScreenshot(page, 'returning-league.png')
   await page.setViewportSize({ width: 375, height: 900 })
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
@@ -423,6 +424,9 @@ test('register, assign divisions, start season, enter result, and view division 
   await expect(page.locator('.admin-fixture-card')).toHaveCount(1)
   await expect(page.locator('.admin-fixture-card.recorded')).toHaveCount(0)
   await expect(page.locator('input[id^="p1-"]')).toHaveValue('')
+  const profiles = await (await page.request.get('/api/players')).json()
+  const freeze = profiles.filter((profile: { name: string }) => profile.name === 'The Freeze')
+  expect(freeze).toEqual([expect.objectContaining({ identity_id: returningIdentity, competition: 'Next League' })])
 })
 
 test('all five division navigation actions fit on one line without scrolling', async ({ page }) => {
@@ -613,9 +617,11 @@ test('admins open a tournament and manage public entries independently of the le
       .filter({ hasText: 'Alex Morgan' })
     const sam = suggestions.getByRole('listitem').filter({ has: page.getByRole('button', { name: 'Keep separate' }) })
       .filter({ hasText: 'Sam Patel' })
-    const maya = suggestions.getByRole('listitem').filter({ has: page.getByRole('button', { name: 'Link profiles' }) })
-      .filter({ hasText: 'Maya Evans' })
-    await expect(maya).toContainText('Selected existing profile at sign-up')
+    const review = await (await page.request.get('/api/admin/player-identities')).json()
+    expect(review.entries).toContainEqual(expect.objectContaining({
+      identity_id, display_name: 'Maya Evans', competition: 'Cardiff Spring Knockout',
+    }))
+    await expect(suggestions.getByRole('listitem').filter({ hasText: 'Maya Evans' })).toHaveCount(0)
     await expect(alex).toContainText('Same display name')
     await expect(sam).toContainText(eventName)
     for (const width of [375, 768, 1280]) {

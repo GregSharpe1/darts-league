@@ -79,7 +79,7 @@ func (h ReturningRegistrationHandler) leagueEntry(w http.ResponseWriter, r *http
 		return
 	}
 	player, err := h.Registration.RegisterPlayer(r.Context(), league.Player{
-		SeasonID: seasonID, DisplayName: displayName, Nickname: nickname, RequestedIdentityID: id,
+		SeasonID: seasonID, DisplayName: displayName, Nickname: nickname, ReturningIdentityID: id,
 	})
 	if err != nil {
 		if !writeReturningError(w, err) {
@@ -96,7 +96,7 @@ func (h ReturningRegistrationHandler) tournamentEntry(w http.ResponseWriter, r *
 		return
 	}
 	entry, err := h.Tournament.RegisterEntry(r.Context(), r.PathValue("slug"), tournament.Entry{
-		DisplayName: displayName, Nickname: nickname, RequestedIdentityID: id,
+		DisplayName: displayName, Nickname: nickname, ReturningIdentityID: id,
 	})
 	if err != nil {
 		if !writeReturningError(w, err) {

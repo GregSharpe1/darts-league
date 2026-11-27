@@ -98,7 +98,7 @@ func (s Season) Start(startedAt time.Time) Season {
 }
 
 type Player struct {
-	RequestedIdentityID int64
+	ReturningIdentityID int64
 	ID                  int64
 	SeasonID            int64
 	DivisionID          *int64

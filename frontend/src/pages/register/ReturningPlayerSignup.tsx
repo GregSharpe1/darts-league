@@ -50,7 +50,7 @@ function ReturningPlayerForm({ action, endpoint, successMessage }: ReturningProp
 
   if (enter.isSuccess) return <div role="status">
     <StateNotice message={successMessage(enter.data.preferred_name)} compact />
-    <p>An admin will review the link to your previous results.</p>
+    <p>This entry is linked to your existing player profile.</p>
   </div>
   if (directory.isPending) return <p role="status">Loading previous players...</p>
   if (directory.isError) return <div className="toolbar-actions">
@@ -65,7 +65,7 @@ function ReturningPlayerForm({ action, endpoint, successMessage }: ReturningProp
 
   const profiles = filterPlayerProfiles(directory.data, search)
   return <form className="form-preview" onSubmit={event => { event.preventDefault(); enter.mutate() }}>
-    <p>Choose the profile you played under. An admin will confirm the link to your previous results.</p>
+    <p>Choose the profile you played under to keep your previous results linked.</p>
     <div className="field">
       <label htmlFor="returning-search">Search previous players</label>
       <input id="returning-search" type="search" value={search} disabled={enter.isPending} onChange={event => {

@@ -51,7 +51,7 @@ func (f MatchFormat) validate() error {
 }
 
 type Entry struct {
-	RequestedIdentityID int64     `json:"-"`
+	ReturningIdentityID int64     `json:"-"`
 	ID                  int64     `json:"id"`
 	DisplayName         string    `json:"display_name"`
 	Nickname            string    `json:"nickname,omitempty"`

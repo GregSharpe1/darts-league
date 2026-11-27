@@ -201,7 +201,11 @@ func (s *MemoryStore) CreatePlayer(_ context.Context, player Player) (Player, er
 		return Player{}, ErrSeasonCompleted
 	}
 	for _, existing := range s.playersByID {
-		if existing.SeasonID == player.SeasonID && NormalizeDisplayName(existing.DisplayName) == NormalizeDisplayName(player.DisplayName) {
+		if existing.SeasonID != player.SeasonID {
+			continue
+		}
+		if NormalizeDisplayName(existing.DisplayName) == NormalizeDisplayName(player.DisplayName) ||
+			(player.ReturningIdentityID > 0 && existing.ReturningIdentityID == player.ReturningIdentityID) {
 			return Player{}, ErrDuplicatePlayerName
 		}
 	}

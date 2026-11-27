@@ -203,6 +203,9 @@ func (m *MemoryIdentities) snapshot(ctx context.Context) (IdentitySnapshot, erro
 		if entry.Kind == "tournament" {
 			id++
 		}
+		if entry.IdentityID > 0 {
+			id = entry.IdentityID
+		}
 		if linked := m.linked[id]; linked != 0 {
 			id = linked
 		}
@@ -283,7 +286,7 @@ func (s Service) IdentityEntries(ctx context.Context) ([]IdentityEntry, error) {
 			return nil, err
 		}
 		for _, p := range players {
-			entries = append(entries, IdentityEntry{Kind: "league", EntryID: p.ID, RequestedIdentityID: p.RequestedIdentityID, Scope: strconv.FormatInt(season.ID, 10), Competition: season.Name, DisplayName: p.DisplayName, Nickname: p.Nickname})
+			entries = append(entries, IdentityEntry{Kind: "league", EntryID: p.ID, IdentityID: p.ReturningIdentityID, Scope: strconv.FormatInt(season.ID, 10), Competition: season.Name, DisplayName: p.DisplayName, Nickname: p.Nickname})
 		}
 	}
 	events, err := s.Tournament.ListTournaments(ctx)
@@ -296,7 +299,7 @@ func (s Service) IdentityEntries(ctx context.Context) ([]IdentityEntry, error) {
 			return nil, err
 		}
 		for _, entry := range roster {
-			entries = append(entries, IdentityEntry{Kind: "tournament", EntryID: entry.ID, RequestedIdentityID: entry.RequestedIdentityID, Scope: event.Slug, Competition: event.Name, DisplayName: entry.DisplayName, Nickname: strings.TrimSpace(entry.Nickname)})
+			entries = append(entries, IdentityEntry{Kind: "tournament", EntryID: entry.ID, IdentityID: entry.ReturningIdentityID, Scope: event.Slug, Competition: event.Name, DisplayName: entry.DisplayName, Nickname: strings.TrimSpace(entry.Nickname)})
 		}
 	}
 	return entries, nil

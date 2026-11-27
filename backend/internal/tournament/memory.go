@@ -145,7 +145,8 @@ func (s *MemoryStore) CreateTournamentEntry(_ context.Context, slug string, entr
 	}
 	name := league.NormalizeDisplayName(entry.DisplayName)
 	for _, existing := range s.entries[slug] {
-		if league.NormalizeDisplayName(existing.DisplayName) == name {
+		if league.NormalizeDisplayName(existing.DisplayName) == name ||
+			(entry.ReturningIdentityID > 0 && existing.ReturningIdentityID == entry.ReturningIdentityID) {
 			return Entry{}, league.ErrDuplicatePlayerName
 		}
 	}
