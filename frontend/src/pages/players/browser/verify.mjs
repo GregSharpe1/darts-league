@@ -9,6 +9,11 @@ const root = fileURLToPath(new URL('../../../../', import.meta.url))
 const screenshots = fileURLToPath(new URL('./screenshots/', import.meta.url))
 const fonts = new URL('../../../../../docs/mockups/autodarts/fonts/', import.meta.url)
 const fixture = JSON.parse(await readFile(new URL('../../../lib/playerStatistics.fixture.json', import.meta.url), 'utf8'))
+const placements = {
+  name: fixture.preferred_name,
+  league: { position: 2, competition: 'Season one', division: 'Premier Division' },
+  tournament: { position: 3, competition: 'City Cup', tournament_slug: 'city-cup', tied: true },
+}
 const manual = { ...fixture, first_nine_match_average_mean: null, checkout_hits: null, checkout_attempts: null, checkout_percentage: null, total_180: null, highest_finish: null,
   coverage: { ...fixture.coverage, matches_with_detail: 0, first_nine_match_average_mean: 0, checkout: 0, total_180: 0, highest_finish: 0,
     matches_with_recorded_throws: 0, matches_with_positions: 0, recorded_throws: 0, known_positions: 0, plottable_positions: 0, position_fraction: null },
@@ -41,7 +46,8 @@ try {
         if (state === 'loading') await new Promise(resolve => { release = resolve })
         status = state === 'missing' ? 404 : state === 'unauthorized' ? 401 : state === 'error' ? 503 : 200
         body = status !== 200 ? { error: { message: 'private-source-secret' } } : state === 'manual' ? manual : state === 'empty' ? empty : state === 'zero-attempts' ? { ...fixture, checkout_attempts: 0, checkout_percentage: null } : fixture
-      } else if (url.pathname === '/api/season') body = { id: 2, instance_name: 'Offline player QA', name: 'Season two', status: 'started', registration_open: false }
+      } else if (url.pathname === `/api/seasons/${fixture.season_id}/players/${fixture.player_id}/placements`) body = placements
+      else if (url.pathname === '/api/season') body = { id: 2, instance_name: 'Offline player QA', name: 'Season two', status: 'started', registration_open: false }
       else if (url.pathname === '/api/version') body = { version: 'offline-qa' }
       else if (url.pathname.endsWith('/divisions')) body = { divisions: [{ id: 1, name: 'Test division', slug: 'test', position: 1 }] }
       else if (url.pathname.endsWith('/players')) body = { players: [] }
@@ -67,6 +73,9 @@ try {
         else if (state === 'error') await page.getByRole('button', { name: 'Try again' }).waitFor()
         else await page.getByRole('heading', { name: 'Arrow', exact: true }).waitFor()
         if (state === 'partial') {
+          const best = page.getByRole('region', { name: 'Best placements' })
+          await best.getByText('2nd', { exact: true }).waitFor()
+          await best.getByText('Tied 3rd', { exact: true }).waitFor()
           assert.equal(await page.locator('[data-dart]').count(), 1)
           assert.equal(await page.getByRole('link', { name: 'Match 12', exact: true }).getAttribute('href'), `${admin ? '/admin' : ''}/matches/12`)
           const matchAction = page.getByRole('link', { name: 'Match 12', exact: true })
